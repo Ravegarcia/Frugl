@@ -1,9 +1,11 @@
+import { connection } from 'next/server';
 import { requireUser } from '@/lib/auth';
-import { timeAgo } from '@/lib/format';
 import Link from 'next/link';
 import EmptyState from '@/components/EmptyState';
+import TimeAgo from '@/components/TimeAgo';
 
 export default async function NotificationsPage() {
+  await connection();
   const { supabase, user } = await requireUser('/notifications');
 
   // Fetch notifications
@@ -62,7 +64,7 @@ export default async function NotificationsPage() {
             >
               <div className='flex items-start justify-between gap-2'>
                 <p className='text-sm text-gray-800'>{notifText(n)}</p>
-                <span className='text-xs text-gray-400 shrink-0'>{timeAgo(n.created_at)}</span>
+                <span className='text-xs text-gray-400 shrink-0'><TimeAgo timestamp={n.created_at} /></span>
               </div>
             </Link>
           ))}

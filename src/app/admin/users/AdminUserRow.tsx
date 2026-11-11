@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { timeAgo } from '@/lib/format';
-import { BadgeCheck, Ban, ShieldAlert } from 'lucide-react';
-
+import TimeAgo from '@/components/TimeAgo';
 export default function AdminUserRow({ user, currentRole }: { user: any; currentRole: string }) {
   const supabase = createClient();
   const [status, setStatus] = useState(user.status);
@@ -49,7 +47,7 @@ export default function AdminUserRow({ user, currentRole }: { user: any; current
           </span>
         </div>
         <p className='text-xs text-gray-400'>
-          Joined {timeAgo(user.created_at)} · Location: {user.default_location || 'Not set'}
+          Joined <TimeAgo timestamp={user.created_at} /> · Location: {user.default_location || 'Not set'}
         </p>
       </div>
 

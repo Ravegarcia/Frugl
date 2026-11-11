@@ -1,7 +1,9 @@
 import { redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 export async function getSessionProfile() {
+  await connection();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { supabase, user: null, profile: null as any };

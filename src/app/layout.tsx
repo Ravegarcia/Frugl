@@ -1,9 +1,22 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { Audiowide, Poppins } from 'next/font/google';
 import './globals.css';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import BottomBar from '@/components/BottomBar';
+
+const audiowide = Audiowide({
+  weight: '400',
+  subsets: ['latin'],
+  variable: '--font-audiowide',
+});
+
+const poppins = Poppins({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-poppins',
+});
 
 export const metadata: Metadata = {
   title: 'Frugl - secondhand laptops',
@@ -12,12 +25,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang='en'>
-      <body className='min-h-screen bg-gray-50 pb-16 text-gray-900 md:pb-0'>
-        <Suspense fallback={<header className='sticky top-0 z-20 h-14 border-b bg-white' />}>
+    <html lang='en' className={`${audiowide.variable} ${poppins.variable}`}>
+      <body className='app-body'>
+        <Suspense fallback={<header className='site-header h-14' />}>
           <TopBar />
         </Suspense>
-        <main className='mx-auto max-w-6xl px-4 py-6'>{children}</main>
+        <main className='app-main'>{children}</main>
         <Footer />
         <BottomBar />
       </body>

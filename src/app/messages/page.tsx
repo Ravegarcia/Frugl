@@ -1,10 +1,12 @@
 import Link from 'next/link';
+import { connection } from 'next/server';
 import { requireUser } from '@/lib/auth';
-import { timeAgo } from '@/lib/format';
 import { coverUrl } from '@/lib/queries';
 import EmptyState from '@/components/EmptyState';
+import TimeAgo from '@/components/TimeAgo';
 
 export default async function MessagesPage() {
+  await connection();
   const { supabase, user } = await requireUser('/messages');
 
   // Fetch all conversations for user
@@ -72,7 +74,7 @@ export default async function MessagesPage() {
                       </span>
                     </p>
                     <span className='text-xs text-gray-400'>
-                      {timeAgo(latestMsg?.sent_at || c.updated_at)}
+                      <TimeAgo timestamp={latestMsg?.sent_at || c.updated_at} />
                     </span>
                   </div>
 

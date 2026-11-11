@@ -23,6 +23,7 @@ export default function SearchBox() {
 
   return (
     <form
+      className='header-search-form'
       onSubmit={(e) => {
         e.preventDefault();
         router.push('/laptops?q=' + encodeURIComponent(q));

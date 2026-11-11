@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
-import { timeAgo } from '@/lib/format';
+import TimeAgo from '@/components/TimeAgo';
 import { detectScamPhrases } from '@/lib/scam';
-import { Send, AlertTriangle, ShieldCheck, Tag } from 'lucide-react';
+import { Send, AlertTriangle, ShieldCheck, Tag } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -308,7 +308,7 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
                 )}
 
                 <span className='mt-0.5 text-[10px] text-gray-400'>
-                  {timeAgo(m.sent_at)}
+                  <TimeAgo timestamp={m.sent_at} />
                 </span>
               </div>
             );

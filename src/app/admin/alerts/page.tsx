@@ -1,8 +1,8 @@
 import { requireStaff } from '@/lib/auth';
-import { timeAgo } from '@/lib/format';
 import Link from 'next/link';
 import EmptyState from '@/components/EmptyState';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from '@/components/icons';
+import TimeAgo from '@/components/TimeAgo';
 
 export default async function AdminAlertsPage() {
   const { supabase } = await requireStaff();
@@ -46,7 +46,7 @@ export default async function AdminAlertsPage() {
                     <span className='font-semibold text-xs text-gray-800'>
                       Sender: {msg?.sender?.name || 'Unknown'}
                     </span>
-                    <span className='text-xs text-gray-400'>· {timeAgo(a.created_at)}</span>
+                    <span className='text-xs text-gray-400'>· <TimeAgo timestamp={a.created_at} /></span>
                   </div>
                   <Link
                     href={`/messages/${msg?.conversation_id}`}

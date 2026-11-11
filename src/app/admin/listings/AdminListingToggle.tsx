@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Eye, EyeOff, Star } from 'lucide-react';
+import { Eye, EyeOff, Star } from '@/components/icons';
 
 export default function AdminListingToggle({
   listingId,

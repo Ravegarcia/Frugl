@@ -2,7 +2,7 @@
 
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, UploadCloud, X, AlertCircle, Loader2 } from 'lucide-react';
+import { Camera, UploadCloud, X, AlertCircle, Loader2 } from '@/components/icons';
 import { resizeImage } from '@/lib/client-image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

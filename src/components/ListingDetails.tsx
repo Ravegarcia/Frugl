@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { conditionLabel, dealLabel, formatPrice } from '@/lib/constants';
-import { timeAgo } from '@/lib/format';
+import TimeAgo from '@/components/TimeAgo';
 
 type Props = {
   listing: any;
@@ -14,6 +14,7 @@ type Props = {
 
 export default function ListingDetails({ listing, photos, seller, children }: Props) {
   const [index, setIndex] = useState(0);
+  const listedAt = listing.published_at ?? listing.created_at;
   const current = photos[Math.min(index, Math.max(photos.length - 1, 0))];
 
   const details = [
@@ -32,7 +33,7 @@ export default function ListingDetails({ listing, photos, seller, children }: Pr
   ].filter(([, v]) => v);
 
   return (
-    <div className='space-y-4'>
+    <div className='listing-details space-y-5'>
       <div>
         <div className='aspect-[4/3] overflow-hidden rounded-xl bg-gray-100'>
           {current ? (
@@ -56,7 +57,7 @@ export default function ListingDetails({ listing, photos, seller, children }: Pr
         <h1 className='text-2xl font-semibold'>{listing.title || 'Your listing title'}</h1>
         <p className='text-2xl font-bold text-emerald-700'>{listing.price ? formatPrice(listing.price) : 'Price'}</p>
         <p className='text-sm text-gray-500'>
-          Listed {timeAgo(listing.published_at ?? listing.created_at)}{listing.location ? ' in ' + listing.location : ''}
+          Listed <TimeAgo timestamp={listedAt} />{listing.location ? ' in ' + listing.location : ''}
         </p>
         {listing.status === 'reserved' && <p className='mt-1 text-sm font-medium text-amber-600'>Reserved</p>}
         {listing.status === 'sold' && <p className='mt-1 text-sm font-medium text-red-600'>Sold</p>}

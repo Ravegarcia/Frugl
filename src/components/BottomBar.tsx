@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, Search, PlusCircle, MessageCircle, User } from 'lucide-react';
+import { Home, Search, PlusCircle, MessageCircle, User } from '@/components/icons';
 
 const items = [
   { href: '/', label: 'Home', Icon: Home },
@@ -11,7 +11,7 @@ const items = [
 
 export default function BottomBar() {
   return (
-    <nav className='fixed inset-x-0 bottom-0 z-20 flex justify-around border-t bg-white py-2 md:hidden'>
+    <nav className='mobile-nav fixed inset-x-0 bottom-0 z-20 flex justify-around py-2 md:hidden'>
       {items.map(({ href, label, Icon }) => (
         <Link key={href} href={href} className='flex flex-col items-center text-xs'>
           <Icon size={20} />

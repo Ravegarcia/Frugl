@@ -3,10 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { timeAgo } from '@/lib/format';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle } from 'lucide-react';
-
+import TimeAgo from '@/components/TimeAgo';
 export default function ReportQueueItem({ report }: { report: any }) {
   const supabase = createClient();
   const [status, setStatus] = useState(report.status);
@@ -34,7 +32,7 @@ export default function ReportQueueItem({ report }: { report: any }) {
             {report.target_type}
           </span>
           <span className='text-xs text-gray-500'>Reported by {report.reporter?.name || 'User'}</span>
-          <span className='text-xs text-gray-400'>· {timeAgo(report.created_at)}</span>
+          <span className='text-xs text-gray-400'>· <TimeAgo timestamp={report.created_at} /></span>
         </div>
         <span className={`text-xs font-medium capitalize ${status === 'open' ? 'text-amber-600' : 'text-gray-400'}`}>
           {status}

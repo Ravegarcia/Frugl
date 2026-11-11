@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Eye, CheckCircle2, AlertCircle, Loader2, UploadCloud, RefreshCw } from 'lucide-react';
+import { Sparkles, Eye, CheckCircle2, AlertCircle, Loader2, UploadCloud } from '@/components/icons';
 import { CONDITIONS, DEAL_METHODS, BRANDS, formatPrice } from '@/lib/constants';
 import { CHECKLIST_ITEMS, suggestCondition } from '@/lib/condition';
 import { buildDescription, type DescStyle } from '@/lib/description';

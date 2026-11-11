@@ -1,7 +1,5 @@
-import AuthForm from '@/components/AuthForm';
+import AuthPage from '@/components/AuthPage';
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
-  const { next } = await searchParams;
-  const safe = next && next.startsWith('/') && !next.startsWith('//') ? next : '/';
-  return <AuthForm mode='login' next={safe} />;
+export default function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+  return <AuthPage mode='login' searchParams={searchParams} />;
 }

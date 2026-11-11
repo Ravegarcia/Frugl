@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Star, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Star, CheckCircle2, AlertCircle } from '@/components/icons';
 
 interface Props {
   userId: string;

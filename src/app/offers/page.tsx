@@ -2,8 +2,8 @@ import Link from 'next/link';
 import { requireUser } from '@/lib/auth';
 import { formatPrice } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
-import { timeAgo } from '@/lib/format';
 import EmptyState from '@/components/EmptyState';
+import TimeAgo from '@/components/TimeAgo';
 
 export default async function OffersPage() {
   const { supabase, user } = await requireUser('/offers');
@@ -57,7 +57,7 @@ export default async function OffersPage() {
                         {o.listings?.title}
                       </Link>
                       <p className='text-xs text-gray-500'>
-                        From <span className='font-medium text-gray-800'>{o.buyer?.name}</span> · {timeAgo(o.created_at)}
+                        From <span className='font-medium text-gray-800'>{o.buyer?.name}</span> · <TimeAgo timestamp={o.created_at} />
                       </p>
                     </div>
                   </div>
@@ -102,7 +102,7 @@ export default async function OffersPage() {
                         {o.listings?.title}
                       </Link>
                       <p className='text-xs text-gray-500'>
-                        Listed at {formatPrice(o.listings?.price)} · Offered {timeAgo(o.created_at)}
+                        Listed at {formatPrice(o.listings?.price)} · Offered <TimeAgo timestamp={o.created_at} />
                       </p>
                     </div>
                   </div>

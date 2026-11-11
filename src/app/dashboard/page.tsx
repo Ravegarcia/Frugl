@@ -3,7 +3,7 @@ import { requireUser } from '@/lib/auth';
 import { formatPrice, conditionLabel } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
 import EmptyState from '@/components/EmptyState';
-import { PlusCircle, ExternalLink, Edit3 } from 'lucide-react';
+import { PlusCircle, ExternalLink, Edit3 } from '@/components/icons';
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'active' } = await searchParams;

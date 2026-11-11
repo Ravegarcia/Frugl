@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireStaff } from '@/lib/auth';
-import { Shield, Flag, Laptop, Users, AlertTriangle } from 'lucide-react';
+import { Shield, Flag, Laptop, Users, AlertTriangle } from '@/components/icons';
 
 export default async function AdminDashboardPage() {
   const { supabase } = await requireStaff();

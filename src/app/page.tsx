@@ -1,69 +1,69 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
+import { CARD_SELECT } from '@/lib/queries';
+import ListingCard from '@/components/ListingCard';
+import EmptyState from '@/components/EmptyState';
 
-export default function Home() {
+const BRAND_LINKS = ['Apple', 'Dell', 'HP', 'Lenovo', 'ASUS', 'Acer'];
+const PRICE_LINKS = [
+  ['Under ₱20,000', '?max=20000'],
+  ['₱20,000 to ₱40,000', '?min=20000&max=40000'],
+  ['Over ₱40,000', '?min=40000'],
+];
+
+export default async function Home() {
+  const supabase = await createClient();
+  await supabase.rpc('release_expired_reservations');
+
+  const base = () =>
+    supabase.from('listings').select(CARD_SELECT).in('status', ['available', 'reserved']).eq('is_visible', true);
+
+  const [featured, newest] = await Promise.all([
+    base().eq('is_featured', true).order('created_at', { ascending: false }).limit(4),
+    base().order('created_at', { ascending: false }).limit(8),
+  ]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className='space-y-8'>
+      <section className='rounded-2xl bg-emerald-700 p-6 text-white md:p-10'>
+        <h1 className='text-2xl font-bold md:text-4xl'>Buy and sell secondhand laptops</h1>
+        <p className='mt-2 text-emerald-100'>Specs checked by AI, fair-price hints, safer deals.</p>
+        <form action='/laptops' className='mt-4 flex gap-2'>
+          <input name='q' placeholder='Search by model, brand or spec' className='flex-1 rounded-md px-3 py-2 text-gray-900' />
+          <button className='rounded-md bg-white px-4 py-2 font-medium text-emerald-800'>Search</button>
+        </form>
+        <div className='mt-4 flex flex-wrap gap-2 text-sm'>
+          {BRAND_LINKS.map((b) => (
+            <Link key={b} href={'/laptops?brand=' + b} className='rounded-full bg-emerald-600 px-3 py-1'>{b}</Link>
+          ))}
+          {PRICE_LINKS.map(([label, qs]) => (
+            <Link key={label} href={'/laptops' + qs} className='rounded-full bg-emerald-800 px-3 py-1'>{label}</Link>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {featured.data && featured.data.length > 0 && (
+        <section>
+          <h2 className='mb-3 text-lg font-semibold'>Featured</h2>
+          <div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
+            {featured.data.map((l: any) => <ListingCard key={l.id} listing={l} />)}
+          </div>
+        </section>
+      )}
+
+      <section>
+        <div className='mb-3 flex items-center justify-between'>
+          <h2 className='text-lg font-semibold'>Newest laptops</h2>
+          <Link href='/laptops' className='text-sm underline'>See all</Link>
         </div>
-      </main>
+        {newest.data && newest.data.length > 0 ? (
+          <div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
+            {newest.data.map((l: any) => <ListingCard key={l.id} listing={l} />)}
+          </div>
+        ) : (
+          <EmptyState title='No laptops listed yet' hint='Be the first to list one.' href='/sell' action='Sell a laptop' />
+        )}
+      </section>
     </div>
   );
 }

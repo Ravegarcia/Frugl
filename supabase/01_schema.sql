@@ -44,7 +44,7 @@ for each row execute function public.handle_new_user();
 create function public.protect_profile_fields() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if auth.uid() is not null and not public.is_admin() then
+  if auth.uid() is not null and (new.id = auth.uid() or not public.is_admin()) then
     new.role := old.role;
     new.status := old.status;
     new.seller_verified := old.seller_verified;

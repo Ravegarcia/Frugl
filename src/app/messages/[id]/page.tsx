@@ -1,10 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
-import { requireUser } from '@/lib/auth';
+import { requireMarketplaceUser } from '@/lib/auth';
 import ChatRoom from './ChatRoom';
 
 export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, user } = await requireUser(`/messages/${id}`);
+  const { supabase, user } = await requireMarketplaceUser(`/messages/${id}`);
 
   // Fetch conversation, listing, participants, and messages
   const { data: conv } = await supabase

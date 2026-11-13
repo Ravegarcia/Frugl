@@ -150,7 +150,7 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
           <p className='text-[11px] text-gray-400'>Never shown publicly to guests.</p>
         </div>
 
-        <Button type='submit' disabled={busy} className='bg-emerald-700 text-white hover:bg-emerald-800'>
+        <Button type='submit' disabled={busy}>
           {busy ? 'Saving...' : 'Save Profile'}
         </Button>
       </form>

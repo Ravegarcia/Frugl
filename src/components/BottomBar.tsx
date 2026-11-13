@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { Home, Search, PlusCircle, MessageCircle, User } from '@/components/icons';
+import { Home, Search, PlusCircle, MessageCircle, Shield, User } from '@/components/icons';
+import { getSessionProfile } from '@/lib/auth';
 
-const items = [
+const memberItems = [
   { href: '/', label: 'Home', Icon: Home },
   { href: '/laptops', label: 'Browse', Icon: Search },
   { href: '/sell', label: 'Sell', Icon: PlusCircle },
@@ -9,12 +10,17 @@ const items = [
   { href: '/account', label: 'Account', Icon: User },
 ];
 
-export default function BottomBar() {
+export default async function BottomBar() {
+  const { profile } = await getSessionProfile();
+  const items = profile?.role === 'admin'
+    ? [{ href: '/admin', label: 'Admin', Icon: Shield }]
+    : memberItems;
+
   return (
-    <nav className='mobile-nav fixed inset-x-0 bottom-0 z-20 flex justify-around py-2 md:hidden'>
+    <nav className='mobile-nav fixed inset-x-0 bottom-0 z-20 flex justify-around py-2 md:hidden' aria-label='Mobile navigation'>
       {items.map(({ href, label, Icon }) => (
         <Link key={href} href={href} className='flex flex-col items-center text-xs'>
-          <Icon size={20} />
+          <Icon size={20} variant='solid' />
           {label}
         </Link>
       ))}

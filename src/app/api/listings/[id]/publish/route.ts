@@ -2,8 +2,9 @@ import { apiUser, json } from '@/lib/api';
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, user } = await apiUser();
+  const { supabase, user, profile } = await apiUser();
   if (!user) return json({ error: 'Please sign in.' }, 401);
+  if (profile?.role === 'admin') return json({ error: 'Admin accounts cannot publish marketplace listings.' }, 403);
 
   const { data: l } = await supabase
     .from('listings').select('*, listing_photos(id)').eq('id', id).eq('seller_id', user.id).maybeSingle();

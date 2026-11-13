@@ -1,9 +1,9 @@
-import { requireUser } from '@/lib/auth';
+import { requireMarketplaceUser } from '@/lib/auth';
 import LeaveReviewForm from './LeaveReviewForm';
 
 export default async function NewReviewPage({ searchParams }: { searchParams: Promise<{ listingId?: string }> }) {
   const { listingId } = await searchParams;
-  const { supabase, user } = await requireUser('/reviews/new');
+  const { supabase, user } = await requireMarketplaceUser('/reviews/new');
 
   let listing: any = null;
   let otherParty: any = null;

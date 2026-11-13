@@ -51,7 +51,7 @@ export default async function AdminAlertsPage() {
                   <Link
                     href={`/messages/${msg?.conversation_id}`}
                     target='_blank'
-                    className='text-xs text-emerald-700 underline font-medium'
+                    className='text-xs text-plum-700 underline font-medium'
                   >
                     Open Conversation ↗
                   </Link>

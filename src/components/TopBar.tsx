@@ -1,16 +1,14 @@
 import Link from 'next/link';
 import { connection } from 'next/server';
-import { MessageCircle } from '@/components/icons';
+import { Bookmark, ChevronDown, Gear, Laptop, MessageCircle, Shield, SignOut, Tag, User } from '@/components/icons';
 import { getSessionProfile, isStaff } from '@/lib/auth';
-import { btn, btnOutline } from '@/lib/ui';
-import SearchBox from '@/components/SearchBox';
 import NotificationBell from '@/components/NotificationBell';
 
 export default async function TopBar() {
   await connection();
   const { supabase, user, profile } = await getSessionProfile();
   let unread = 0;
-  if (user) {
+  if (user && profile?.role !== 'admin') {
     const { count } = await supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
@@ -20,42 +18,73 @@ export default async function TopBar() {
   }
 
   return (
-    <header className='site-header'>
-      <div className='nav-inner flex items-center gap-3 px-1'>
-        <Link href='/' className='brand-mark shrink-0'>Frugl</Link>
-        <div className='header-search hidden flex-1 md:block'><SearchBox /></div>
-        <nav className='ml-auto flex items-center gap-3 text-sm'>
-          <Link href='/laptops' className='hidden md:inline'>Browse</Link>
-          <Link href='/sell' className={`${btn} nav-cta`}>Sell a laptop</Link>
-          {user ? (
-            <>
-              <Link href='/messages' aria-label='Messages'><MessageCircle size={20} /></Link>
-              <NotificationBell userId={user.id} initial={unread} />
-              <details className='relative'>
-                <summary className='flex h-9 w-9 cursor-pointer list-none items-center justify-center rounded-full bg-emerald-100 font-medium'>
-                  {(profile?.name ?? '?').charAt(0).toUpperCase()}
-                </summary>
-                <div className='header-menu absolute right-0 mt-2 w-48 space-y-1 rounded-lg border p-2 shadow-xl'>
-                  <Link className='block rounded px-2 py-1 hover:bg-gray-100' href='/dashboard'>My listings</Link>
-                  <Link className='block rounded px-2 py-1 hover:bg-gray-100' href='/saved'>Saved</Link>
-                  <Link className='block rounded px-2 py-1 hover:bg-gray-100' href='/offers'>Offers</Link>
-                  <Link className='block rounded px-2 py-1 hover:bg-gray-100' href='/account'>Account</Link>
-                  {isStaff(profile) && <Link className='block rounded px-2 py-1 hover:bg-gray-100' href='/admin'>Admin</Link>}
-                  <form action='/auth/signout' method='post'>
-                    <button className='block w-full rounded px-2 py-1 text-left hover:bg-gray-100'>Sign out</button>
-                  </form>
-                </div>
-              </details>
-            </>
-          ) : (
-            <>
-              <Link href='/login' className={`${btnOutline} border-white/25`}>Sign in</Link>
-              <Link href='/register' className='hidden md:inline'>Sign up</Link>
-            </>
-          )}
-        </nav>
-      </div>
-      <div className='header-search px-4 pb-3 md:hidden'><SearchBox /></div>
-    </header>
+    <>
+      <header className='site-header'>
+        <div className='nav-inner'>
+          <Link href='/' className='brand-mark shrink-0'>Frugl</Link>
+          <nav className='header-actions' aria-label='Main navigation'>
+            {profile?.role !== 'admin' && (
+              <>
+                <Link href='/laptops' className='nav-browse-link'>Browse</Link>
+                <Link href='/sell' className='nav-cta'>Sell a laptop</Link>
+              </>
+            )}
+            {user ? (
+              <>
+                {profile?.role === 'admin' ? (
+                  <Link href='/admin' className='nav-browse-link'>Admin dashboard</Link>
+                ) : (
+                  <>
+                    <Link href='/messages' className='nav-icon-link nav-messages' aria-label='Messages' title='Messages'>
+                      <MessageCircle size={20} hoverVariant='solid' />
+                    </Link>
+                    <Link href='/saved' className='nav-icon-link nav-saved' aria-label='Saved'>
+                      <Bookmark size={18} hoverVariant='solid' />
+                    </Link>
+                    <NotificationBell userId={user.id} initial={unread} />
+                  </>
+                )}
+                <details className='profile-dropdown'>
+                  <summary aria-label='Open profile menu' className='profile-pill'>
+                    <span className='profile-avatar'>
+                      {(profile?.name ?? '?').charAt(0).toUpperCase()}
+                    </span>
+                    <span className='profile-label'>{profile?.name ?? 'Profile'}</span>
+                    <ChevronDown size={14} />
+                  </summary>
+                  <div className='header-menu'>
+                    <div className='profile-menu-heading'>
+                      <strong>{profile?.name ?? 'Your account'}</strong>
+                      {user.email && <span>{user.email}</span>}
+                    </div>
+                    <div className='profile-menu-links'>
+                      {profile?.role === 'admin' ? (
+                        <Link href='/admin'><Shield size={17} />Admin dashboard</Link>
+                      ) : (
+                        <>
+                          <Link href={`/sellers/${user.id}`}><User size={17} variant='solid' />My Profile</Link>
+                          <Link href='/dashboard'><Laptop size={17} />Manage Listings</Link>
+                          <Link href='/account'><Gear size={17} />Settings</Link>
+                          <Link href='/offers'><Tag size={17} />Offers</Link>
+                          {isStaff(profile) && <Link href='/admin'><Shield size={17} />Admin</Link>}
+                        </>
+                      )}
+                    </div>
+                    <form action='/auth/signout' method='post' className='profile-signout'>
+                      <button type='submit'><SignOut size={17} />Sign out</button>
+                    </form>
+                  </div>
+                </details>
+              </>
+            ) : (
+              <>
+                <Link href='/login' className='nav-auth-link'>Sign in</Link>
+                <Link href='/register' className='nav-auth-link nav-signup'>Sign up</Link>
+              </>
+            )}
+          </nav>
+        </div>
+      </header>
+    </>
   );
 }

@@ -35,17 +35,14 @@ export default async function Home() {
         <div className='home-hero-copy'>
           <p className='home-hero-kicker'>The laptop-only marketplace</p>
           <h1>Good laptops <span>deserve another life.</span></h1>
-          <p className='mt-4 max-w-xl text-sm leading-7 text-[#d1c0e2] md:text-base'>
+          <p className='mt-4 max-w-xl text-sm leading-7 text-plum-700 md:text-base'>
             Find a pre-loved laptop with the details that matter up front. Or list yours in minutes with a little help from AI.
           </p>
           <form action='/laptops' className='home-search'>
             <input name='q' aria-label='Search laptops' placeholder='Search MacBook, ThinkPad, Ryzen 7…' />
             <button type='submit'>Find a laptop</button>
           </form>
-          <div className='hero-quick-links' aria-label='Popular brands'>
-            {BRAND_LINKS.map((brand) => (
-              <Link key={brand} href={'/laptops?brand=' + encodeURIComponent(brand)}>{brand}</Link>
-            ))}
+          <div className='hero-quick-links' aria-label='Popular price ranges'>
             {PRICE_LINKS.map(([label, query]) => (
               <Link key={label} href={'/laptops' + query}>{label}</Link>
             ))}
@@ -75,6 +72,17 @@ export default async function Home() {
               {spotlight?.price && <span className='price'>{formatPrice(spotlight.price)}</span>}
             </div>
           </Link>
+        </div>
+      </section>
+
+      <section className='brand-strip' aria-label='Browse laptops by brand'>
+        <p className='brand-strip-label'>Shop popular brands</p>
+        <div className='brand-strip-links'>
+          {BRAND_LINKS.map((brand) => (
+            <Link key={brand} href={'/laptops?brand=' + encodeURIComponent(brand)}>
+              {brand}
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -111,7 +119,7 @@ export default async function Home() {
       </section>
 
       <section id='how-it-works' className='editorial-section how-it-works'>
-        <p className='text-xs font-medium text-[#d1c0e2]'>Made for buying and selling laptops</p>
+        <p className='text-xs font-medium text-plum-700'>Made for buying and selling laptops</p>
         <h2>Less guessing. <span className='accent-text'>Better hand-me-downs.</span></h2>
         <p>
           Frugl brings the model, specs, condition, and seller notes together, so you can make a more informed choice.
@@ -136,7 +144,7 @@ export default async function Home() {
       </section>
 
       <section className='home-cta'>
-        <div>
+        <div className='home-cta-copy'>
           <h2>Ready to find a laptop that fits?</h2>
           <p>Browse real listings, compare the specs, and take it from there.</p>
         </div>

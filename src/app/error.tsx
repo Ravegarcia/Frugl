@@ -1,10 +1,14 @@
 'use client';
 
+import { AlertCircle } from '@/components/icons';
+
 export default function ErrorPage({ reset }: { error: Error; reset: () => void }) {
   return (
-    <div className='py-20 text-center'>
-      <h1 className='text-xl font-semibold'>Something went wrong</h1>
-      <button onClick={reset} className='mt-4 rounded-md border px-4 py-2'>Try again</button>
+    <div className='empty-state'>
+      <span className='empty-state-icon'><AlertCircle size={24} /></span>
+      <h1>Something went wrong</h1>
+      <p className='empty-state-hint'>The page could not be loaded. Try again.</p>
+      <button onClick={reset} className='empty-state-action'>Try again</button>
     </div>
   );
 }

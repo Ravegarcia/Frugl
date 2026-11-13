@@ -79,54 +79,72 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
   };
 
   return (
-    <div className='grid gap-6 md:grid-cols-[16rem_1fr]'>
-      <form method='get' className='h-fit space-y-3 rounded-xl border bg-white p-4'>
-        <label className='block text-sm'>
-          Search
-          <input name='q' defaultValue={sp.q ?? ''} className={field} />
-        </label>
-        <Sel name='brand' label='Brand' value={sp.brand} options={opts(BRANDS)} />
-        <label className='block text-sm'>
-          CPU contains
-          <input name='cpu' defaultValue={sp.cpu ?? ''} placeholder='i5, Ryzen 7, M1' className={field} />
-        </label>
-        <Sel name='ram' label='RAM' value={sp.ram} options={opts(RAM_OPTIONS)} />
-        <Sel name='storage' label='Storage' value={sp.storage} options={opts(STORAGE_OPTIONS)} />
-        <Sel name='screen' label='Screen size' value={sp.screen} options={SCREEN_OPTIONS} />
-        <Sel name='condition' label='Condition' value={sp.condition} options={CONDITIONS} />
-        <Sel name='deal' label='Deal method' value={sp.deal} options={DEAL_METHODS} />
-        <div className='grid grid-cols-2 gap-2'>
-          <label className='block text-sm'>Min price<input name='min' type='number' defaultValue={sp.min ?? ''} className={field} /></label>
-          <label className='block text-sm'>Max price<input name='max' type='number' defaultValue={sp.max ?? ''} className={field} /></label>
+    <div className='browse-page'>
+      <header className='browse-intro'>
+        <div>
+          <p className='browse-eyebrow'>Browse the marketplace</p>
+          <h1>Find your next laptop</h1>
+          <p className='browse-intro-description'>
+            Compare the details that matter, from processor and memory to condition and handover options.
+          </p>
         </div>
-        <label className='block text-sm'>
-          Location
-          <input name='location' defaultValue={sp.location ?? ''} placeholder='City or barangay' className={field} />
-        </label>
-        <Sel name='sort' label='Sort by' value={sort} options={SORTS} any={false} />
-        <div className='flex gap-2'>
-          <button className={btn}>Apply filters</button>
-          <Link href='/laptops' className={btnOutline}>Clear</Link>
-        </div>
-      </form>
+      </header>
 
-      <section>
-        <p className='mb-3 text-sm text-gray-500'>{count ?? 0} laptop{count === 1 ? '' : 's'} found</p>
-        {data && data.length > 0 ? (
-          <div className='grid grid-cols-2 gap-4 lg:grid-cols-3'>
-            {data.map((l: any) => <ListingCard key={l.id} listing={l} />)}
+      <div className='browse-layout'>
+        <form method='get' className='browse-filters h-fit space-y-3 p-5'>
+          <h2 className='browse-filters-heading'>Refine your search</h2>
+          <label className='block text-sm'>
+            Search
+            <input name='q' defaultValue={sp.q ?? ''} className={field} />
+          </label>
+          <Sel name='brand' label='Brand' value={sp.brand} options={opts(BRANDS)} />
+          <label className='block text-sm'>
+            CPU contains
+            <input name='cpu' defaultValue={sp.cpu ?? ''} placeholder='i5, Ryzen 7, M1' className={field} />
+          </label>
+          <Sel name='ram' label='RAM' value={sp.ram} options={opts(RAM_OPTIONS)} />
+          <Sel name='storage' label='Storage' value={sp.storage} options={opts(STORAGE_OPTIONS)} />
+          <Sel name='screen' label='Screen size' value={sp.screen} options={SCREEN_OPTIONS} />
+          <Sel name='condition' label='Condition' value={sp.condition} options={CONDITIONS} />
+          <Sel name='deal' label='Deal method' value={sp.deal} options={DEAL_METHODS} />
+          <div className='grid grid-cols-2 gap-2'>
+            <label className='block text-sm'>Min price<input name='min' type='number' defaultValue={sp.min ?? ''} className={field} /></label>
+            <label className='block text-sm'>Max price<input name='max' type='number' defaultValue={sp.max ?? ''} className={field} /></label>
           </div>
-        ) : (
-          <EmptyState title='No laptops match your filters' hint='Try removing a filter.' href='/laptops' action='Clear filters' />
-        )}
-        {pages > 1 && (
-          <div className='mt-6 flex items-center justify-center gap-4 text-sm'>
-            {page > 1 && <Link href={pageHref(page - 1)} className='underline'>Previous</Link>}
-            <span>Page {page} of {pages}</span>
-            {page < pages && <Link href={pageHref(page + 1)} className='underline'>Next</Link>}
+          <label className='block text-sm'>
+            Location
+            <input name='location' defaultValue={sp.location ?? ''} placeholder='City or barangay' className={field} />
+          </label>
+          <Sel name='sort' label='Sort by' value={sort} options={SORTS} any={false} />
+          <div className='flex gap-2'>
+            <button className={btn}>Apply filters</button>
+            <Link href='/laptops' className={btnOutline}>Clear</Link>
           </div>
-        )}
-      </section>
+        </form>
+
+        <section className='browse-results'>
+          <div className='browse-results-heading'>
+            <div>
+              <h2>Available laptops</h2>
+              <p>{count ?? 0} laptop{count === 1 ? '' : 's'} found</p>
+            </div>
+          </div>
+          {data && data.length > 0 ? (
+            <div className='grid grid-cols-2 gap-4 lg:grid-cols-3'>
+              {data.map((l: any) => <ListingCard key={l.id} listing={l} />)}
+            </div>
+          ) : (
+            <EmptyState title='No laptops match your filters' hint='Try removing a filter.' href='/laptops' action='Clear filters' />
+          )}
+          {pages > 1 && (
+            <div className='mt-6 flex items-center justify-center gap-4 text-sm'>
+              {page > 1 && <Link href={pageHref(page - 1)} className='underline'>Previous</Link>}
+              <span>Page {page} of {pages}</span>
+              {page < pages && <Link href={pageHref(page + 1)} className='underline'>Next</Link>}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

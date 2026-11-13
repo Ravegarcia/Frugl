@@ -44,6 +44,7 @@ function draftFromModel(m: CatalogModel, hints: Hints) {
 export async function POST(request: Request) {
   const { supabase, user, profile } = await apiUser();
   if (!user) return json({ error: 'Please sign in.' }, 401);
+  if (profile?.role === 'admin') return json({ error: 'Admin accounts cannot create marketplace listings.' }, 403);
   if (profile?.status === 'suspended') return json({ error: 'Your account is suspended.' }, 403);
   if (!(await withinLimit(user.id, 'identify'))) {
     return json({ error: 'You reached the daily limit for AI identification. Try again tomorrow, or skip the AI and type the details yourself.' }, 429);

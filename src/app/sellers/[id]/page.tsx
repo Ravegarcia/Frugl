@@ -4,6 +4,7 @@ import { CARD_SELECT } from '@/lib/queries';
 import ListingCard from '@/components/ListingCard';
 import EmptyState from '@/components/EmptyState';
 import TimeAgo from '@/components/TimeAgo';
+import { CheckCircle } from '@/components/icons';
 
 export default async function SellerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,8 +22,16 @@ export default async function SellerPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className='space-y-6'>
-      <div className='rounded-xl border bg-white p-4'>
-        <h1 className='text-xl font-semibold'>{seller.name}{seller.seller_verified && <span className='ml-2 text-sm text-emerald-700'>Verified</span>}</h1>
+      <div className='rounded-2xl border border-border bg-surface p-4'>
+        <h1 className='text-xl font-semibold'>
+          {seller.name}
+          {seller.seller_verified && (
+            <span className='status-badge status-success ml-2 font-sans text-sm'>
+              <CheckCircle size={12} />
+              Verified seller
+            </span>
+          )}
+        </h1>
         <p className='text-sm text-gray-500'>Member since <TimeAgo timestamp={seller.created_at} /></p>
         <p className='mt-1 text-sm'>
           {avg ? 'Rating ' + avg.toFixed(1) + ' / 5 from ' + list.length + ' review' + (list.length > 1 ? 's' : '') : 'No reviews yet'}

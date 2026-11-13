@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { requireUser } from '@/lib/auth';
+import { requireMarketplaceUser } from '@/lib/auth';
 import { formatPrice, conditionLabel } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
 import EmptyState from '@/components/EmptyState';
@@ -7,7 +7,7 @@ import { PlusCircle, ExternalLink, Edit3 } from '@/components/icons';
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'active' } = await searchParams;
-  const { supabase, user } = await requireUser('/dashboard');
+  const { supabase, user } = await requireMarketplaceUser('/dashboard');
 
   const validTabs = ['active', 'draft', 'reserved', 'sold'];
   const activeTab = validTabs.includes(tab) ? tab : 'active';
@@ -44,7 +44,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
         <Link
           href='/sell'
-          className='inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800'
+          className='inline-flex min-h-11 items-center gap-2 rounded-full border border-primary bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover'
         >
           <PlusCircle size={16} />
           <span>Sell another laptop</span>
@@ -59,14 +59,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             href={`/dashboard?tab=${t.key}`}
             className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
               activeTab === t.key
-                ? 'border-emerald-700 text-emerald-800'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-primary'
             }`}
           >
             <span>{t.label}</span>
             <span
               className={`rounded-full px-2 py-0.5 text-xs ${
-                activeTab === t.key ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
+                activeTab === t.key ? 'bg-secondary text-secondary-foreground' : 'bg-gray-100 text-gray-600'
               }`}
             >
               {t.count}
@@ -81,10 +81,17 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           {listings.map((l: any) => {
             const img = coverUrl(l);
             const offersCount = l.offers?.length || 0;
+            const statusTone = l.status === 'reserved'
+              ? 'status-warning'
+              : l.status === 'sold'
+                ? 'status-muted'
+                : l.status === 'draft'
+                  ? 'status-info'
+                  : 'status-success';
             return (
-              <div key={l.id} className='overflow-hidden rounded-xl border bg-white shadow-sm flex flex-col justify-between'>
+              <div key={l.id} className='flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface shadow-sm'>
                 <div>
-                  <div className='aspect-[16/9] bg-gray-100 relative'>
+                  <div className='relative aspect-[4/3] bg-gray-100'>
                     {img ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img src={img} alt={l.title} className='h-full w-full object-cover' />
@@ -93,7 +100,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         No photo
                       </div>
                     )}
-                    <span className='absolute top-2 right-2 rounded bg-black/60 px-2 py-0.5 text-xs text-white capitalize'>
+                    <span className={`status-badge ${statusTone} absolute right-2 top-2 capitalize`}>
                       {l.status}
                     </span>
                   </div>
@@ -101,7 +108,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <p className='text-lg font-bold text-gray-900'>
                       {l.price ? formatPrice(l.price) : 'No price set'}
                     </p>
-                    <h3 className='line-clamp-2 text-sm font-semibold text-gray-800'>{l.title || 'Untitled Draft'}</h3>
+                    <h3 className='line-clamp-2 font-sans text-sm font-semibold text-gray-800'>{l.title || 'Untitled Draft'}</h3>
                     <p className='text-xs text-gray-500'>
                       {conditionLabel(l.condition) || 'Condition not set'} · {l.location || 'Location not set'}
                     </p>
@@ -116,7 +123,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 <div className='border-t bg-gray-50 px-4 py-2.5 flex items-center justify-between text-xs font-medium'>
                   <Link
                     href={`/sell/${l.id}`}
-                    className='inline-flex items-center gap-1 text-gray-700 hover:text-emerald-700'
+                    className='inline-flex items-center gap-1 text-gray-700 hover:text-primary'
                   >
                     <Edit3 size={14} />
                     <span>Edit</span>
@@ -124,7 +131,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   {l.status !== 'draft' && (
                     <Link
                       href={`/laptops/${l.id}`}
-                      className='inline-flex items-center gap-1 text-emerald-700 hover:underline'
+                      className='inline-flex items-center gap-1 text-primary hover:underline'
                     >
                       <ExternalLink size={14} />
                       <span>View live</span>

@@ -1,3 +1,3 @@
-export const btn = 'inline-flex items-center justify-center rounded-md bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800';
-export const btnOutline = 'inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-100';
-export const field = 'w-full rounded-md border bg-white px-3 py-2 text-sm';
+export const btn = 'inline-flex min-h-11 items-center justify-center rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition-colors hover:bg-accent-hover';
+export const btnOutline = 'inline-flex min-h-11 items-center justify-center rounded-xl bg-ivory px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-secondary';
+export const field = 'w-full rounded-xl border border-input bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/20';

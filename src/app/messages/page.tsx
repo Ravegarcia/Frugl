@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import { connection } from 'next/server';
-import { requireUser } from '@/lib/auth';
+import { requireMarketplaceUser } from '@/lib/auth';
 import { coverUrl } from '@/lib/queries';
 import EmptyState from '@/components/EmptyState';
 import TimeAgo from '@/components/TimeAgo';
 
 export default async function MessagesPage() {
   await connection();
-  const { supabase, user } = await requireUser('/messages');
+  const { supabase, user } = await requireMarketplaceUser('/messages');
 
   // Fetch all conversations for user
   const { data: conversations } = await supabase
@@ -78,7 +78,7 @@ export default async function MessagesPage() {
                     </span>
                   </div>
 
-                  <p className='truncate text-xs font-medium text-emerald-800'>
+                  <p className='truncate text-xs font-medium text-primary'>
                     {listing?.title || 'Listing'}
                   </p>
 

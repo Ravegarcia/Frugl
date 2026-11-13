@@ -19,10 +19,14 @@ export default function NotificationBell({ userId, initial }: { userId: string; 
   }, [userId]);
 
   return (
-    <Link href='/notifications' className='relative' aria-label='Notifications'>
-      <Bell size={20} />
+    <Link
+      href='/notifications'
+      className='nav-icon-link notification-link'
+      aria-label={count > 0 ? `Notifications, ${count} unread` : 'Notifications'}
+    >
+      <Bell size={20} hoverVariant='solid' />
       {count > 0 && (
-        <span className='absolute -right-2 -top-2 rounded-full bg-red-600 px-1.5 text-xs text-white'>{count}</span>
+        <span aria-hidden='true' className='absolute -right-2 -top-2 rounded-full bg-plum-900 px-1.5 text-xs text-white'>{count}</span>
       )}
     </Link>
   );

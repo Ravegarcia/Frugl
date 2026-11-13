@@ -2,9 +2,10 @@ import { apiUser, json } from '@/lib/api';
 import { detectScamPhrases } from '@/lib/scam';
 import { withinLimit } from '@/lib/usage';
 
-export async function GET(request: Request) {
-  const { supabase, user } = await apiUser();
+export async function GET() {
+  const { supabase, user, profile } = await apiUser();
   if (!user) return json({ error: 'Please sign in.' }, 401);
+  if (profile?.role === 'admin') return json({ error: 'Admin accounts cannot use marketplace messaging.' }, 403);
 
   // Get user's conversations
   const { data: convs, error } = await supabase
@@ -30,8 +31,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { supabase, user } = await apiUser();
+  const { supabase, user, profile } = await apiUser();
   if (!user) return json({ error: 'Please sign in.' }, 401);
+  if (profile?.role === 'admin') return json({ error: 'Admin accounts cannot use marketplace messaging.' }, 403);
 
   if (!(await withinLimit(user.id, 'message'))) {
     return json({ error: 'Daily message limit reached.' }, 429);

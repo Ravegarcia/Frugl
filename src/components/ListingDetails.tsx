@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { conditionLabel, dealLabel, formatPrice } from '@/lib/constants';
 import TimeAgo from '@/components/TimeAgo';
+import { CheckCircle, Laptop } from '@/components/icons';
 
 type Props = {
   listing: any;
@@ -35,17 +36,20 @@ export default function ListingDetails({ listing, photos, seller, children }: Pr
   return (
     <div className='listing-details space-y-5'>
       <div>
-        <div className='aspect-[4/3] overflow-hidden rounded-xl bg-gray-100'>
+        <div className='listing-detail-image aspect-[4/3]'>
           {current ? (
             <img src={current} alt={listing.title || 'Laptop photo'} className='h-full w-full object-cover' />
           ) : (
-            <div className='flex h-full items-center justify-center text-gray-400'>No photos yet</div>
+            <div className='listing-photo-placeholder'>
+              <Laptop size={36} />
+              <span>No photos yet</span>
+            </div>
           )}
         </div>
         {photos.length > 1 && (
           <div className='mt-2 flex gap-2 overflow-x-auto'>
             {photos.map((p, i) => (
-              <button key={p} onClick={() => setIndex(i)} className={'h-14 w-14 shrink-0 overflow-hidden rounded border-2 ' + (i === index ? 'border-emerald-600' : 'border-transparent')}>
+              <button key={p} type='button' aria-pressed={i === index} aria-label={`View photo ${i + 1}`} onClick={() => setIndex(i)} className={'h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 ' + (i === index ? 'border-primary' : 'border-transparent')}>
                 <img src={p} alt='' className='h-full w-full object-cover' />
               </button>
             ))}
@@ -54,13 +58,13 @@ export default function ListingDetails({ listing, photos, seller, children }: Pr
       </div>
 
       <div>
-        <h1 className='text-2xl font-semibold'>{listing.title || 'Your listing title'}</h1>
-        <p className='text-2xl font-bold text-emerald-700'>{listing.price ? formatPrice(listing.price) : 'Price'}</p>
+        <h1 className='listing-title'>{listing.title || 'Your listing title'}</h1>
+        <p className='listing-detail-price'>{listing.price ? formatPrice(listing.price) : 'Price'}</p>
         <p className='text-sm text-gray-500'>
           Listed <TimeAgo timestamp={listedAt} />{listing.location ? ' in ' + listing.location : ''}
         </p>
-        {listing.status === 'reserved' && <p className='mt-1 text-sm font-medium text-amber-600'>Reserved</p>}
-        {listing.status === 'sold' && <p className='mt-1 text-sm font-medium text-red-600'>Sold</p>}
+        {listing.status === 'reserved' && <p className='status-badge status-warning mt-2'>Reserved</p>}
+        {listing.status === 'sold' && <p className='status-badge status-muted mt-2'>Sold</p>}
       </div>
 
       {children}
@@ -78,7 +82,15 @@ export default function ListingDetails({ listing, photos, seller, children }: Pr
 
       {specs.length > 0 && (
         <section>
-          <h2 className='mb-1 font-semibold'>Specs{listing.specs_verified ? ' (verified)' : ''}</h2>
+          <h2 className='mb-1 font-semibold'>
+            Specs
+            {listing.specs_verified && (
+              <span className='status-badge status-success ml-2'>
+                <CheckCircle size={12} />
+                Verified
+              </span>
+            )}
+          </h2>
           <dl className='grid grid-cols-2 gap-x-4 gap-y-1 text-sm'>
             {specs.map(([k, v]) => (
               <div key={k} className='contents'><dt className='text-gray-500'>{k}</dt><dd>{v}</dd></div>
@@ -95,10 +107,15 @@ export default function ListingDetails({ listing, photos, seller, children }: Pr
       )}
 
       {seller && (
-        <section className='rounded-xl border bg-white p-3 text-sm'>
+        <section className='rounded-2xl border border-border bg-surface p-4 text-sm'>
           <p className='text-gray-500'>Seller</p>
           <Link href={'/sellers/' + seller.id} className='font-medium underline'>{seller.name}</Link>
-          {seller.seller_verified && <span className='ml-2 text-emerald-700'>Verified</span>}
+          {seller.seller_verified && (
+            <span className='status-badge status-success ml-2'>
+              <CheckCircle size={12} />
+              Verified
+            </span>
+          )}
         </section>
       )}
     </div>

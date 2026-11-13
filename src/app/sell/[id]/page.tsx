@@ -1,10 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
-import { requireUser } from '@/lib/auth';
+import { requireMarketplaceUser } from '@/lib/auth';
 import EditDraftForm from './EditDraftForm';
 
 export default async function SellDraftPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, user, profile } = await requireUser(`/sell/${id}`);
+  const { supabase, user, profile } = await requireMarketplaceUser(`/sell/${id}`);
 
   // Fetch listing, photos, and any condition reports
   const { data: listing } = await supabase

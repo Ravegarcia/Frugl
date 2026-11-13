@@ -7,13 +7,20 @@ export async function getSessionProfile() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { supabase, user: null, profile: null as any };
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-  return { supabase, user, profile: profile as any };
+  const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  if (error) throw new Error(`Unable to load account profile: ${error.message}`);
+  return { supabase, user, profile };
 }
 
 export async function requireUser(next = '/') {
   const s = await getSessionProfile();
   if (!s.user) redirect('/login?next=' + encodeURIComponent(next));
+  return s;
+}
+
+export async function requireMarketplaceUser(next = '/') {
+  const s = await requireUser(next);
+  if (s.profile?.role === 'admin') redirect('/admin');
   return s;
 }
 

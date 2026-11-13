@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
 import { getSessionProfile } from '@/lib/auth';
 import { CARD_SELECT } from '@/lib/queries';
 import { formatPrice } from '@/lib/constants';
@@ -8,7 +9,7 @@ import ListingCard from '@/components/ListingCard';
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, user } = await getSessionProfile();
+  const { supabase, user, profile } = await getSessionProfile();
 
   const { data: listing } = await supabase
     .from('listings')
@@ -23,7 +24,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     .map((p: any) => p.image_url);
   const report: any = Array.isArray(listing.condition_reports) ? listing.condition_reports[0] : listing.condition_reports;
 
-  if (user?.id !== listing.seller_id) await supabase.rpc('increment_views', { p_listing: id });
+  if (profile?.role !== 'admin' && user?.id !== listing.seller_id) {
+    await supabase.rpc('increment_views', { p_listing: id });
+  }
 
   const { data: seller } = await supabase.from('profiles').select('id,name,seller_verified').eq('id', listing.seller_id).single();
 
@@ -41,7 +44,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   }
 
   let saved = false;
-  if (user) {
+  if (user && profile?.role !== 'admin') {
     const res = await supabase.from('saved_listings').select('listing_id').eq('user_id', user.id).eq('listing_id', id).maybeSingle();
     saved = !!res.data;
   }
@@ -77,7 +80,14 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
           )}
         </ListingDetails>
         <aside className='h-fit md:sticky md:top-24'>
-          <ListingActions listingId={id} sellerId={listing.seller_id} status={listing.status} userId={user?.id ?? null} initialSaved={saved} />
+          {profile?.role === 'admin' ? (
+            <div className='space-y-2 rounded-xl border bg-white p-4'>
+              <p className='text-sm'>Marketplace actions are disabled for admin accounts.</p>
+              <Link href='/admin/listings' className='text-sm font-medium text-plum-700 underline'>Manage listings</Link>
+            </div>
+          ) : (
+            <ListingActions listingId={id} sellerId={listing.seller_id} status={listing.status} userId={user?.id ?? null} initialSaved={saved} />
+          )}
         </aside>
       </div>
 

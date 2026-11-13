@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Search } from '@/components/icons';
 
 export default function SearchBox() {
   const router = useRouter();
@@ -29,12 +30,13 @@ export default function SearchBox() {
         router.push('/laptops?q=' + encodeURIComponent(q));
       }}
     >
+      <Search size={18} className='header-search-icon' />
       <input
         list={listId}
         value={q}
         onChange={(e) => setQ(e.target.value)}
+        aria-label='Search laptops'
         placeholder='Search laptops, brands or models'
-        className='w-full rounded-full border bg-gray-50 px-4 py-2 text-sm'
       />
       <datalist id={listId}>
         {options.map((o) => (

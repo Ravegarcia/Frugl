@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Eye, CheckCircle2, AlertCircle, Loader2, UploadCloud } from '@/components/icons';
+import { Sparkles, Eye, CheckCircle2, AlertCircle, Loader2, UploadCloud, Laptop } from '@/components/icons';
 import { CONDITIONS, DEAL_METHODS, BRANDS, formatPrice } from '@/lib/constants';
 import { CHECKLIST_ITEMS, suggestCondition } from '@/lib/condition';
 import { buildDescription, type DescStyle } from '@/lib/description';
@@ -261,6 +261,7 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
     screen_size: screenSize,
   };
   const photoUrls = photos.map((p) => p.image_url);
+  const hasPreviewContent = Boolean(title.trim() || price || photos.length || description.trim() || brand.trim() || model.trim());
 
   return (
     <div className='space-y-4'>
@@ -293,7 +294,6 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
             size='sm'
             onClick={publishListing}
             disabled={savingDraft || publishing}
-            className='bg-emerald-700 hover:bg-emerald-800 text-white'
           >
             {publishing ? (
               <>
@@ -327,8 +327,8 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
         <div className={`space-y-6 ${mobileTab === 'preview' ? 'hidden md:block' : 'block'}`}>
           {/* AI Banner if auto-filled */}
           {aiTier && (
-            <div className='flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900'>
-              <Sparkles size={16} className='text-emerald-700 shrink-0' />
+            <div className='flex items-center gap-2 rounded-xl border border-lavender-300 bg-lavender-100 p-3 text-xs text-primary'>
+                <Sparkles size={16} className='shrink-0 text-plum-700' />
               <span>
                 {aiTier === 'auto'
                   ? 'AI high confidence: Specs and title were auto-filled from the catalog. Please verify.'
@@ -341,7 +341,7 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
           <div className='rounded-xl border bg-white p-4 space-y-3'>
             <div className='flex items-center justify-between'>
               <Label className='font-semibold'>Photos ({photos.length}/10)</Label>
-              <label className='cursor-pointer text-xs font-medium text-emerald-700 hover:underline flex items-center gap-1'>
+              <label className='flex cursor-pointer items-center gap-1 text-xs font-medium text-plum-700 hover:underline'>
                 <UploadCloud size={14} />
                 <span>Add more photos</span>
                 <input
@@ -395,7 +395,7 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
                 <p className='text-xs text-gray-400'>Calculating fair price suggestion...</p>
               )}
               {priceSuggestion && (
-                <div className='rounded-lg border border-emerald-100 bg-emerald-50/60 p-2.5 text-xs text-emerald-900'>
+                <div className='rounded-xl border border-lavender-300 bg-lavender-100/60 p-2.5 text-xs text-primary'>
                   <span className='font-semibold'>Suggested Fair Price Range: </span>
                   {formatPrice(priceSuggestion.low)} – {formatPrice(priceSuggestion.high)}
                   <span className='text-gray-500 ml-1'>
@@ -404,7 +404,7 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
                   <button
                     type='button'
                     onClick={() => setPrice(String(priceSuggestion.median))}
-                    className='ml-2 text-emerald-700 underline font-medium'
+                    className='ml-2 font-medium text-plum-700 underline'
                   >
                     Use median
                   </button>
@@ -420,7 +420,7 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
               <button
                 type='button'
                 onClick={() => setShowChecklist(!showChecklist)}
-                className='text-xs text-emerald-700 underline'
+                className='text-xs text-plum-700 underline'
               >
                 {showChecklist ? 'Hide condition checklist' : 'Use guided checklist'}
               </button>
@@ -433,10 +433,11 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
                   key={c.value}
                   type='button'
                   onClick={() => setCondition(c.value)}
-                  className={`rounded-lg border px-3 py-2 text-xs font-medium text-left transition ${
+                  aria-pressed={condition === c.value}
+                  className={`rounded-full border px-3 py-2 text-xs font-medium text-left transition ${
                     condition === c.value
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-600'
-                      : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+                      ? 'border-primary bg-secondary text-primary ring-1 ring-primary'
+                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   {c.label}
@@ -471,7 +472,7 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
 
           {/* Model & Specs (Autofilled / Editable) */}
           <div className='rounded-xl border bg-white p-4 space-y-4'>
-            <h3 className='text-sm font-semibold text-gray-900'>Specs & Hardware Details</h3>
+            <h3 className='font-sans text-sm font-semibold text-gray-900'>Specs & Hardware Details</h3>
 
             <div className='grid grid-cols-2 gap-3'>
               <div className='space-y-1'>
@@ -563,11 +564,10 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
             <div className='space-y-1.5'>
               <div className='flex items-center justify-between'>
                 <Label htmlFor='description'>Description <span className='text-red-500'>*</span></Label>
-                <div className='flex gap-1.5 text-xs text-emerald-700'>
-                  <span>Template:</span>
-                  <button type='button' onClick={() => applyDescTemplate('simple')} className='underline'>Simple</button>
-                  <span>·</span>
-                  <button type='button' onClick={() => applyDescTemplate('bullets')} className='underline'>Bullets</button>
+                <div className='inline-flex items-center gap-1 rounded-full border border-border bg-ivory p-1 text-xs text-plum-700'>
+                  <span className='px-1'>Template</span>
+                  <button type='button' onClick={() => applyDescTemplate('simple')} className='rounded-full px-2 py-1 hover:bg-secondary'>Simple</button>
+                  <button type='button' onClick={() => applyDescTemplate('bullets')} className='rounded-full px-2 py-1 hover:bg-secondary'>Bullets</button>
                 </div>
               </div>
               <Textarea
@@ -587,9 +587,10 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
                     key={d.value}
                     type='button'
                     onClick={() => toggleDealMethod(d.value)}
-                    className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                    aria-pressed={dealMethods.includes(d.value)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
                       dealMethods.includes(d.value)
-                        ? 'border-emerald-700 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-700'
+                        ? 'border-primary bg-secondary text-primary ring-1 ring-primary'
                         : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                     }`}
                   >
@@ -625,31 +626,38 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
         {/* RIGHT COLUMN: LIVE PREVIEW */}
         <div className={`space-y-3 ${mobileTab === 'form' ? 'hidden md:block' : 'block'}`}>
           <div className='flex items-center justify-between pb-1'>
-            <h2 className='text-sm font-semibold uppercase tracking-wider text-gray-500'>
+            <h2 className='font-sans text-sm font-semibold uppercase tracking-wider text-gray-500'>
               Live Buyer Preview
             </h2>
             <span className='text-xs text-gray-400'>Updates in real time</span>
           </div>
 
           <div className='sticky top-20 rounded-2xl border bg-white p-5 shadow-sm'>
-            <ListingDetails
-              listing={previewListing}
-              photos={photoUrls}
-              seller={{
-                id: initialListing.seller_id,
-                name: 'You (Preview)',
-                seller_verified: true,
-              }}
-            >
-              {priceSuggestion && (
-                <div className='rounded-xl border bg-white p-3 text-sm'>
-                  <p className='font-medium text-emerald-800'>Estimated Market Price</p>
-                  <p className='text-xs text-gray-500'>
-                    Typical range: {formatPrice(priceSuggestion.low)} – {formatPrice(priceSuggestion.high)}
-                  </p>
-                </div>
-              )}
-            </ListingDetails>
+            {hasPreviewContent ? (
+              <ListingDetails
+                listing={previewListing}
+                photos={photoUrls}
+                seller={{
+                  id: initialListing.seller_id,
+                  name: 'You (Preview)',
+                  seller_verified: true,
+                }}
+              >
+                {priceSuggestion && (
+                  <div className='rounded-xl border bg-white p-3 text-sm'>
+                    <p className='font-medium text-primary'>Estimated Market Price</p>
+                    <p className='text-xs text-gray-500'>
+                      Typical range: {formatPrice(priceSuggestion.low)} – {formatPrice(priceSuggestion.high)}
+                    </p>
+                  </div>
+                )}
+              </ListingDetails>
+            ) : (
+              <div className='preview-empty-state'>
+                <Laptop size={36} />
+                <p>Your listing preview. As you fill in your listing, you can preview how it will appear to buyers.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { requireUser } from '@/lib/auth';
+import { requireMarketplaceUser } from '@/lib/auth';
 import { formatPrice } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
 import EmptyState from '@/components/EmptyState';
 import TimeAgo from '@/components/TimeAgo';
 
 export default async function OffersPage() {
-  const { supabase, user } = await requireUser('/offers');
+  const { supabase, user } = await requireMarketplaceUser('/offers');
 
   // Fetch offers received (for user's listings) and offers made (by user)
   const [receivedRes, sentRes] = await Promise.all([
@@ -63,7 +63,7 @@ export default async function OffersPage() {
                   </div>
 
                   <div className='text-right'>
-                    <p className='text-sm font-bold text-emerald-700'>{formatPrice(o.amount)}</p>
+                    <p className='text-sm font-bold text-primary'>{formatPrice(o.amount)}</p>
                     <span className='rounded bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-700'>
                       {o.status}
                     </span>
@@ -108,7 +108,7 @@ export default async function OffersPage() {
                   </div>
 
                   <div className='text-right'>
-                    <p className='text-sm font-bold text-emerald-700'>{formatPrice(o.amount)}</p>
+                    <p className='text-sm font-bold text-primary'>{formatPrice(o.amount)}</p>
                     <span className='rounded bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-700'>
                       {o.status}
                     </span>

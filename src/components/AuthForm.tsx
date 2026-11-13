@@ -43,9 +43,17 @@ export default function AuthForm({ mode, next = '/' }: { mode: Mode; next?: stri
     setMessage('');
 
     if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
-      else window.location.assign(next);
+      else {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+        if (profileError) setError('We could not confirm your account role. Please try again.');
+        else window.location.assign(profile.role === 'admin' ? '/admin' : next);
+      }
     } else if (mode === 'register') {
       if (password.length < 8) {
         setError('Use at least 8 characters for the password.');

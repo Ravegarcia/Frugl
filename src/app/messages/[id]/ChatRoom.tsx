@@ -174,7 +174,7 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
             >
               {listing.title}
             </Link>
-            <p className='text-xs font-bold text-emerald-700'>
+            <p className='text-xs font-bold text-primary'>
               {formatPrice(listing.price)} · <span className='font-normal text-gray-500 capitalize'>{listing.status}</span>
             </p>
           </div>
@@ -188,7 +188,7 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
               onClick={() => setShowOfferForm(!showOfferForm)}
               className='text-xs'
             >
-              <Tag size={14} className='mr-1 text-emerald-700' />
+              <Tag size={14} className='mr-1 text-plum-700' />
               {showOfferForm ? 'Cancel Offer' : 'Make Offer'}
             </Button>
           )}
@@ -220,7 +220,7 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
               placeholder='Enter your offer in PHP'
               className='text-sm'
             />
-            <Button type='submit' size='sm' className='bg-emerald-700 text-white'>
+            <Button type='submit' size='sm'>
               Send Offer
             </Button>
           </div>
@@ -228,9 +228,9 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
       )}
 
       {latestOffer && (
-        <div className='flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-xs'>
+        <div className='flex items-center justify-between rounded-xl border border-lavender-300 bg-lavender-100 p-3 text-xs'>
           <div>
-            <span className='font-semibold text-emerald-900'>
+            <span className='font-semibold text-primary'>
               Offer: {formatPrice(latestOffer.amount)}
             </span>
             <span className='ml-2 text-gray-600 capitalize'>({latestOffer.status})</span>
@@ -241,7 +241,7 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
               <>
                 <button
                   onClick={() => handleOfferStatus(latestOffer.id, 'accepted')}
-                  className='rounded bg-emerald-700 px-2.5 py-1 font-medium text-white hover:bg-emerald-800'
+                  className='min-h-11 rounded-full border border-primary bg-accent px-4 font-medium text-accent-foreground hover:bg-accent-hover'
                 >
                   Accept
                 </button>
@@ -292,8 +292,8 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
                 <div
                   className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm ${
                     isMe
-                      ? 'bg-emerald-700 text-white rounded-br-none'
-                      : 'bg-gray-100 text-gray-900 rounded-bl-none'
+                      ? 'bg-secondary text-primary rounded-br-none'
+                      : 'bg-ivory text-primary rounded-bl-none'
                   }`}
                 >
                   <p className='whitespace-pre-wrap break-words'>{m.body}</p>
@@ -329,7 +329,8 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
         <Button
           type='submit'
           disabled={sending || !inputText.trim()}
-          className='rounded-full bg-emerald-700 hover:bg-emerald-800 text-white p-2.5 h-10 w-10 shrink-0'
+          aria-label='Send message'
+          className='h-11 w-11 shrink-0 rounded-full p-2.5'
         >
           <Send size={16} />
         </Button>

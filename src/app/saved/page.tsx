@@ -1,10 +1,10 @@
-import { requireUser } from '@/lib/auth';
+import { requireMarketplaceUser } from '@/lib/auth';
 import { CARD_SELECT } from '@/lib/queries';
 import ListingCard from '@/components/ListingCard';
 import EmptyState from '@/components/EmptyState';
 
 export default async function SavedPage() {
-  const { supabase, user } = await requireUser('/saved');
+  const { supabase, user } = await requireMarketplaceUser('/saved');
 
   const { data: savedListings } = await supabase
     .from('saved_listings')

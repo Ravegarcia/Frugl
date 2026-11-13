@@ -1,8 +1,8 @@
-import { requireUser } from '@/lib/auth';
+import { requireMarketplaceUser } from '@/lib/auth';
 import AccountForm from './AccountForm';
 
 export default async function AccountPage() {
-  const { supabase, user, profile } = await requireUser('/account');
+  const { supabase, user, profile } = await requireMarketplaceUser('/account');
 
   // Fetch private contact number
   const { data: privateData } = await supabase

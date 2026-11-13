@@ -1,12 +1,12 @@
 import { connection } from 'next/server';
-import { requireUser } from '@/lib/auth';
+import { requireMarketplaceUser } from '@/lib/auth';
 import Link from 'next/link';
 import EmptyState from '@/components/EmptyState';
 import TimeAgo from '@/components/TimeAgo';
 
 export default async function NotificationsPage() {
   await connection();
-  const { supabase, user } = await requireUser('/notifications');
+  const { supabase, user } = await requireMarketplaceUser('/notifications');
 
   // Fetch notifications
   const { data: notifications } = await supabase

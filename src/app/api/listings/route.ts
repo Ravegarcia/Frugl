@@ -3,6 +3,7 @@ import { apiUser, json } from '@/lib/api';
 export async function POST() {
   const { supabase, user, profile } = await apiUser();
   if (!user) return json({ error: 'Please sign in.' }, 401);
+  if (profile?.role === 'admin') return json({ error: 'Admin accounts cannot create marketplace listings.' }, 403);
   const { data, error } = await supabase
     .from('listings')
     .insert({ seller_id: user.id, location: profile?.default_location ?? '' })

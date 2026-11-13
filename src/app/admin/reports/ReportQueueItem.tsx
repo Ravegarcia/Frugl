@@ -48,7 +48,7 @@ export default function ReportQueueItem({ report }: { report: any }) {
           <Link
             href={`/laptops/${report.target_id}`}
             target='_blank'
-            className='text-xs text-emerald-700 underline font-medium'
+            className='text-xs text-plum-700 underline font-medium'
           >
             Open Reported Listing ↗
           </Link>
@@ -56,7 +56,7 @@ export default function ReportQueueItem({ report }: { report: any }) {
           <Link
             href={`/sellers/${report.target_id}`}
             target='_blank'
-            className='text-xs text-emerald-700 underline font-medium'
+            className='text-xs text-plum-700 underline font-medium'
           >
             Open Reported User ↗
           </Link>
@@ -77,7 +77,7 @@ export default function ReportQueueItem({ report }: { report: any }) {
               size='sm'
               disabled={busy}
               onClick={() => handleResolve('resolved')}
-              className='text-xs h-7 bg-emerald-700 text-white hover:bg-emerald-800'
+              className='min-h-11 rounded-full border border-primary bg-accent px-4 text-xs font-medium text-accent-foreground hover:bg-accent-hover'
             >
               Mark Resolved
             </Button>

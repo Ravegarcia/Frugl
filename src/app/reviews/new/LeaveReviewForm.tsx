@@ -98,7 +98,8 @@ export default function LeaveReviewForm({ userId, listing, otherParty }: Props) 
               >
                 <Star
                   size={26}
-                  className={star <= rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}
+                  variant={star <= rating ? 'solid' : 'regular'}
+                  className={star <= rating ? 'text-plum-700' : 'text-lavender-300'}
                 />
               </button>
             ))}
@@ -121,7 +122,7 @@ export default function LeaveReviewForm({ userId, listing, otherParty }: Props) 
         <Button
           type='submit'
           disabled={busy}
-          className='w-full bg-emerald-700 hover:bg-emerald-800 text-white'
+          className='w-full'
         >
           {busy ? 'Submitting...' : 'Submit Review'}
         </Button>

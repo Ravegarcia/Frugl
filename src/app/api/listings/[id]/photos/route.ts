@@ -5,8 +5,9 @@ import { isImage, processImage, uploadListingPhoto } from '@/lib/images';
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase, user } = await apiUser();
+  const { supabase, user, profile } = await apiUser();
   if (!user) return json({ error: 'Please sign in.' }, 401);
+  if (profile?.role === 'admin') return json({ error: 'Admin accounts cannot upload marketplace listing photos.' }, 403);
 
   const { data: listing } = await supabase.from('listings').select('id').eq('id', id).eq('seller_id', user.id).maybeSingle();
   if (!listing) return json({ error: 'Listing not found.' }, 404);

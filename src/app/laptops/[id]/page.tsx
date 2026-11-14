@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSessionProfile } from '@/lib/auth';
-import { CARD_SELECT } from '@/lib/queries';
+import { CARD_SELECT_WITH_SAVED } from '@/lib/queries';
 import { formatPrice } from '@/lib/constants';
 import ListingDetails from '@/components/ListingDetails';
 import ListingActions from '@/components/ListingActions';
@@ -10,6 +10,7 @@ import ListingCard from '@/components/ListingCard';
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { supabase, user, profile } = await getSessionProfile();
+  if (!user) redirect('/register?next=' + encodeURIComponent('/laptops/' + id));
 
   const { data: listing } = await supabase
     .from('listings')
@@ -49,7 +50,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     saved = !!res.data;
   }
 
-  let similarQuery = supabase.from('listings').select(CARD_SELECT).in('status', ['available', 'reserved']).neq('id', id).limit(4);
+  let similarQuery = supabase.from('listings').select(CARD_SELECT_WITH_SAVED).in('status', ['available', 'reserved']).neq('id', id).limit(4);
   similarQuery = listing.model_id ? similarQuery.eq('model_id', listing.model_id) : similarQuery.eq('brand', listing.brand);
   const { data: similar } = await similarQuery;
 

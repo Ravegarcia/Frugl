@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { CARD_SELECT } from '@/lib/queries';
+import { CARD_SELECT_WITH_SAVED } from '@/lib/queries';
 import ListingCard from '@/components/ListingCard';
 import EmptyState from '@/components/EmptyState';
 import TimeAgo from '@/components/TimeAgo';
@@ -15,7 +15,7 @@ export default async function SellerPage({ params }: { params: Promise<{ id: str
 
   const [reviews, listings] = await Promise.all([
     supabase.from('reviews').select('rating,comment,created_at').eq('reviewee_id', id).order('created_at', { ascending: false }),
-    supabase.from('listings').select(CARD_SELECT).eq('seller_id', id).in('status', ['available', 'reserved']).order('created_at', { ascending: false }),
+    supabase.from('listings').select(CARD_SELECT_WITH_SAVED).eq('seller_id', id).in('status', ['available', 'reserved']).order('created_at', { ascending: false }),
   ]);
   const list = reviews.data ?? [];
   const avg = list.length ? list.reduce((s: number, r: any) => s + r.rating, 0) / list.length : null;

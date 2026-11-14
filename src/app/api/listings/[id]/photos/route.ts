@@ -23,13 +23,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     for (const f of files) {
       const buf = await processImage(Buffer.from(await f.arrayBuffer()));
       const up = await uploadListingPhoto(admin, id, buf);
-      await supabase.from('listing_photos').insert({ listing_id: id, image_path: up.path, image_url: up.url, view_type: 'photo', sort_order: order++ });
+      const { error: photoError } = await supabase.from('listing_photos').insert({ listing_id: id, image_path: up.path, image_url: up.url, view_type: 'photo', sort_order: order++ });
+      if (photoError) throw new Error('Could not save an uploaded photo: ' + photoError.message);
     }
   } catch (e: any) {
-    return json({ error: 'A photo could not be processed: ' + e.message }, 400);
+    return json({ error: 'A photo could not be processed or saved: ' + e.message }, 400);
   }
 
-  const { data: photos } = await supabase
+  const { data: photos, error: photosError } = await supabase
     .from('listing_photos').select('id,image_url,sort_order,view_type').eq('listing_id', id).order('sort_order');
-  return json({ photos });
+  if (photosError) return json({ error: 'Could not load the saved photos: ' + photosError.message }, 500);
+  return json({ photos: photos ?? [] });
 }

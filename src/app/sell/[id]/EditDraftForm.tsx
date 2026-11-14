@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, type ChangeEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Eye, CheckCircle2, AlertCircle, Loader2, UploadCloud, Laptop } from '@/components/icons';
+import { Sparkles, Eye, CheckCircle2, AlertCircle, Loader2, UploadCloud, Camera, DoorOpen, MapPin } from '@/components/icons';
 import { CONDITIONS, DEAL_METHODS, BRANDS, formatPrice } from '@/lib/constants';
 import { CHECKLIST_ITEMS, suggestCondition } from '@/lib/condition';
-import { buildDescription, type DescStyle } from '@/lib/description';
 import { resizeImage } from '@/lib/client-image';
-import ListingDetails from '@/components/ListingDetails';
+import SellListingPreview from '@/components/SellListingPreview';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,11 +15,18 @@ import { Textarea } from '@/components/ui/textarea';
 
 interface Props {
   initialListing: any;
-  catalogModels: any[];
   userLocation: string;
+  sellerName: string;
 }
 
-export default function EditDraftForm({ initialListing, catalogModels, userLocation }: Props) {
+interface ListingPhoto {
+  id: string;
+  image_path?: string;
+  image_url: string;
+  sort_order: number;
+}
+
+export default function EditDraftForm({ initialListing, userLocation, sellerName }: Props) {
   const router = useRouter();
 
   // Core listing state
@@ -41,8 +48,9 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
   const [screenSize, setScreenSize] = useState(initialListing.screen_size ? String(initialListing.screen_size) : '');
 
   // Photos
-  const [photos, setPhotos] = useState<any[]>(
-    [...(initialListing.listing_photos || [])].sort((a, b) => a.sort_order - b.sort_order)
+  const [photos, setPhotos] = useState<ListingPhoto[]>(() =>
+    [...(Array.isArray(initialListing.listing_photos) ? initialListing.listing_photos : [])]
+      .sort((a, b) => a.sort_order - b.sort_order)
   );
 
   // Price suggestion from server
@@ -109,20 +117,6 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
     }
   }
 
-  // Apply description template
-  function applyDescTemplate(style: DescStyle) {
-    const text = buildDescription(style, {
-      brand,
-      model,
-      cpu,
-      gpu,
-      ram,
-      storage,
-      screen_size: screenSize,
-    });
-    if (text) setDescription(text);
-  }
-
   // Add photos directly to this listing
   async function handleAddPhoto(e: ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
@@ -145,7 +139,8 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to upload photo.');
-      setPhotos(data.photos || []);
+      if (!Array.isArray(data.photos)) throw new Error('Uploaded photos could not be loaded.');
+      setPhotos(data.photos);
     } catch (err: any) {
       setError(err.message || 'Photo upload failed.');
     } finally {
@@ -243,88 +238,52 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
     }
   }
 
-  // Listing state prepared for the Live Preview
-  const previewListing = {
-    ...initialListing,
-    title,
-    price: price ? Number(price) : null,
-    condition,
-    brand,
-    model,
-    description,
-    deal_methods: dealMethods,
-    location,
-    cpu,
-    gpu,
-    ram,
-    storage,
-    screen_size: screenSize,
-  };
   const photoUrls = photos.map((p) => p.image_url);
-  const hasPreviewContent = Boolean(title.trim() || price || photos.length || description.trim() || brand.trim() || model.trim());
 
   return (
-    <div className='space-y-4'>
-      {/* Top Banner & Mobile Preview Toggle */}
-      <div className='flex flex-wrap items-center justify-between gap-3 border-b pb-4'>
-        <div>
-          <h1 className='text-xl font-bold text-gray-900'>Edit listing draft</h1>
-          <p className='text-xs text-gray-500'>
-            Review and adjust the details. What you see on the preview is what buyers see.
+    <div className='listing-editor-shell listing-edit-editor sell-listing-editor'>
+      <aside className='listing-editor-sidebar'>
+        <header className='listing-editor-sidebar-header'>
+          <div>
+            <p className='listing-editor-kicker'>Marketplace</p>
+            <h1>Edit listing draft</h1>
+          </div>
+          <div className='listing-editor-header-actions'>
+            <button
+              type='button'
+              onClick={() => setMobileTab(mobileTab === 'form' ? 'preview' : 'form')}
+              className='listing-editor-mobile-toggle'
+            >
+              <Eye size={14} />
+              {mobileTab === 'form' ? 'View preview' : 'Back to form'}
+            </button>
+            <button
+              type='button'
+              onClick={saveDraft}
+              disabled={savingDraft || publishing}
+              className='sell-skip-button'
+            >
+              {savingDraft ? 'Saving...' : 'Save draft'}
+            </button>
+          </div>
+        </header>
+        <div className={`listing-editor-fields ${mobileTab === 'preview' ? 'listing-editor-mobile-hidden' : ''}`}>
+          <p className='sell-editor-intro'>
+            Review and adjust the details. The preview updates as you edit.
           </p>
-        </div>
-        <div className='flex items-center gap-2'>
-          <button
-            type='button'
-            onClick={() => setMobileTab(mobileTab === 'form' ? 'preview' : 'form')}
-            className='inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium md:hidden'
-          >
-            <Eye size={14} />
-            {mobileTab === 'form' ? 'View Preview' : 'Back to Form'}
-          </button>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={saveDraft}
-            disabled={savingDraft || publishing}
-          >
-            {savingDraft ? 'Saving...' : 'Save draft'}
-          </Button>
-          <Button
-            size='sm'
-            onClick={publishListing}
-            disabled={savingDraft || publishing}
-          >
-            {publishing ? (
-              <>
-                <Loader2 size={14} className='animate-spin mr-1.5' />
-                Publishing...
-              </>
-            ) : (
-              'Publish listing'
-            )}
-          </Button>
-        </div>
-      </div>
-
-      {error && (
-        <div className='flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
-          <AlertCircle size={16} className='shrink-0' />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {successMsg && (
-        <div className='flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800'>
-          <CheckCircle2 size={16} className='shrink-0' />
-          <span>{successMsg}</span>
-        </div>
-      )}
-
-      {/* Main Dual-Column Grid */}
-      <div className='grid gap-8 md:grid-cols-2'>
-        {/* LEFT COLUMN: EDIT FORM */}
-        <div className={`space-y-6 ${mobileTab === 'preview' ? 'hidden md:block' : 'block'}`}>
+          {error && (
+            <div className='mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
+              <AlertCircle size={16} className='shrink-0' />
+              <span>{error}</span>
+            </div>
+          )}
+          {successMsg && (
+            <div className='mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800'>
+              <CheckCircle2 size={16} className='shrink-0' />
+              <span>{successMsg}</span>
+            </div>
+          )}
+          <div className='listing-editor-field-content'>
           {/* AI Banner if auto-filled */}
           {aiTier && (
             <div className='flex items-center gap-2 rounded-xl border border-lavender-300 bg-lavender-100 p-3 text-xs text-primary'>
@@ -338,40 +297,58 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
           )}
 
           {/* Photos manager */}
-          <div className='rounded-xl border bg-white p-4 space-y-3'>
-            <div className='flex items-center justify-between'>
-              <Label className='font-semibold'>Photos ({photos.length}/10)</Label>
-              <label className='flex cursor-pointer items-center gap-1 text-xs font-medium text-plum-700 hover:underline'>
-                <UploadCloud size={14} />
-                <span>Add more photos</span>
-                <input
-                  type='file'
-                  accept='image/*'
-                  multiple
-                  onChange={handleAddPhoto}
-                  className='hidden'
-                  disabled={uploadingPhoto || photos.length >= 10}
-                />
-              </label>
+          <section className='sell-form-section sell-edit-photos-section'>
+            <div className='sell-section-heading'>
+              <h2>
+                <Camera size={20} aria-hidden='true' />
+                <span>Photos <span className='sell-section-count'>{photos.length} / 10</span></span>
+              </h2>
+              <p>Your photos are saved with this draft and appear in the listing preview.</p>
             </div>
-            <div className='grid grid-cols-4 gap-2'>
+            <div className='sell-photo-grid'>
               {photos.map((p, idx) => (
-                <div key={p.id || idx} className='relative aspect-[4/3] rounded border bg-gray-50 overflow-hidden'>
+                <div key={p.id || p.image_path || idx} className='sell-photo-item'>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.image_url} alt='' className='h-full w-full object-cover' />
-                  {idx === 0 && (
-                    <span className='absolute bottom-1 left-1 rounded bg-black/60 px-1 text-[9px] text-white'>
-                      Cover
-                    </span>
-                  )}
+                  <img src={p.image_url} alt={`Laptop photo ${idx + 1}`} />
+                  {idx === 0 && <span>Cover</span>}
                 </div>
               ))}
+              {photos.length < 10 && (
+                <label className={`sell-photo-add${photos.length === 0 ? ' sell-photo-add-empty' : ''}`}>
+                  {photos.length === 0 ? (
+                    <>
+                      <span className='sell-photo-add-icon'>
+                        <UploadCloud size={22} aria-hidden='true' />
+                      </span>
+                      <strong>{uploadingPhoto ? 'Uploading photos...' : 'Add photos'}</strong>
+                      <span>Choose one or more photos</span>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud size={24} aria-hidden='true' />
+                      <span>{uploadingPhoto ? 'Uploading...' : 'Add photo'}</span>
+                    </>
+                  )}
+                  <input
+                    type='file'
+                    accept='image/jpeg,image/png,image/webp'
+                    multiple
+                    onChange={handleAddPhoto}
+                    className='sr-only'
+                    disabled={uploadingPhoto || photos.length >= 10}
+                  />
+                </label>
+              )}
             </div>
-          </div>
+          </section>
 
           {/* Title & Price */}
-          <div className='rounded-xl border bg-white p-4 space-y-4'>
-            <div className='space-y-1.5'>
+          <section className='sell-form-section'>
+            <div className='sell-section-heading'>
+              <h2>Listing details</h2>
+            </div>
+            <div className='sell-hint-fields'>
+            <div className='sell-hint-field'>
               <Label htmlFor='title'>Listing Title <span className='text-red-500'>*</span></Label>
               <Input
                 id='title'
@@ -381,7 +358,7 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
               />
             </div>
 
-            <div className='space-y-1.5'>
+            <div className='sell-hint-field'>
               <Label htmlFor='price'>Price in PHP (₱) <span className='text-red-500'>*</span></Label>
               <Input
                 id='price'
@@ -411,165 +388,161 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
                 </div>
               )}
             </div>
-          </div>
+            </div>
+          </section>
 
           {/* Condition Selector & Checklist */}
-          <div className='rounded-xl border bg-white p-4 space-y-3'>
-            <div className='flex items-center justify-between'>
-              <Label>Condition <span className='text-red-500'>*</span></Label>
+          <section className='sell-form-section sell-condition-section'>
+            <div className='condition-section-header'>
+              <div className='sell-section-heading'>
+                <h2 id='condition-heading'>Condition <span className='text-red-500'>*</span></h2>
+              </div>
               <button
                 type='button'
                 onClick={() => setShowChecklist(!showChecklist)}
-                className='text-xs text-plum-700 underline'
+                aria-expanded={showChecklist}
+                aria-controls='condition-checklist'
+                className='condition-checklist-toggle'
               >
                 {showChecklist ? 'Hide condition checklist' : 'Use guided checklist'}
               </button>
             </div>
 
-            {/* Radio / pill selector */}
-            <div className='grid grid-cols-2 gap-2 sm:grid-cols-3'>
+            <select
+              id='condition'
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+              aria-labelledby='condition-heading'
+              required
+              className='condition-select'
+            >
+              <option value='' disabled>Select condition</option>
               {CONDITIONS.map((c) => (
-                <button
-                  key={c.value}
-                  type='button'
-                  onClick={() => setCondition(c.value)}
-                  aria-pressed={condition === c.value}
-                  className={`rounded-full border px-3 py-2 text-xs font-medium text-left transition ${
-                    condition === c.value
-                      ? 'border-primary bg-secondary text-primary ring-1 ring-primary'
-                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {c.label}
-                </button>
+                <option key={c.value} value={c.value}>{c.label}</option>
               ))}
-            </div>
+            </select>
 
-            {/* Optional Condition Checklist Accordion */}
-            {showChecklist && (
-              <div className='rounded-lg border bg-gray-50 p-3 text-xs space-y-2 mt-2'>
-                <p className='font-medium text-gray-800'>Guided Condition Assessment:</p>
-                <div className='grid grid-cols-2 gap-2'>
-                  {CHECKLIST_ITEMS.map((item) => (
-                    <div key={item.key} className='space-y-1'>
-                      <span className='text-gray-600 font-medium'>{item.label}</span>
-                      <select
-                        value={checklistValues[item.key] || ''}
-                        onChange={(e) => updateChecklist(item.key, e.target.value)}
-                        className='w-full rounded border bg-white px-2 py-1 text-xs'
-                      >
-                        <option value=''>Unchecked</option>
-                        <option value='good'>Good / Like New</option>
-                        <option value='fair'>Fair / Normal Wear</option>
-                        <option value='poor'>Poor / Issues</option>
-                      </select>
-                    </div>
-                  ))}
-                </div>
+            <div
+              id='condition-checklist'
+              className='condition-checklist'
+              hidden={!showChecklist}
+            >
+              <p className='condition-checklist-title'>Guided condition assessment</p>
+              <div className='condition-checklist-grid'>
+                {CHECKLIST_ITEMS.map((item) => (
+                  <div key={item.key} className='condition-checklist-field'>
+                    <Label htmlFor={`condition-checklist-${item.key}`}>{item.label}</Label>
+                    <select
+                      id={`condition-checklist-${item.key}`}
+                      value={checklistValues[item.key] || ''}
+                      onChange={(e) => updateChecklist(item.key, e.target.value)}
+                      className='condition-checklist-select'
+                    >
+                      <option value=''>Unchecked</option>
+                      <option value='good'>Good / Like New</option>
+                      <option value='fair'>Fair / Normal Wear</option>
+                      <option value='poor'>Poor / Issues</option>
+                    </select>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          </section>
 
           {/* Model & Specs (Autofilled / Editable) */}
-          <div className='rounded-xl border bg-white p-4 space-y-4'>
-            <h3 className='font-sans text-sm font-semibold text-gray-900'>Specs & Hardware Details</h3>
+          <section className='sell-form-section'>
+            <div className='sell-section-heading'>
+              <h2>Specs & Hardware Details</h2>
+            </div>
 
-            <div className='grid grid-cols-2 gap-3'>
-              <div className='space-y-1'>
+            <div className='sell-hint-fields'>
+              <div className='sell-hint-field'>
                 <Label htmlFor='brand'>Brand <span className='text-red-500'>*</span></Label>
-                <select
+                <Input
                   id='brand'
+                  list='brand-options'
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
-                  className='w-full rounded-md border bg-white px-3 py-2 text-xs'
-                >
-                  <option value=''>Select brand</option>
+                  placeholder='Type or select a brand'
+                />
+                <datalist id='brand-options'>
                   {BRANDS.map((b) => (
                     <option key={b} value={b}>{b}</option>
                   ))}
-                </select>
+                </datalist>
               </div>
 
-              <div className='space-y-1'>
+              <div className='sell-hint-field'>
                 <Label htmlFor='model'>Model / Series <span className='text-red-500'>*</span></Label>
                 <Input
                   id='model'
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
                   placeholder='e.g. Latitude 5420'
-                  className='text-xs'
                 />
               </div>
-            </div>
 
-            <div className='grid grid-cols-2 gap-3'>
-              <div className='space-y-1'>
+              <div className='sell-hint-field'>
                 <Label htmlFor='cpu'>CPU</Label>
                 <Input
                   id='cpu'
                   value={cpu}
                   onChange={(e) => setCpu(e.target.value)}
                   placeholder='e.g. Core i5-1135G7'
-                  className='text-xs'
                 />
               </div>
-              <div className='space-y-1'>
+
+              <div className='sell-hint-field'>
                 <Label htmlFor='gpu'>GPU</Label>
                 <Input
                   id='gpu'
                   value={gpu}
                   onChange={(e) => setGpu(e.target.value)}
                   placeholder='e.g. Intel Iris Xe / RTX 3050'
-                  className='text-xs'
                 />
               </div>
-            </div>
 
-            <div className='grid grid-cols-3 gap-2'>
-              <div className='space-y-1'>
-                <Label htmlFor='ram'>RAM</Label>
-                <Input
-                  id='ram'
-                  value={ram}
-                  onChange={(e) => setRam(e.target.value)}
-                  placeholder='8GB, 16GB'
-                  className='text-xs'
-                />
+              <div className='sell-hint-pair'>
+                <div className='sell-hint-field'>
+                  <Label htmlFor='ram'>RAM</Label>
+                  <Input
+                    id='ram'
+                    value={ram}
+                    onChange={(e) => setRam(e.target.value)}
+                    placeholder='8GB, 16GB'
+                  />
+                </div>
+                <div className='sell-hint-field'>
+                  <Label htmlFor='storage'>Storage</Label>
+                  <Input
+                    id='storage'
+                    value={storage}
+                    onChange={(e) => setStorage(e.target.value)}
+                    placeholder='256GB, 512GB'
+                  />
+                </div>
               </div>
-              <div className='space-y-1'>
-                <Label htmlFor='storage'>Storage</Label>
-                <Input
-                  id='storage'
-                  value={storage}
-                  onChange={(e) => setStorage(e.target.value)}
-                  placeholder='256GB, 512GB'
-                  className='text-xs'
-                />
-              </div>
-              <div className='space-y-1'>
+
+              <div className='sell-hint-field'>
                 <Label htmlFor='screenSize'>Screen (in)</Label>
                 <Input
                   id='screenSize'
                   value={screenSize}
                   onChange={(e) => setScreenSize(e.target.value)}
                   placeholder='14.0'
-                  className='text-xs'
                 />
               </div>
             </div>
-          </div>
+          </section>
 
           {/* Description & Deal Methods */}
-          <div className='rounded-xl border bg-white p-4 space-y-4'>
-            <div className='space-y-1.5'>
-              <div className='flex items-center justify-between'>
-                <Label htmlFor='description'>Description <span className='text-red-500'>*</span></Label>
-                <div className='inline-flex items-center gap-1 rounded-full border border-border bg-ivory p-1 text-xs text-plum-700'>
-                  <span className='px-1'>Template</span>
-                  <button type='button' onClick={() => applyDescTemplate('simple')} className='rounded-full px-2 py-1 hover:bg-secondary'>Simple</button>
-                  <button type='button' onClick={() => applyDescTemplate('bullets')} className='rounded-full px-2 py-1 hover:bg-secondary'>Bullets</button>
-                </div>
-              </div>
+          <section className='sell-form-section'>
+            <div className='sell-section-heading'>
+              <h2>Description & deal methods</h2>
+            </div>
+            <div className='sell-hint-fields'>
+            <div className='sell-hint-field'>
+              <Label htmlFor='description'>Description <span className='text-red-500'>*</span></Label>
               <Textarea
                 id='description'
                 value={description}
@@ -579,29 +552,44 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
               />
             </div>
 
-            <div className='space-y-2'>
-              <Label>Deal Methods <span className='text-red-500'>*</span></Label>
-              <div className='flex flex-wrap gap-2'>
+            <div className='deal-methods-field' role='group' aria-labelledby='deal-methods-heading'>
+              <div className='deal-methods-heading'>
+                <div>
+                  <h3 id='deal-methods-heading'>Meetup preferences <span>*</span></h3>
+                  <p>
+                    Buyers will be able to see your preferences on your listing.{' '}
+                    <Link href='/safety'>Learn more</Link>
+                  </p>
+                </div>
+              </div>
+              <div className='deal-methods-list'>
                 {DEAL_METHODS.map((d) => (
-                  <button
-                    key={d.value}
-                    type='button'
-                    onClick={() => toggleDealMethod(d.value)}
-                    aria-pressed={dealMethods.includes(d.value)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                      dealMethods.includes(d.value)
-                        ? 'border-primary bg-secondary text-primary ring-1 ring-primary'
-                        : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {d.label}
-                  </button>
+                  <div key={d.value} className='deal-method-option'>
+                    <span className='deal-method-icon'>
+                      {d.value === 'public_meetup' ? <MapPin size={20} /> : <DoorOpen size={20} />}
+                    </span>
+                    <div className='deal-method-copy'>
+                      <label htmlFor={`deal-method-${d.value}`}>{d.label}</label>
+                      <p id={`deal-method-description-${d.value}`}>
+                        {d.description}{' '}
+                        {d.value === 'public_meetup' && <Link href='/safety'>See safety tips</Link>}
+                      </p>
+                    </div>
+                    <input
+                      id={`deal-method-${d.value}`}
+                      type='checkbox'
+                      checked={dealMethods.includes(d.value)}
+                      onChange={() => toggleDealMethod(d.value)}
+                      aria-describedby={`deal-method-description-${d.value}`}
+                      className='deal-method-checkbox'
+                    />
+                  </div>
                 ))}
               </div>
             </div>
 
-            <div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-              <div className='space-y-1'>
+            <div className='sell-hint-pair'>
+              <div className='sell-hint-field'>
                 <Label htmlFor='location'>City / Barangay <span className='text-red-500'>*</span></Label>
                 <Input
                   id='location'
@@ -610,7 +598,7 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
                   placeholder='e.g. Quezon City, Manila'
                 />
               </div>
-              <div className='space-y-1'>
+              <div className='sell-hint-field'>
                 <Label htmlFor='addressDetail'>Exact Landmark / Address (Private)</Label>
                 <Input
                   id='addressDetail'
@@ -620,47 +608,62 @@ export default function EditDraftForm({ initialListing, catalogModels, userLocat
                 />
               </div>
             </div>
+            </div>
+          </section>
           </div>
         </div>
-
-        {/* RIGHT COLUMN: LIVE PREVIEW */}
-        <div className={`space-y-3 ${mobileTab === 'form' ? 'hidden md:block' : 'block'}`}>
-          <div className='flex items-center justify-between pb-1'>
-            <h2 className='font-sans text-sm font-semibold uppercase tracking-wider text-gray-500'>
-              Live Buyer Preview
-            </h2>
-            <span className='text-xs text-gray-400'>Updates in real time</span>
-          </div>
-
-          <div className='sticky top-20 rounded-2xl border bg-white p-5 shadow-sm'>
-            {hasPreviewContent ? (
-              <ListingDetails
-                listing={previewListing}
-                photos={photoUrls}
-                seller={{
-                  id: initialListing.seller_id,
-                  name: 'You (Preview)',
-                  seller_verified: true,
-                }}
-              >
-                {priceSuggestion && (
-                  <div className='rounded-xl border bg-white p-3 text-sm'>
-                    <p className='font-medium text-primary'>Estimated Market Price</p>
-                    <p className='text-xs text-gray-500'>
-                      Typical range: {formatPrice(priceSuggestion.low)} – {formatPrice(priceSuggestion.high)}
-                    </p>
-                  </div>
-                )}
-              </ListingDetails>
+        <div className='listing-editor-actions listing-edit-actions'>
+          <Button asChild size='sm' variant='outline'>
+            <Link href='/sell'>Previous</Link>
+          </Button>
+          <Button
+            size='sm'
+            onClick={publishListing}
+            disabled={savingDraft || publishing}
+          >
+            {publishing ? (
+              <>
+                <Loader2 size={14} className='animate-spin mr-1.5' />
+                Publishing...
+              </>
             ) : (
-              <div className='preview-empty-state'>
-                <Laptop size={36} />
-                <p>Your listing preview. As you fill in your listing, you can preview how it will appear to buyers.</p>
-              </div>
+              'Publish listing'
             )}
-          </div>
+          </Button>
         </div>
-      </div>
+      </aside>
+      <section className={`listing-editor-preview-pane ${mobileTab === 'form' ? 'listing-editor-mobile-hidden' : ''}`}>
+        <header className='listing-editor-preview-heading'>
+          <div>
+            <h2>Preview</h2>
+            <p>Updates in real time as you edit.</p>
+          </div>
+        </header>
+        <SellListingPreview
+          title={title}
+          price={price}
+          condition={condition}
+          location={location}
+          description={description}
+          photos={photoUrls}
+          sellerName={sellerName}
+          specs={[
+            { label: 'CPU', value: cpu },
+            { label: 'GPU', value: gpu },
+            { label: 'RAM', value: ram },
+            { label: 'Storage', value: storage },
+            { label: 'Screen', value: screenSize ? `${screenSize} in` : '' },
+          ]}
+        />
+        {priceSuggestion && (
+          <div className='listing-editor-price-note'>
+            <strong>Estimated market price</strong>
+            <span>
+              {formatPrice(priceSuggestion.low)} – {formatPrice(priceSuggestion.high)}
+            </span>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

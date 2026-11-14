@@ -20,19 +20,11 @@ export default async function SellDraftPage({ params }: { params: Promise<{ id: 
     redirect('/');
   }
 
-  // Fetch candidate laptop models to allow switching/correcting
-  const { data: catalogModels } = await supabase
-    .from('laptop_models')
-    .select('*')
-    .order('brand');
-
   return (
-    <div className='py-4'>
-      <EditDraftForm
-        initialListing={listing}
-        catalogModels={catalogModels || []}
-        userLocation={profile?.default_location || ''}
-      />
-    </div>
+    <EditDraftForm
+      initialListing={listing}
+      userLocation={profile?.default_location || ''}
+      sellerName={profile?.name?.trim() || 'Your profile'}
+    />
   );
 }

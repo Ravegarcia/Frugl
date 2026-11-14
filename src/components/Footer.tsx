@@ -1,6 +1,10 @@
 import Link from 'next/link';
+import { getSessionProfile } from '@/lib/auth';
 
-export default function Footer() {
+export default async function Footer() {
+  const { user, profile } = await getSessionProfile();
+  const canBrowse = Boolean(user && profile?.role !== 'admin');
+
   return (
     <footer className='site-footer'>
       <div className='footer-inner'>
@@ -14,8 +18,14 @@ export default function Footer() {
           <nav className='footer-column' aria-label='Explore'>
             <h2>Explore</h2>
             <Link href='/'>Home</Link>
-            <Link href='/laptops'>Browse laptops</Link>
-            <Link href='/saved'>Saved laptops</Link>
+            {canBrowse ? (
+              <>
+                <Link href='/laptops'>Browse laptops</Link>
+                <Link href='/saved'>Saved laptops</Link>
+              </>
+            ) : !user ? (
+              <Link href='/register?next=%2Flaptops'>Register to see more</Link>
+            ) : null}
           </nav>
 
           <nav className='footer-column' aria-label='Sell with Frugl'>

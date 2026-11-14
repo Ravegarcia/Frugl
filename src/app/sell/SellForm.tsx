@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Camera, UploadCloud, X, AlertCircle, Loader2 } from '@/components/icons';
 import { resizeImage } from '@/lib/client-image';
@@ -9,13 +9,21 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { BRANDS } from '@/lib/constants';
+import SellListingPreview from '@/components/SellListingPreview';
 
 interface PhotoItem {
   file: File;
   previewUrl: string;
 }
 
-export default function SellForm() {
+interface Props {
+  sellerName: string;
+  location: string;
+}
+
+const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+export default function SellForm({ sellerName, location }: Props) {
   const router = useRouter();
 
   // Photo states
@@ -29,6 +37,7 @@ export default function SellForm() {
   const [serialNumber, setSerialNumber] = useState('');
   const [purchaseYear, setPurchaseYear] = useState('');
   const [cpu, setCpu] = useState('');
+  const [gpu, setGpu] = useState('');
   const [ram, setRam] = useState('');
   const [storage, setStorage] = useState('');
   const [notes, setNotes] = useState('');
@@ -41,11 +50,16 @@ export default function SellForm() {
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [error, setError] = useState('');
+  const [mobileTab, setMobileTab] = useState<'form' | 'preview'>('form');
+  const [isPhotoDragOver, setIsPhotoDragOver] = useState(false);
 
-  // Handle general photos upload (up to 10)
-  async function handlePhotosAdd(e: ChangeEvent<HTMLInputElement>) {
-    if (!e.target.files) return;
-    const incoming = Array.from(e.target.files);
+  async function addPhotos(incoming: File[]) {
+    if (incoming.length === 0) return;
+    if (incoming.some((file) => !PHOTO_TYPES.has(file.type))) {
+      setError('Use JPG, PNG, or WebP images for laptop photos.');
+      return;
+    }
+
     const availableSlots = 10 - photos.length;
     if (availableSlots <= 0) {
       setError('You can upload a maximum of 10 photos.');
@@ -72,7 +86,32 @@ export default function SellForm() {
     }
 
     setPhotos((prev) => [...prev, ...newItems]);
+  }
+
+  function handlePhotosAdd(e: ChangeEvent<HTMLInputElement>) {
+    const incoming = Array.from(e.currentTarget.files ?? []);
     e.target.value = '';
+    void addPhotos(incoming);
+  }
+
+  function handlePhotoDragOver(e: DragEvent<HTMLDivElement>) {
+    if (!Array.from(e.dataTransfer.types).includes('Files')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setIsPhotoDragOver(true);
+  }
+
+  function handlePhotoDragLeave(e: DragEvent<HTMLDivElement>) {
+    const nextTarget = e.relatedTarget;
+    if (nextTarget instanceof Node && e.currentTarget.contains(nextTarget)) return;
+    setIsPhotoDragOver(false);
+  }
+
+  function handlePhotoDrop(e: DragEvent<HTMLDivElement>) {
+    if (!Array.from(e.dataTransfer.types).includes('Files')) return;
+    e.preventDefault();
+    setIsPhotoDragOver(false);
+    void addPhotos(Array.from(e.dataTransfer.files));
   }
 
   function removePhoto(index: number) {
@@ -121,6 +160,7 @@ export default function SellForm() {
       if (serialNumber) formData.append('serialNumber', serialNumber);
       if (purchaseYear) formData.append('purchaseYear', purchaseYear);
       if (cpu) formData.append('cpu', cpu);
+      if (gpu) formData.append('gpu', gpu);
       if (ram) formData.append('ram', ram);
       if (storage) formData.append('storage', storage);
       if (notes) formData.append('notes', notes);
@@ -161,282 +201,356 @@ export default function SellForm() {
     }
   }
 
+  const previewTitle = [brand, series, modelNumber].filter(Boolean).join(' ');
+
   return (
-    <div className='mx-auto max-w-3xl space-y-8 py-4'>
-      <div>
-        <div className='flex items-center justify-between'>
-          <h1 className='text-2xl font-bold tracking-tight text-gray-900'>Sell a laptop</h1>
-          <button
-            type='button'
-            onClick={handleSkipAI}
-            disabled={loading}
-            className='text-sm text-gray-500 underline hover:text-primary'
-          >
-            Skip AI, enter manually
-          </button>
-        </div>
-        <p className='mt-1 text-sm text-gray-600'>
-          Step 1: Upload photos of your laptop. Our AI will automatically detect the brand, series, model, and key specs to prepare a draft for you.
-        </p>
-      </div>
-
-      {error && (
-        <div className='flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700'>
-          <AlertCircle size={18} className='shrink-0' />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {loading && (
-        <div className='flex items-center gap-3 rounded-xl border border-lavender-300 bg-lavender-100 p-4 text-sm text-primary'>
-          <Loader2 size={18} className='animate-spin shrink-0' />
-          <span>{statusMessage || 'Processing...'}</span>
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className='space-y-6'>
-        {/* PHOTO UPLOAD SECTION */}
-        <div className='rounded-xl border bg-white p-6 shadow-sm space-y-4'>
-          <h2 className='text-lg font-semibold text-gray-900 flex items-center gap-2'>
-            <Camera size={20} className='text-plum-700' />
-            1. Laptop Photos (Up to 10)
-          </h2>
-          <p className='text-xs text-gray-500'>
-            Tip: Include angles of the closed lid, open keyboard/screen, and ports. The first photo will be your listing cover.
-          </p>
-
-          <div className='grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-5'>
-            {photos.map((item, idx) => (
-              <div key={idx} className='group relative aspect-[4/3] rounded-lg overflow-hidden border bg-gray-100'>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.previewUrl} alt='Upload preview' className='h-full w-full object-cover' />
-                {idx === 0 && (
-                  <span className='absolute bottom-1 left-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white'>
-                    Cover
-                  </span>
-                )}
-                <button
-                  type='button'
-                  onClick={() => removePhoto(idx)}
-                  aria-label={`Remove photo ${idx + 1}`}
-                  className='absolute right-1 top-1 inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/90'
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-
-            {photos.length < 10 && (
-              <label className='flex aspect-[4/3] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 transition'>
-                <UploadCloud size={24} className='text-gray-400' />
-                <span className='mt-1 text-xs text-gray-600'>Add Photo</span>
-                <input
-                  type='file'
-                  accept='image/jpeg,image/png,image/webp'
-                  multiple
-                  onChange={handlePhotosAdd}
-                  className='hidden'
-                  disabled={loading}
-                />
-              </label>
-            )}
-          </div>
-
-          {/* Model Sticker Close-up */}
-          <div className='mt-4 rounded-xl border border-dashed border-lavender-300 bg-lavender-100/60 p-4'>
-            <Label className='flex items-center gap-2 font-medium text-primary'>
-              Underside / Model Sticker Photo (Recommended)
-            </Label>
-            <p className='text-xs text-gray-600 mt-0.5'>
-              A clear photo of the model sticker or barcode label on the bottom helps the AI extract the exact model number.
-            </p>
-            <div className='mt-2 flex items-center gap-4'>
-              {sticker ? (
-                <div className='relative h-16 w-24 rounded border overflow-hidden bg-white'>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={sticker.previewUrl} alt='Sticker' className='h-full w-full object-cover' />
-                  <button
-                    type='button'
-                    aria-label='Remove sticker photo'
-                    onClick={() => {
-                      URL.revokeObjectURL(sticker.previewUrl);
-                      setSticker(null);
-                    }}
-                    className='absolute right-1 top-1 inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-white'
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ) : (
-                <label className='inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-input bg-surface px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-secondary'>
-                  <Camera size={16} />
-                  <span>Upload Sticker Close-up</span>
-                  <input
-                    type='file'
-                    accept='image/jpeg,image/png,image/webp'
-                    onChange={handleStickerChange}
-                    className='hidden'
-                    disabled={loading}
-                  />
-                </label>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* OPTIONAL DETAILS ACCORDION/SECTION */}
-        <div className='rounded-xl border bg-white p-6 shadow-sm space-y-4'>
+    <div className='listing-editor-shell sell-listing-editor'>
+      <aside className='listing-editor-sidebar'>
+        <header className='listing-editor-sidebar-header'>
           <div>
-            <h2 className='text-lg font-semibold text-gray-900'>2. Optional Descriptive Details</h2>
-            <p className='text-xs text-gray-500'>
-              All fields below are completely optional. Supplying hints helps the AI verify specs and narrow down exact variants.
+            <p className='listing-editor-kicker'>Marketplace</p>
+            <h1 className='text-2xl font-bold tracking-tight text-gray-900'>Sell a laptop</h1>
+          </div>
+          <div className='listing-editor-header-actions'>
+            <button
+              type='button'
+              onClick={() => setMobileTab(mobileTab === 'form' ? 'preview' : 'form')}
+              className='listing-editor-mobile-toggle'
+            >
+              {mobileTab === 'form' ? 'View preview' : 'Back to form'}
+            </button>
+            <button
+              type='button'
+              onClick={handleSkipAI}
+              disabled={loading}
+              className='sell-skip-button'
+            >
+              Skip AI
+            </button>
+          </div>
+        </header>
+        <form onSubmit={handleSubmit} className='listing-editor-form'>
+          <div className={`listing-editor-fields ${mobileTab === 'preview' ? 'listing-editor-mobile-hidden' : ''}`}>
+            <p className='sell-editor-intro'>
+              Add photos and optional details. We’ll use them to identify your laptop and prepare a draft.
             </p>
-          </div>
 
-          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-            <div className='space-y-1.5'>
-              <Label htmlFor='brand'>Brand</Label>
-              <select
-                id='brand'
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
-                className='w-full rounded-md border bg-white px-3 py-2 text-sm'
-              >
-                <option value=''>Auto-detect or Select Brand</option>
-                {BRANDS.map((b) => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className='space-y-1.5'>
-              <Label htmlFor='series'>Series (e.g. ThinkPad T14, XPS 13)</Label>
-              <Input
-                id='series'
-                value={series}
-                onChange={(e) => setSeries(e.target.value)}
-                placeholder='e.g. IdeaPad 3, Pavilion 15'
-              />
-            </div>
-
-            <div className='space-y-1.5'>
-              <Label htmlFor='modelNumber'>Model / Part Number</Label>
-              <Input
-                id='modelNumber'
-                value={modelNumber}
-                onChange={(e) => setModelNumber(e.target.value)}
-                placeholder='e.g. 15ITL6, A2337'
-              />
-            </div>
-
-            <div className='space-y-1.5'>
-              <Label htmlFor='serialNumber'>Serial Number / Service Tag</Label>
-              <Input
-                id='serialNumber'
-                value={serialNumber}
-                onChange={(e) => setSerialNumber(e.target.value)}
-                placeholder='Underside barcode serial'
-              />
-            </div>
-
-            <div className='space-y-1.5'>
-              <Label htmlFor='cpu'>Processor / CPU</Label>
-              <Input
-                id='cpu'
-                value={cpu}
-                onChange={(e) => setCpu(e.target.value)}
-                placeholder='e.g. Intel Core i5-1135G7, M1'
-              />
-            </div>
-
-            <div className='grid grid-cols-2 gap-2'>
-              <div className='space-y-1.5'>
-                <Label htmlFor='ram'>RAM</Label>
-                <Input
-                  id='ram'
-                  value={ram}
-                  onChange={(e) => setRam(e.target.value)}
-                  placeholder='8GB, 16GB'
-                />
+            {error && (
+              <div className='mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700'>
+                <AlertCircle size={18} className='shrink-0' />
+                <span>{error}</span>
               </div>
-              <div className='space-y-1.5'>
-                <Label htmlFor='storage'>Storage</Label>
-                <Input
-                  id='storage'
-                  value={storage}
-                  onChange={(e) => setStorage(e.target.value)}
-                  placeholder='256GB, 512GB'
-                />
-              </div>
-            </div>
-
-            <div className='space-y-1.5'>
-              <Label htmlFor='purchaseYear'>Year of Purchase</Label>
-              <Input
-                id='purchaseYear'
-                type='number'
-                value={purchaseYear}
-                onChange={(e) => setPurchaseYear(e.target.value)}
-                placeholder='e.g. 2022'
-              />
-            </div>
-          </div>
-
-          <div className='space-y-1.5'>
-            <Label htmlFor='notes'>Notes / Accessories / Condition Comments</Label>
-            <Textarea
-              id='notes'
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder='e.g. Comes with original 65W charger, upgraded to 16GB RAM, slight scuff on lid'
-              rows={3}
-            />
-          </div>
-
-          <div className='grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2 text-xs'>
-            <div className='space-y-1'>
-              <Label className='text-xs text-gray-700'>System Info Screenshot (Optional)</Label>
-              <input
-                type='file'
-                accept='image/*'
-                onChange={(e) => setSystemInfoImage(e.target.files?.[0] || null)}
-                className='w-full text-xs text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs'
-              />
-            </div>
-            <div className='space-y-1'>
-              <Label className='text-xs text-gray-700'>Receipt / Box Photo (Optional)</Label>
-              <input
-                type='file'
-                accept='image/*'
-                onChange={(e) => setReceiptOrBoxImage(e.target.files?.[0] || null)}
-                className='w-full text-xs text-gray-500 file:mr-2 file:rounded file:border-0 file:bg-gray-100 file:px-2 file:py-1 file:text-xs'
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* SUBMIT BUTTON */}
-        <div className='flex items-center justify-between'>
-          <p className='text-xs text-gray-500'>
-            Next step: Review auto-filled specs with live preview before publishing.
-          </p>
-          <Button
-            type='submit'
-            size='lg'
-            disabled={loading}
-            className='min-w-[160px]'
-          >
-            {loading ? (
-              <>
-                <Loader2 size={16} className='animate-spin mr-2' />
-                Analyzing...
-              </>
-            ) : (
-              'Continue to Draft'
             )}
-          </Button>
-        </div>
-      </form>
+
+            {loading && (
+              <div className='mb-4 flex items-center gap-3 rounded-xl border border-lavender-300 bg-lavender-100 p-4 text-sm text-primary'>
+                <Loader2 size={18} className='animate-spin shrink-0' />
+                <span>{statusMessage || 'Processing...'}</span>
+              </div>
+            )}
+
+            <section className='sell-form-section sell-photo-section'>
+              <div className='sell-section-heading'>
+                <h2>
+                  <Camera size={20} aria-hidden='true' />
+                  <span>1. Laptop photos <span className='sell-section-count'>{photos.length} / 10</span></span>
+                </h2>
+                <p>
+                  Add up to 10 clear photos of the lid, keyboard, screen and ports. The first photo is your cover.
+                </p>
+              </div>
+
+              <div
+                className={`sell-photo-grid${isPhotoDragOver ? ' is-drag-over' : ''}`}
+                onDragOver={handlePhotoDragOver}
+                onDragLeave={handlePhotoDragLeave}
+                onDrop={handlePhotoDrop}
+              >
+                {photos.length === 0 ? (
+                  <label className='sell-photo-add sell-photo-add-empty'>
+                    <span className='sell-photo-add-icon'>
+                      <UploadCloud size={22} aria-hidden='true' />
+                    </span>
+                    <strong>Add photos</strong>
+                    <span>or drag and drop</span>
+                    <input
+                      type='file'
+                      accept='image/jpeg,image/png,image/webp'
+                      multiple
+                      onChange={handlePhotosAdd}
+                      className='sr-only'
+                      disabled={loading}
+                    />
+                  </label>
+                ) : (
+                  <>
+                    {photos.map((item, idx) => (
+                      <div key={idx} className='sell-photo-item'>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={item.previewUrl} alt={`Laptop photo ${idx + 1}`} />
+                        {idx === 0 && <span>Cover</span>}
+                        <button
+                          type='button'
+                          onClick={() => removePhoto(idx)}
+                          aria-label={`Remove photo ${idx + 1}`}
+                          className='sell-photo-remove'
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {photos.length < 10 && (
+                      <label className='sell-photo-add'>
+                        <UploadCloud size={24} aria-hidden='true' />
+                        <span>Add photo</span>
+                        <input
+                          type='file'
+                          accept='image/jpeg,image/png,image/webp'
+                          multiple
+                          onChange={handlePhotosAdd}
+                          className='sr-only'
+                          disabled={loading}
+                        />
+                      </label>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className='sell-photo-tip'>
+                <Camera size={18} aria-hidden='true' />
+                <p>More clear photos help buyers assess the laptop and its condition.</p>
+              </div>
+
+              <div className='sell-sticker-upload'>
+                <div>
+                  <h3>Underside / model sticker photo <span>Recommended</span></h3>
+                  <p>A clear shot of the model sticker or barcode helps identify the exact model.</p>
+                </div>
+                {sticker ? (
+                  <div className='sell-sticker-preview'>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={sticker.previewUrl} alt='Laptop model sticker' />
+                    <button
+                      type='button'
+                      aria-label='Remove sticker photo'
+                      onClick={() => {
+                        URL.revokeObjectURL(sticker.previewUrl);
+                        setSticker(null);
+                      }}
+                      className='sell-photo-remove'
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className='sell-sticker-add'>
+                    <Camera size={16} aria-hidden='true' />
+                    <span>Add sticker photo</span>
+                    <input
+                      type='file'
+                      accept='image/jpeg,image/png,image/webp'
+                      onChange={handleStickerChange}
+                      className='sr-only'
+                      disabled={loading}
+                    />
+                  </label>
+                )}
+              </div>
+            </section>
+
+            <section className='sell-form-section sell-hints-section'>
+              <div className='sell-section-heading'>
+                <h2>2. Optional descriptive details</h2>
+                <p>All fields are optional. Adding details helps verify the model and narrow down exact variants.</p>
+              </div>
+
+              <div className='sell-hint-fields'>
+                <div className='sell-hint-field'>
+                  <Label htmlFor='brand'>Brand</Label>
+                  <Input
+                    id='brand'
+                    list='brand-options'
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    placeholder='Type or select a brand'
+                  />
+                  <datalist id='brand-options'>
+                    {BRANDS.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </datalist>
+                </div>
+
+                <div className='sell-hint-field'>
+                  <Label htmlFor='modelNumber'>Model / part number</Label>
+                  <Input
+                    id='modelNumber'
+                    value={modelNumber}
+                    onChange={(e) => setModelNumber(e.target.value)}
+                    placeholder='e.g. 15ITL6, A2337'
+                  />
+                </div>
+
+                <div className='sell-hint-field'>
+                  <Label htmlFor='series'>Series</Label>
+                  <Input
+                    id='series'
+                    value={series}
+                    onChange={(e) => setSeries(e.target.value)}
+                    placeholder='e.g. ThinkPad T14, XPS 13'
+                  />
+                </div>
+
+                <div className='sell-hint-field'>
+                  <Label htmlFor='serialNumber'>Serial number</Label>
+                  <Input
+                    id='serialNumber'
+                    value={serialNumber}
+                    onChange={(e) => setSerialNumber(e.target.value)}
+                    placeholder='Underside barcode serial'
+                  />
+                </div>
+
+                <div className='sell-hint-field'>
+                  <Label htmlFor='cpu'>Processor / CPU</Label>
+                  <Input
+                    id='cpu'
+                    value={cpu}
+                    onChange={(e) => setCpu(e.target.value)}
+                    placeholder='e.g. Intel Core i5-1135G7, M1'
+                  />
+                </div>
+
+                <div className='sell-hint-field'>
+                  <Label htmlFor='gpu'>GPU</Label>
+                  <Input
+                    id='gpu'
+                    value={gpu}
+                    onChange={(e) => setGpu(e.target.value)}
+                    placeholder='e.g. Intel Iris Xe, RTX 3050'
+                  />
+                </div>
+
+                <div className='sell-hint-pair'>
+                  <div className='sell-hint-field'>
+                    <Label htmlFor='ram'>RAM</Label>
+                    <Input
+                      id='ram'
+                      value={ram}
+                      onChange={(e) => setRam(e.target.value)}
+                      placeholder='8GB, 16GB'
+                    />
+                  </div>
+                  <div className='sell-hint-field'>
+                    <Label htmlFor='storage'>Storage</Label>
+                    <Input
+                      id='storage'
+                      value={storage}
+                      onChange={(e) => setStorage(e.target.value)}
+                      placeholder='256GB, 512GB'
+                    />
+                  </div>
+                </div>
+
+                <div className='sell-hint-field'>
+                  <Label htmlFor='purchaseYear'>Year of purchase</Label>
+                  <Input
+                    id='purchaseYear'
+                    type='number'
+                    value={purchaseYear}
+                    onChange={(e) => setPurchaseYear(e.target.value)}
+                    placeholder='e.g. 2022'
+                  />
+                </div>
+
+                <div className='sell-hint-field'>
+                  <Label htmlFor='notes'>Notes / accessories / condition comments</Label>
+                  <Textarea
+                    id='notes'
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder='e.g. Includes charger, upgraded RAM or cosmetic wear'
+                    rows={3}
+                  />
+                </div>
+
+                <div className='sell-hint-uploads'>
+                  <label className='sell-hint-file'>
+                    <span>System info screenshot <span>(Optional)</span></span>
+                    <span className='sell-hint-file-control'>
+                      <UploadCloud size={16} aria-hidden='true' />
+                      <span className='sell-hint-file-name'>{systemInfoImage?.name || 'Choose image'}</span>
+                    </span>
+                    <input
+                      type='file'
+                      accept='image/*'
+                      onChange={(e) => setSystemInfoImage(e.target.files?.[0] || null)}
+                      className='sr-only'
+                    />
+                  </label>
+                  <label className='sell-hint-file'>
+                    <span>Receipt / box photo <span>(Optional)</span></span>
+                    <span className='sell-hint-file-control'>
+                      <UploadCloud size={16} aria-hidden='true' />
+                      <span className='sell-hint-file-name'>{receiptOrBoxImage?.name || 'Choose image'}</span>
+                    </span>
+                    <input
+                      type='file'
+                      accept='image/*'
+                      onChange={(e) => setReceiptOrBoxImage(e.target.files?.[0] || null)}
+                      className='sr-only'
+                    />
+                  </label>
+                </div>
+              </div>
+            </section>
+
+          </div>
+          <div className='listing-editor-actions sell-submit-row'>
+            <p className='text-xs text-gray-500'>
+              Next step: Review the suggested details before publishing.
+            </p>
+            <Button
+              type='submit'
+              size='lg'
+              disabled={loading}
+              className='min-w-[160px]'
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={16} className='animate-spin mr-2' />
+                  Analyzing...
+                </>
+              ) : (
+                'Continue to draft'
+              )}
+            </Button>
+          </div>
+        </form>
+      </aside>
+      <section className={`listing-editor-preview-pane ${mobileTab === 'form' ? 'listing-editor-mobile-hidden' : ''}`}>
+        <header className='listing-editor-preview-heading'>
+          <div>
+            <h2>Preview</h2>
+            <p>As you add photos and details, your preview updates.</p>
+          </div>
+        </header>
+        <SellListingPreview
+          title={previewTitle}
+          description={notes}
+          location={location}
+          photos={photos.map((photo) => photo.previewUrl)}
+          sellerName={sellerName}
+          specs={[
+            { label: 'CPU', value: cpu },
+            { label: 'GPU', value: gpu },
+            { label: 'RAM', value: ram },
+            { label: 'Storage', value: storage },
+          ]}
+        />
+      </section>
     </div>
   );
 }

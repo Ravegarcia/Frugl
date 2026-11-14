@@ -7,6 +7,7 @@ export type Hints = Partial<{
   ram: string;
   storage: string;
   cpu: string;
+  gpu: string;
   notes: string;
 }>;
 

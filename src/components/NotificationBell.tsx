@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Bell } from '@/components/icons';
 import { createClient } from '@/lib/supabase/client';
 
-export default function NotificationBell({ userId, initial }: { userId: string; initial: number }) {
+export default function NotificationBell({ userId, initial, active = false }: { userId: string; initial: number; active?: boolean }) {
   const [count, setCount] = useState(initial);
 
   useEffect(() => {
@@ -23,8 +23,10 @@ export default function NotificationBell({ userId, initial }: { userId: string; 
       href='/notifications'
       className='nav-icon-link notification-link'
       aria-label={count > 0 ? `Notifications, ${count} unread` : 'Notifications'}
+      aria-current={active ? 'page' : undefined}
+      title='Notifications'
     >
-      <Bell size={20} hoverVariant='solid' />
+      <Bell size={20} />
       {count > 0 && (
         <span aria-hidden='true' className='absolute -right-2 -top-2 rounded-full bg-plum-900 px-1.5 text-xs text-white'>{count}</span>
       )}

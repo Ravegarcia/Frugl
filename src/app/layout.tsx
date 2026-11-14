@@ -37,7 +37,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <TopBar />
         </Suspense>
         <main className='app-main'>{children}</main>
-        <Footer />
+        <Suspense fallback={null}>
+          <Footer />
+        </Suspense>
         <Suspense fallback={null}>
           <BottomBar />
         </Suspense>

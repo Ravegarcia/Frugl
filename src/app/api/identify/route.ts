@@ -29,12 +29,12 @@ function draftFromModel(m: CatalogModel, hints: Hints) {
     model: modelLabel(m),
     title: [m.brand, m.series, cpu, ram && storage ? ram + '/' + storage : ram || storage].filter(Boolean).join(' '),
     cpu,
-    gpu: m.gpu,
+    gpu: hints.gpu || m.gpu,
     screen_size: m.screen_size,
     ram,
     storage,
     description: buildDescription('simple', {
-      brand: m.brand, model: m.series, cpu: cpu ?? undefined, gpu: m.gpu ?? undefined,
+      brand: m.brand, model: m.series, cpu: cpu ?? undefined, gpu: (hints.gpu || m.gpu) ?? undefined,
       ram: ram ?? undefined, storage: storage ?? undefined, screen_size: m.screen_size, notes: hints.notes,
     }),
     ai_filled: ['title', 'brand', 'model', 'description', 'cpu', 'gpu', 'screen_size', 'ram', 'storage'],
@@ -68,6 +68,7 @@ export async function POST(request: Request) {
     ram: text(form, 'ram'),
     storage: text(form, 'storage'),
     cpu: text(form, 'cpu'),
+    gpu: text(form, 'gpu'),
     notes: text(form, 'notes'),
   };
 
@@ -92,15 +93,16 @@ export async function POST(request: Request) {
       const buf = await processImage(Buffer.from(await item.f.arrayBuffer()));
       buffers.push(buf);
       const up = await uploadListingPhoto(admin, draft.id, buf);
-      await supabase.from('listing_photos').insert({
+      const { error: photoError } = await supabase.from('listing_photos').insert({
         listing_id: draft.id, image_path: up.path, image_url: up.url,
         view_type: order === 0 ? 'cover' : item.type, sort_order: order,
       });
+      if (photoError) throw new Error('Could not save an uploaded photo: ' + photoError.message);
       order++;
     }
   } catch (e: any) {
     await supabase.from('listings').delete().eq('id', draft.id);
-    return json({ error: 'A photo could not be processed: ' + e.message }, 400);
+    return json({ error: 'A photo could not be processed or saved: ' + e.message }, 400);
   }
 
   // 3. optional hint files (private bucket)
@@ -138,6 +140,7 @@ export async function POST(request: Request) {
     : {
         brand: vision?.brand ?? hints.brand ?? '',
         cpu: hints.cpu ?? null,
+        gpu: hints.gpu ?? null,
         ram: hints.ram ?? null,
         storage: hints.storage ?? null,
         description: hints.notes ?? '',
@@ -172,7 +175,7 @@ export async function POST(request: Request) {
     candidates,
     hintsUsed,
     priceSuggestion: suggestion,
-    prefill: { title: patch.title ?? '', brand: patch.brand ?? '', model: patch.model ?? null, description: patch.description ?? '', specs: { cpu: patch.cpu ?? null, ram: patch.ram ?? null, storage: patch.storage ?? null } },
+    prefill: { title: patch.title ?? '', brand: patch.brand ?? '', model: patch.model ?? null, description: patch.description ?? '', specs: { cpu: patch.cpu ?? null, gpu: patch.gpu ?? null, ram: patch.ram ?? null, storage: patch.storage ?? null } },
     error: aiError,
   });
 }

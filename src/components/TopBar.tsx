@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import { connection } from 'next/server';
-import { Bookmark, ChevronDown, Gear, Laptop, MessageCircle, Shield, SignOut, Tag, User } from '@/components/icons';
+import { ChevronDown, Gear, Laptop, Shield, SignOut, Tag, User } from '@/components/icons';
 import { getSessionProfile, isStaff } from '@/lib/auth';
-import NotificationBell from '@/components/NotificationBell';
+import HeaderSearchReveal from '@/components/HeaderSearchReveal';
+import HeaderNavIcons from '@/components/HeaderNavIcons';
 
 export default async function TopBar() {
   await connection();
   const { supabase, user, profile } = await getSessionProfile();
+  const canBrowse = Boolean(user && profile?.role !== 'admin');
   let unread = 0;
   if (user && profile?.role !== 'admin') {
     const { count } = await supabase
@@ -22,34 +24,25 @@ export default async function TopBar() {
       <header className='site-header'>
         <div className='nav-inner'>
           <Link href='/' className='brand-mark shrink-0'>Frugl</Link>
+          {canBrowse && <HeaderSearchReveal />}
           <nav className='header-actions' aria-label='Main navigation'>
-            {profile?.role !== 'admin' && (
-              <>
-                <Link href='/laptops' className='nav-browse-link'>Browse</Link>
-                <Link href='/sell' className='nav-cta'>Sell a laptop</Link>
-              </>
+            {canBrowse && (
+              <Link href='/laptops' className='nav-browse-link'>Browse</Link>
             )}
+            {profile?.role !== 'admin' && <Link href='/sell' className='nav-cta'>Sell a laptop</Link>}
             {user ? (
               <>
                 {profile?.role === 'admin' ? (
                   <Link href='/admin' className='nav-browse-link'>Admin dashboard</Link>
                 ) : (
-                  <>
-                    <Link href='/messages' className='nav-icon-link nav-messages' aria-label='Messages' title='Messages'>
-                      <MessageCircle size={20} hoverVariant='solid' />
-                    </Link>
-                    <Link href='/saved' className='nav-icon-link nav-saved' aria-label='Saved'>
-                      <Bookmark size={18} hoverVariant='solid' />
-                    </Link>
-                    <NotificationBell userId={user.id} initial={unread} />
-                  </>
+                  <HeaderNavIcons userId={user.id} initialUnread={unread} />
                 )}
                 <details className='profile-dropdown'>
                   <summary aria-label='Open profile menu' className='profile-pill'>
                     <span className='profile-avatar'>
                       {(profile?.name ?? '?').charAt(0).toUpperCase()}
                     </span>
-                    <span className='profile-label'>{profile?.name ?? 'Profile'}</span>
+                    <span className='profile-label'>{profile?.name?.trim().split(/\s+/)[0] || 'Profile'}</span>
                     <ChevronDown size={14} />
                   </summary>
                   <div className='header-menu'>

@@ -7,9 +7,9 @@ export const CONDITIONS = [
 ];
 
 export const DEAL_METHODS = [
-  { value: 'public_meetup', label: 'Public Meetup' },
-  { value: 'door_pickup', label: 'Door Pickup' },
-  { value: 'door_dropoff', label: 'Door Dropoff' },
+  { value: 'public_meetup', label: 'Public meetup', description: 'Meet at a public location.' },
+  { value: 'door_pickup', label: 'Door pickup', description: 'Buyer picks up at your door.' },
+  { value: 'door_dropoff', label: 'Door dropoff', description: "You drop off at the buyer's door." },
 ];
 
 export const RAM_OPTIONS = ['4GB', '8GB', '12GB', '16GB', '32GB', '64GB'];

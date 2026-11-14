@@ -36,7 +36,7 @@ export default function SearchBox() {
         value={q}
         onChange={(e) => setQ(e.target.value)}
         aria-label='Search laptops'
-        placeholder='Search laptops, brands or models'
+        placeholder='Search by keyword, category, price, etc.'
       />
       <datalist id={listId}>
         {options.map((o) => (

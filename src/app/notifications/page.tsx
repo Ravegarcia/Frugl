@@ -48,11 +48,11 @@ export default async function NotificationsPage() {
   }
 
   return (
-    <div className='mx-auto max-w-2xl space-y-6'>
-      <div>
+    <div className='utility-page'>
+      <header className='utility-page-heading'>
         <h1 className='text-2xl font-bold text-gray-900'>Notifications</h1>
         <p className='text-sm text-gray-500'>Updates on messages, offers, holds, and sales.</p>
-      </div>
+      </header>
 
       {notifications && notifications.length > 0 ? (
         <div className='divide-y rounded-xl border bg-white shadow-sm overflow-hidden'>
@@ -73,6 +73,8 @@ export default async function NotificationsPage() {
         <EmptyState
           title='No notifications'
           hint='When you receive offers, messages, or listing updates, they will appear here.'
+          href='/laptops'
+          action='Browse laptops'
         />
       )}
     </div>

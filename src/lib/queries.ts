@@ -1,4 +1,5 @@
 export const CARD_SELECT = 'id,title,price,condition,location,brand,model,cpu,ram,storage,status,created_at,is_featured,listing_photos(image_url,sort_order)';
+export const CARD_SELECT_WITH_SAVED = `${CARD_SELECT},saved_listings(user_id)`;
 
 export function coverUrl(listing: any): string | null {
   const photos = [...(listing.listing_photos ?? [])].sort((a: any, b: any) => a.sort_order - b.sort_order);

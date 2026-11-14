@@ -18,16 +18,16 @@ export default async function SavedPage() {
   const items = (savedListings || []).map((s: any) => s.listings).filter(Boolean);
 
   return (
-    <div className='space-y-6'>
-      <div>
+    <div className='utility-page'>
+      <header className='utility-page-heading'>
         <h1 className='text-2xl font-bold text-gray-900'>Saved items</h1>
         <p className='text-sm text-gray-500'>Laptops you have favorited to follow or compare.</p>
-      </div>
+      </header>
 
       {items.length > 0 ? (
         <div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
           {items.map((l: any) => (
-            <ListingCard key={l.id} listing={l} />
+            <ListingCard key={l.id} listing={l} initialSaved />
           ))}
         </div>
       ) : (

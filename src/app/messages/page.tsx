@@ -27,11 +27,11 @@ export default async function MessagesPage() {
     .order('updated_at', { ascending: false });
 
   return (
-    <div className='mx-auto max-w-3xl space-y-4'>
-      <div>
+    <div className='utility-page'>
+      <header className='utility-page-heading'>
         <h1 className='text-2xl font-bold text-gray-900'>Messages</h1>
         <p className='text-sm text-gray-500'>Chats with buyers and sellers regarding laptop listings.</p>
-      </div>
+      </header>
 
       {conversations && conversations.length > 0 ? (
         <div className='divide-y rounded-xl border bg-white shadow-sm overflow-hidden'>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { Audiowide, Geist_Mono, Poppins } from 'next/font/google';
+import 'leaflet/dist/leaflet.css';
 import './globals.css';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';

@@ -1,7 +1,6 @@
 import { requireStaff } from '@/lib/auth';
-import { timeAgo } from '@/lib/format';
-import Link from 'next/link';
 import EmptyState from '@/components/EmptyState';
+import AdminActivityViewed from '../AdminActivityViewed';
 import ReportQueueItem from './ReportQueueItem';
 
 export default async function AdminReportsPage() {
@@ -17,19 +16,18 @@ export default async function AdminReportsPage() {
     .order('created_at', { ascending: false });
 
   return (
-    <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
+    <main className='admin-reports-page'>
+      <AdminActivityViewed eventType='report_created' />
+      <header className='admin-reports-header'>
         <div>
-          <h1 className='text-2xl font-bold text-gray-900'>Report Queue</h1>
-          <p className='text-sm text-gray-500'>Review reported listings and suspicious user activity.</p>
+          <p className='admin-eyebrow'>Trust &amp; safety</p>
+          <h1>Report queue</h1>
+          <p>Review reported listings and suspicious user activity.</p>
         </div>
-        <Link href='/admin' className='text-xs text-gray-500 underline'>
-          Back to Admin Hub
-        </Link>
-      </div>
+      </header>
 
       {reports && reports.length > 0 ? (
-        <div className='divide-y rounded-xl border bg-white shadow-sm overflow-hidden'>
+        <div className='admin-reports-list'>
           {reports.map((r: any) => (
             <ReportQueueItem key={r.id} report={r} />
           ))}
@@ -40,6 +38,6 @@ export default async function AdminReportsPage() {
           hint='The report queue is currently clean.'
         />
       )}
-    </div>
+    </main>
   );
 }

@@ -9,6 +9,7 @@ import {
   isImageMessageAttachment,
   MESSAGE_ATTACHMENT_MAX_SIZE,
 } from '../src/lib/messages/attachments';
+import { findLagunaMunicipality } from '../src/lib/admin/laguna-locations';
 
 const SAMPLE_CATALOG: CatalogModel[] = [
   {
@@ -184,5 +185,13 @@ describe('Message attachments', () => {
     expect(isAllowedMessageAttachment({ type: 'image/png', size: MESSAGE_ATTACHMENT_MAX_SIZE + 1 })).toBe(false);
     expect(isAllowedMessageAttachment({ type: 'application/x-msdownload', size: 1024 })).toBe(false);
     expect(isImageMessageAttachment('application/pdf')).toBe(false);
+  });
+});
+
+describe('Laguna seller locations', () => {
+  it('matches Laguna cities and municipalities while excluding other provinces', () => {
+    expect(findLagunaMunicipality('San Pablo City, Laguna')?.name).toBe('San Pablo');
+    expect(findLagunaMunicipality('Biñan, Laguna')?.name).toBe('Biñan');
+    expect(findLagunaMunicipality('Quezon City, Philippines')).toBeNull();
   });
 });

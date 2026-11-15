@@ -1,92 +1,148 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import TimeAgo from '@/components/TimeAgo';
-export default function AdminUserRow({ user, currentRole }: { user: any; currentRole: string }) {
+import { createClient } from '@/lib/supabase/client';
+
+type ManageableRole = 'buyer' | 'moderator' | 'admin';
+
+type AdminUser = {
+  id: string;
+  name: string | null;
+  status: string;
+  seller_verified: boolean;
+  role: string;
+  created_at: string;
+  default_location: string | null;
+};
+
+const roleOptions: { value: ManageableRole; label: string }[] = [
+  { value: 'buyer', label: 'Buyer / Seller' },
+  { value: 'moderator', label: 'Moderator' },
+  { value: 'admin', label: 'Admin' },
+];
+
+function isManageableRole(role: string): role is ManageableRole {
+  return roleOptions.some((option) => option.value === role);
+}
+
+export default function AdminUserRow({ user, currentRole }: { user: AdminUser; currentRole: string }) {
   const supabase = createClient();
   const [status, setStatus] = useState(user.status);
   const [verified, setVerified] = useState(user.seller_verified);
-  const [role, setRole] = useState(user.role);
+  const [role, setRole] = useState(user.role === 'seller' ? 'buyer' : user.role);
   const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const isAdmin = currentRole === 'admin';
+  const displayName = user.name?.trim() || 'Unnamed account';
+  const initials = displayName === 'Unnamed account'
+    ? 'U'
+    : displayName.split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase();
+
+  async function updateProfile(
+    update: () => PromiseLike<{ error: { message: string } | null }>,
+    onSuccess: () => void,
+  ) {
+    setBusy(true);
+    setActionError(null);
+    try {
+      const { error } = await update();
+      if (error) {
+        setActionError(error.message);
+        return;
+      }
+      onSuccess();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Unable to update this account.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function toggleSuspend() {
-    setBusy(true);
     const next = status === 'active' ? 'suspended' : 'active';
-    const { error } = await supabase.from('profiles').update({ status: next }).eq('id', user.id);
-    if (!error) setStatus(next);
-    setBusy(false);
+    await updateProfile(
+      () => supabase.from('profiles').update({ status: next }).eq('id', user.id),
+      () => setStatus(next),
+    );
   }
 
   async function toggleVerify() {
-    setBusy(true);
     const next = !verified;
-    const { error } = await supabase.from('profiles').update({ seller_verified: next }).eq('id', user.id);
-    if (!error) setVerified(next);
-    setBusy(false);
+    await updateProfile(
+      () => supabase.from('profiles').update({ seller_verified: next }).eq('id', user.id),
+      () => setVerified(next),
+    );
   }
 
-  async function changeRole(newRole: string) {
+  async function changeRole(newRole: ManageableRole) {
     if (!isAdmin) return;
-    setBusy(true);
-    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', user.id);
-    if (!error) setRole(newRole);
-    setBusy(false);
+    await updateProfile(
+      () => supabase.from('profiles').update({ role: newRole }).eq('id', user.id),
+      () => setRole(newRole),
+    );
   }
 
   return (
-    <div className='flex flex-wrap items-center justify-between gap-3 p-4'>
-      <div>
-        <div className='flex items-center gap-2'>
-          <p className='font-semibold text-sm text-gray-900'>{user.name || 'Unnamed'}</p>
-          {verified && <span className='text-xs font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded'>Verified Seller</span>}
-          <span className={`text-[11px] font-mono uppercase px-1.5 py-0.5 rounded ${status === 'active' ? 'bg-gray-100 text-gray-600' : 'bg-red-100 text-red-700'}`}>
-            {status}
-          </span>
+    <article className={`admin-member-row ${status === 'active' ? '' : 'is-suspended'}`} aria-busy={busy}>
+      <div className='admin-member-profile'>
+        <span className='admin-member-avatar' aria-hidden='true'>{initials}</span>
+        <div className='admin-member-details'>
+          <div className='admin-member-heading'>
+            <strong>{displayName}</strong>
+            <span className={`admin-member-status ${status === 'active' ? 'is-active' : 'is-suspended'}`}>
+              {status === 'active' ? 'Active' : 'Suspended'}
+            </span>
+            {verified && <span className='admin-member-verified'>Verified seller</span>}
+          </div>
+          <p>
+            Joined <TimeAgo timestamp={user.created_at} />
+            <span aria-hidden='true'> · </span>
+            {user.default_location || 'Location not set'}
+          </p>
         </div>
-        <p className='text-xs text-gray-400'>
-          Joined <TimeAgo timestamp={user.created_at} /> · Location: {user.default_location || 'Not set'}
-        </p>
       </div>
 
-      <div className='flex items-center gap-2'>
+      <div className='admin-member-actions'>
         {isAdmin && (
-          <select
-            value={role}
-            disabled={busy}
-            onChange={(e) => changeRole(e.target.value)}
-            className='rounded border bg-white px-2 py-1 text-xs text-gray-700'
-          >
-            <option value='buyer'>Buyer</option>
-            <option value='seller'>Seller</option>
-            <option value='moderator'>Moderator</option>
-            <option value='admin'>Admin</option>
-          </select>
+          <label className='admin-member-role'>
+            <span className='sr-only'>Role for {displayName}</span>
+            <select
+              value={role}
+              disabled={busy}
+              onChange={(event) => {
+                if (isManageableRole(event.target.value)) void changeRole(event.target.value);
+              }}
+            >
+              {roleOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
         )}
 
         <button
+          type='button'
           onClick={toggleVerify}
           disabled={busy}
           title={verified ? 'Remove verified badge' : 'Grant verified badge'}
-          className={`rounded border px-2.5 py-1 text-xs font-medium transition ${
-            verified ? 'border-emerald-600 text-emerald-700 bg-emerald-50' : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-          }`}
+          className={`admin-member-button ${verified ? 'is-verified' : ''}`}
         >
-          {verified ? 'Verified' : 'Verify'}
+          {verified ? 'Verified' : 'Verify seller'}
         </button>
 
         <button
+          type='button'
           onClick={toggleSuspend}
           disabled={busy}
-          className={`rounded border px-2.5 py-1 text-xs font-medium transition ${
-            status === 'active' ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-          }`}
+          className={`admin-member-button ${status === 'active' ? 'is-danger' : 'is-reactivate'}`}
         >
           {status === 'active' ? 'Suspend' : 'Activate'}
         </button>
+
+        {actionError && <p className='admin-member-error' role='alert'>{actionError}</p>}
       </div>
-    </div>
+    </article>
   );
 }

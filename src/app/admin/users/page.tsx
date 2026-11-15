@@ -1,6 +1,6 @@
+import { Users } from '@/components/icons';
+import AdminActivityViewed from '../AdminActivityViewed';
 import { requireStaff } from '@/lib/auth';
-import { timeAgo } from '@/lib/format';
-import Link from 'next/link';
 import AdminUserRow from './AdminUserRow';
 
 export default async function AdminUsersPage() {
@@ -13,22 +13,43 @@ export default async function AdminUsersPage() {
     .limit(50);
 
   return (
-    <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
+    <main className='admin-users-page'>
+      <AdminActivityViewed eventType='account_created' />
+      <header className='admin-users-header'>
         <div>
-          <h1 className='text-2xl font-bold text-gray-900'>Manage Users</h1>
-          <p className='text-sm text-gray-500'>Verify sellers, suspend accounts, and manage roles.</p>
+          <p className='admin-eyebrow'>Marketplace access</p>
+          <h1>Manage users</h1>
+          <p>Review accounts, verify sellers, and manage staff access.</p>
+          <div className='admin-users-note'>
+            <span aria-hidden='true'>i</span>
+            <p>All marketplace members can buy and sell. Seller verification is managed separately.</p>
+          </div>
         </div>
-        <Link href='/admin' className='text-xs text-gray-500 underline'>
-          Back to Admin Hub
-        </Link>
-      </div>
+      </header>
 
-      <div className='divide-y rounded-xl border bg-white shadow-sm overflow-hidden'>
-        {(users || []).map((u: any) => (
-          <AdminUserRow key={u.id} user={u} currentRole={myProfile.role} />
-        ))}
-      </div>
-    </div>
+      <section className='admin-users-section' aria-labelledby='admin-users-list-title'>
+        <div className='admin-users-section-heading'>
+          <div>
+            <p className='admin-eyebrow'>Account directory</p>
+            <h2 id='admin-users-list-title'>User accounts</h2>
+          </div>
+          <span className='admin-users-count'>{users?.length ?? 0} shown</span>
+        </div>
+
+        {users?.length ? (
+          <div className='admin-users-list'>
+            {users.map((user) => (
+              <AdminUserRow key={user.id} user={user} currentRole={myProfile.role} />
+            ))}
+          </div>
+        ) : (
+          <div className='admin-users-empty'>
+            <span aria-hidden='true'><Users size={20} /></span>
+            <strong>No user accounts yet</strong>
+            <p>New marketplace accounts will appear here.</p>
+          </div>
+        )}
+      </section>
+    </main>
   );
 }

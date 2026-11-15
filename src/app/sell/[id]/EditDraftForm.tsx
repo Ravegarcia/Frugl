@@ -26,6 +26,21 @@ interface ListingPhoto {
   sort_order: number;
 }
 
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 30_000) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error('The request timed out. Check My Listings before trying again.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 export default function EditDraftForm({ initialListing, userLocation, sellerName }: Props) {
   const router = useRouter();
 
@@ -225,14 +240,18 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
         screen_size: screenSize ? Number(screenSize) : null,
       };
 
-      await fetch(`/api/listings/${initialListing.id}`, {
+      const saveRes = await fetchWithTimeout(`/api/listings/${initialListing.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) {
+        throw new Error(saveData.error || 'Failed to save listing changes.');
+      }
 
       // Call publish endpoint (validates required fields)
-      const pubRes = await fetch(`/api/listings/${initialListing.id}/publish`, {
+      const pubRes = await fetchWithTimeout(`/api/listings/${initialListing.id}/publish`, {
         method: 'POST',
       });
       const pubData = await pubRes.json();
@@ -242,8 +261,9 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
 
       router.push(`/laptops/${initialListing.id}`);
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'Could not publish listing.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not publish listing.');
+    } finally {
       setPublishing(false);
     }
   }

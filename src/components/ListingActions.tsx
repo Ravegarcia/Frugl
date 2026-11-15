@@ -1,9 +1,14 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { btn, btnOutline, field } from '@/lib/ui';
+import {
+  dispatchSavedListingChanged,
+  SAVED_LISTING_CHANGED_EVENT,
+  type SavedListingChange,
+} from '@/lib/saved-listings-events';
 
 type Props = { listingId: string; sellerId: string; status: string; userId: string | null; initialSaved: boolean };
 
@@ -15,6 +20,16 @@ export default function ListingActions({ listingId, sellerId, status, userId, in
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
+
+  useEffect(() => {
+    const handleSavedListingChanged = (event: Event) => {
+      const change = (event as CustomEvent<SavedListingChange>).detail;
+      if (change?.userId === userId && change.listingId === listingId) setSaved(change.saved);
+    };
+
+    window.addEventListener(SAVED_LISTING_CHANGED_EVENT, handleSavedListingChanged);
+    return () => window.removeEventListener(SAVED_LISTING_CHANGED_EVENT, handleSavedListingChanged);
+  }, [listingId, userId]);
 
   if (!userId) {
     return (
@@ -35,9 +50,19 @@ export default function ListingActions({ listingId, sellerId, status, userId, in
   }
 
   async function toggleSave() {
-    if (saved) await supabase.from('saved_listings').delete().eq('user_id', userId).eq('listing_id', listingId);
-    else await supabase.from('saved_listings').insert({ user_id: userId, listing_id: listingId });
-    setSaved(!saved);
+    const nextSaved = !saved;
+    setNote('');
+    const { error } = nextSaved
+      ? await supabase.from('saved_listings').insert({ user_id: userId, listing_id: listingId })
+      : await supabase.from('saved_listings').delete().eq('user_id', userId).eq('listing_id', listingId);
+    if (error) {
+      setNote('Could not update saved listing: ' + error.message);
+      return;
+    }
+
+    setSaved(nextSaved);
+    dispatchSavedListingChanged({ userId, listingId, saved: nextSaved });
+    router.refresh();
   }
 
   async function message() {

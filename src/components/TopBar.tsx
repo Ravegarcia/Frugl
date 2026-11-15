@@ -10,13 +10,34 @@ export default async function TopBar() {
   const { supabase, user, profile } = await getSessionProfile();
   const canBrowse = Boolean(user && profile?.role !== 'admin');
   let unread = 0;
+  let unreadPublishedListings = 0;
+  let savedIds: string[] = [];
   if (user && profile?.role !== 'admin') {
     const { count } = await supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
+      .neq('type', 'listing_published')
       .is('read_at', null);
     unread = count ?? 0;
+
+    const { count: publishedCount, error: publishedCountError } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('type', 'listing_published')
+      .is('read_at', null);
+    if (publishedCountError) {
+      console.error('Could not load published listing notification count:', publishedCountError.message);
+    }
+    unreadPublishedListings = publishedCount ?? 0;
+
+    const { data: savedListings, error: savedListingsError } = await supabase
+      .from('saved_listings')
+      .select('listing_id')
+      .eq('user_id', user.id);
+    if (savedListingsError) console.error('Could not load saved listings:', savedListingsError.message);
+    savedIds = (savedListings ?? []).map(({ listing_id }) => listing_id);
   }
 
   return (
@@ -35,12 +56,24 @@ export default async function TopBar() {
                 {profile?.role === 'admin' ? (
                   <Link href='/admin' className='nav-browse-link'>Admin dashboard</Link>
                 ) : (
-                  <HeaderNavIcons userId={user.id} initialUnread={unread} />
+                  <HeaderNavIcons key={user.id} userId={user.id} initialUnread={unread} initialSavedIds={savedIds} />
                 )}
                 <details className='profile-dropdown'>
-                  <summary aria-label='Open profile menu' className='profile-pill'>
-                    <span className='profile-avatar'>
-                      {(profile?.name ?? '?').charAt(0).toUpperCase()}
+                  <summary
+                    aria-label={unreadPublishedListings
+                      ? `Open profile menu, ${unreadPublishedListings} new Manage Listings notification${unreadPublishedListings === 1 ? '' : 's'}`
+                      : 'Open profile menu'}
+                    className='profile-pill'
+                  >
+                    <span className='profile-avatar-wrap'>
+                      <span className='profile-avatar'>
+                        {(profile?.name ?? '?').charAt(0).toUpperCase()}
+                      </span>
+                      {unreadPublishedListings > 0 && (
+                        <span className='profile-menu-notification-count' aria-hidden='true'>
+                          {unreadPublishedListings > 99 ? '99+' : unreadPublishedListings}
+                        </span>
+                      )}
                     </span>
                     <span className='profile-label'>{profile?.name?.trim().split(/\s+/)[0] || 'Profile'}</span>
                     <ChevronDown size={14} />
@@ -56,7 +89,22 @@ export default async function TopBar() {
                       ) : (
                         <>
                           <Link href={`/sellers/${user.id}`}><User size={17} variant='solid' />My Profile</Link>
-                          <Link href='/dashboard'><Laptop size={17} />Manage Listings</Link>
+                          <Link
+                            href='/dashboard'
+                            aria-label={unreadPublishedListings
+                              ? `Manage Listings, ${unreadPublishedListings} new published listing notification${unreadPublishedListings === 1 ? '' : 's'}`
+                              : 'Manage Listings'}
+                          >
+                            <span className='profile-menu-icon'>
+                              <Laptop size={17} />
+                              {unreadPublishedListings > 0 && (
+                                <span className='profile-menu-notification-count' aria-hidden='true'>
+                                  {unreadPublishedListings > 99 ? '99+' : unreadPublishedListings}
+                                </span>
+                              )}
+                            </span>
+                            Manage Listings
+                          </Link>
                           <Link href='/account'><Gear size={17} />Settings</Link>
                           <Link href='/offers'><Tag size={17} />Offers</Link>
                           {isStaff(profile) && <Link href='/admin'><Shield size={17} />Admin</Link>}

@@ -6,16 +6,24 @@ import EmptyState from '@/components/EmptyState';
 export default async function SavedPage() {
   const { supabase, user } = await requireMarketplaceUser('/saved');
 
-  const { data: savedListings } = await supabase
+  const { data: savedListings, error: savedListingsError } = await supabase
     .from('saved_listings')
-    .select(`
-      created_at,
-      listings (${CARD_SELECT})
-    `)
+    .select('listing_id, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  const items = (savedListings || []).map((s: any) => s.listings).filter(Boolean);
+  if (savedListingsError) throw new Error('Could not load saved listings: ' + savedListingsError.message);
+  const savedIds = (savedListings ?? []).map((saved) => saved.listing_id);
+  let items: any[] = [];
+  if (savedIds.length > 0) {
+    const { data: listings, error: listingsError } = await supabase
+      .from('listings')
+      .select(CARD_SELECT)
+      .in('id', savedIds);
+    if (listingsError) throw new Error('Could not load saved listing details: ' + listingsError.message);
+    const listingsById = new Map((listings ?? []).map((listing) => [listing.id, listing]));
+    items = savedIds.map((id) => listingsById.get(id)).filter(Boolean);
+  }
 
   return (
     <div className='utility-page'>

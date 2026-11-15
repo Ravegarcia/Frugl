@@ -46,12 +46,10 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
     .order('created_at', { ascending: false });
 
   return (
-    <div className='py-2'>
-      <ChatRoom
-        conversation={conv}
-        currentUserId={user.id}
-        initialOffers={offers || []}
-      />
-    </div>
+    <ChatRoom
+      conversation={conv}
+      currentUserId={user.id}
+      initialOffers={offers || []}
+    />
   );
 }

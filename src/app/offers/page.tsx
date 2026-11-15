@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { requireMarketplaceUser } from '@/lib/auth';
 import { formatPrice } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
-import EmptyState from '@/components/EmptyState';
+import { Laptop, Tag } from '@/components/icons';
 import TimeAgo from '@/components/TimeAgo';
 
 export default async function OffersPage() {
@@ -26,104 +26,138 @@ export default async function OffersPage() {
   const sent = sentRes.data || [];
 
   return (
-    <div className='mx-auto max-w-4xl space-y-8'>
-      <div>
-        <h1 className='text-2xl font-bold text-gray-900'>Offers</h1>
-        <p className='text-sm text-gray-500'>Track offers you have made and received.</p>
-      </div>
+    <div className='mx-auto max-w-4xl offers-page'>
+      <header className='offers-page-header'>
+        <div className='offers-page-heading-copy'>
+          <span className='offers-page-icon'><Tag size={20} /></span>
+          <div>
+            <p className='offers-page-eyebrow'>Marketplace activity</p>
+            <h1>Offers</h1>
+            <p>Track the offers you have made and received.</p>
+          </div>
+        </div>
+        <div className='offers-overview' aria-label='Offer totals'>
+          <div><strong>{received.length}</strong><span>Received</span></div>
+          <div><strong>{sent.length}</strong><span>Made</span></div>
+        </div>
+      </header>
 
       {/* Offers Received (Seller) */}
-      <section className='space-y-3'>
-        <h2 className='text-lg font-semibold text-gray-900'>Offers Received ({received.length})</h2>
+      <section className='offers-section' aria-labelledby='offers-received-title'>
+        <div className='offers-section-heading'>
+          <div>
+            <p>For your listings</p>
+            <h2 id='offers-received-title'>Offers received</h2>
+          </div>
+          <span className='offers-count'>{received.length}</span>
+        </div>
         {received.length > 0 ? (
-          <div className='divide-y rounded-xl border bg-white shadow-sm overflow-hidden'>
+          <div className='offers-list'>
             {received.map((o: any) => {
               const cover = coverUrl(o.listings);
               return (
-                <div key={o.id} className='flex items-center justify-between p-4'>
-                  <div className='flex items-center gap-3'>
-                    <div className='h-12 w-12 rounded border bg-gray-100 overflow-hidden shrink-0'>
+                <article key={o.id} className='offers-card'>
+                  <div className='offers-card-listing'>
+                    <div className='offers-card-image'>
                       {cover ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={cover} alt='' className='h-full w-full object-cover' />
+                        <img src={cover} alt='' />
                       ) : (
-                        <div className='flex h-full items-center justify-center text-[9px] text-gray-400'>
-                          No photo
+                        <div className='offers-card-image-placeholder'>
+                          <Laptop size={22} />
                         </div>
                       )}
                     </div>
-                    <div>
-                      <Link href={`/laptops/${o.listings?.id}`} className='text-sm font-semibold hover:underline line-clamp-1'>
+                    <div className='offers-card-details'>
+                      <Link href={`/laptops/${o.listings?.id}`} className='offers-card-title'>
                         {o.listings?.title}
                       </Link>
-                      <p className='text-xs text-gray-500'>
-                        From <span className='font-medium text-gray-800'>{o.buyer?.name}</span> · <TimeAgo timestamp={o.created_at} />
+                      <p className='offers-card-meta'>
+                        From <strong>{o.buyer?.name || 'Buyer'}</strong>
+                        <span className='offers-meta-divider'>·</span>
+                        <TimeAgo timestamp={o.created_at} />
                       </p>
                     </div>
                   </div>
-
-                  <div className='text-right'>
-                    <p className='text-sm font-bold text-primary'>{formatPrice(o.amount)}</p>
-                    <span className='rounded bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-700'>
+                  <div className='offers-card-value'>
+                    <span className='offers-value-label'>Offer amount</span>
+                    <strong>{formatPrice(o.amount)}</strong>
+                    <span className={`offers-status offers-status-${o.status}`}>
                       {o.status}
                     </span>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
         ) : (
-          <p className='text-xs text-gray-500 italic'>No offers received yet.</p>
+          <div className='offers-empty'>
+            <span className='offers-empty-icon'><Tag size={18} /></span>
+            <div>
+              <strong>No offers received yet</strong>
+              <p>When someone makes an offer on one of your listings, it will appear here.</p>
+            </div>
+          </div>
         )}
       </section>
 
       {/* Offers Made (Buyer) */}
-      <section className='space-y-3'>
-        <h2 className='text-lg font-semibold text-gray-900'>Offers Made ({sent.length})</h2>
+      <section className='offers-section' aria-labelledby='offers-made-title'>
+        <div className='offers-section-heading'>
+          <div>
+            <p>Your negotiations</p>
+            <h2 id='offers-made-title'>Offers made</h2>
+          </div>
+          <span className='offers-count'>{sent.length}</span>
+        </div>
         {sent.length > 0 ? (
-          <div className='divide-y rounded-xl border bg-white shadow-sm overflow-hidden'>
+          <div className='offers-list'>
             {sent.map((o: any) => {
               const cover = coverUrl(o.listings);
               return (
-                <div key={o.id} className='flex items-center justify-between p-4'>
-                  <div className='flex items-center gap-3'>
-                    <div className='h-12 w-12 rounded border bg-gray-100 overflow-hidden shrink-0'>
+                <article key={o.id} className='offers-card'>
+                  <div className='offers-card-listing'>
+                    <div className='offers-card-image'>
                       {cover ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={cover} alt='' className='h-full w-full object-cover' />
+                        <img src={cover} alt='' />
                       ) : (
-                        <div className='flex h-full items-center justify-center text-[9px] text-gray-400'>
-                          No photo
+                        <div className='offers-card-image-placeholder'>
+                          <Laptop size={22} />
                         </div>
                       )}
                     </div>
-                    <div>
-                      <Link href={`/laptops/${o.listings?.id}`} className='text-sm font-semibold hover:underline line-clamp-1'>
+                    <div className='offers-card-details'>
+                      <Link href={`/laptops/${o.listings?.id}`} className='offers-card-title'>
                         {o.listings?.title}
                       </Link>
-                      <p className='text-xs text-gray-500'>
-                        Listed at {formatPrice(o.listings?.price)} · Offered <TimeAgo timestamp={o.created_at} />
+                      <p className='offers-card-meta'>
+                        Listed at <strong>{formatPrice(o.listings?.price)}</strong>
+                        <span className='offers-meta-divider'>·</span>
+                        Offered <TimeAgo timestamp={o.created_at} />
                       </p>
                     </div>
                   </div>
-
-                  <div className='text-right'>
-                    <p className='text-sm font-bold text-primary'>{formatPrice(o.amount)}</p>
-                    <span className='rounded bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-700'>
+                  <div className='offers-card-value'>
+                    <span className='offers-value-label'>Your offer</span>
+                    <strong>{formatPrice(o.amount)}</strong>
+                    <span className={`offers-status offers-status-${o.status}`}>
                       {o.status}
                     </span>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
         ) : (
-          <EmptyState
-            title='No offers sent'
-            hint='Find a laptop and make an offer to start negotiating.'
-            href='/laptops'
-            action='Browse laptops'
-          />
+          <div className='offers-empty offers-empty-sent'>
+            <span className='offers-empty-icon'><Tag size={18} /></span>
+            <div>
+              <strong>No offers sent yet</strong>
+              <p>Find a laptop you like and send an offer to start negotiating.</p>
+            </div>
+            <Link href='/laptops'>Browse laptops</Link>
+          </div>
         )}
       </section>
     </div>

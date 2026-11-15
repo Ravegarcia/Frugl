@@ -44,7 +44,12 @@ export default function ListingCard({
       <div className='listing-card-content'>
         <div className='listing-card-price-row'>
           <p className='listing-card-price'>{formatPrice(listing.price)}</p>
-          <ListingCardSaveButton listingId={listing.id} title={listing.title} initialSaved={saved} />
+          <ListingCardSaveButton
+            key={`${listing.id}-${saved ? 'saved' : 'unsaved'}`}
+            listingId={listing.id}
+            title={listing.title}
+            initialSaved={saved}
+          />
         </div>
         <p className='listing-card-title line-clamp-2'>{listing.title}</p>
         {(listing.cpu || listing.ram || listing.storage) && (

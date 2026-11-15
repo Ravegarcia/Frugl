@@ -4,6 +4,11 @@ import { modelPrefill } from '../src/lib/ai/prefill';
 import { tierFor } from '../src/lib/ai/tier';
 import { detectScamPhrases } from '../src/lib/scam';
 import { suggestCondition } from '../src/lib/condition';
+import {
+  isAllowedMessageAttachment,
+  isImageMessageAttachment,
+  MESSAGE_ATTACHMENT_MAX_SIZE,
+} from '../src/lib/messages/attachments';
 
 const SAMPLE_CATALOG: CatalogModel[] = [
   {
@@ -164,5 +169,20 @@ describe('Condition Suggestion Evaluator', () => {
       hinge_grade: 'good',
     });
     expect(result).toBe('like_new');
+  });
+});
+
+describe('Message attachments', () => {
+  it('accepts supported, non-empty files under the size limit', () => {
+    expect(isAllowedMessageAttachment({ type: 'image/png', size: 1024 })).toBe(true);
+    expect(isAllowedMessageAttachment({ type: 'application/pdf', size: MESSAGE_ATTACHMENT_MAX_SIZE })).toBe(true);
+    expect(isImageMessageAttachment('image/webp')).toBe(true);
+  });
+
+  it('rejects empty, oversized, and unsupported files', () => {
+    expect(isAllowedMessageAttachment({ type: 'image/png', size: 0 })).toBe(false);
+    expect(isAllowedMessageAttachment({ type: 'image/png', size: MESSAGE_ATTACHMENT_MAX_SIZE + 1 })).toBe(false);
+    expect(isAllowedMessageAttachment({ type: 'application/x-msdownload', size: 1024 })).toBe(false);
+    expect(isImageMessageAttachment('application/pdf')).toBe(false);
   });
 });

@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { requireMarketplaceUser } from '@/lib/auth';
 import { formatPrice, conditionLabel } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
+import { createAdminClient } from '@/lib/supabase/admin';
 import EmptyState from '@/components/EmptyState';
-import { PlusCircle, ExternalLink, Edit3 } from '@/components/icons';
+import { PlusCircle, ExternalLink, Edit3, Laptop, ShieldCheck, CheckCircle, Eye, MessageCircle } from '@/components/icons';
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'active' } = await searchParams;
@@ -11,13 +12,33 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const validTabs = ['active', 'draft', 'reserved', 'sold'];
   const activeTab = validTabs.includes(tab) ? tab : 'active';
+  const listingStatus = activeTab === 'active' ? 'available' : activeTab;
+
+  const admin = createAdminClient();
+  const { error: notificationDeleteError } = await admin
+    .from('notifications')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('type', 'listing_published');
+  if (notificationDeleteError) {
+    console.error('Could not remove viewed published listing notifications:', notificationDeleteError.message);
+    const { error: notificationReadError } = await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .eq('type', 'listing_published')
+      .is('read_at', null);
+    if (notificationReadError) {
+      console.error('Could not mark published listing notifications as read:', notificationReadError.message);
+    }
+  }
 
   // Fetch seller's listings for current tab
   const { data: listings } = await supabase
     .from('listings')
     .select('*, listing_photos(image_url, sort_order), offers(id, status, amount)')
     .eq('seller_id', user.id)
-    .eq('status', activeTab)
+    .eq('status', listingStatus)
     .order('created_at', { ascending: false });
 
   // Counts for tabs
@@ -29,55 +50,56 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   ]);
 
   const tabs = [
-    { key: 'active', label: 'Active', count: activeCount.count || 0 },
-    { key: 'draft', label: 'Drafts', count: draftCount.count || 0 },
-    { key: 'reserved', label: 'Reserved', count: reservedCount.count || 0 },
-    { key: 'sold', label: 'Sold', count: soldCount.count || 0 },
+    { key: 'active', label: 'Active', count: activeCount.count || 0, icon: Laptop },
+    { key: 'draft', label: 'Drafts', count: draftCount.count || 0, icon: Edit3 },
+    { key: 'reserved', label: 'Reserved', count: reservedCount.count || 0, icon: ShieldCheck },
+    { key: 'sold', label: 'Sold', count: soldCount.count || 0, icon: CheckCircle },
   ];
+  const currentTab = tabs.find((item) => item.key === activeTab) || tabs[0];
 
   return (
-    <div className='space-y-6'>
-      <div className='flex flex-wrap items-center justify-between gap-4'>
-        <div>
+    <div className='seller-dashboard'>
+      <header className='seller-dashboard-header'>
+        <div className='seller-dashboard-intro'>
+          <p className='seller-dashboard-eyebrow'>Seller workspace</p>
           <h1 className='text-2xl font-bold text-gray-900'>My listings dashboard</h1>
-          <p className='text-sm text-gray-500'>Manage your draft, active, reserved, and sold listings.</p>
+          <p>Manage your draft, active, reserved, and sold listings.</p>
         </div>
         <Link
           href='/sell'
-          className='inline-flex min-h-11 items-center gap-2 rounded-full border border-primary bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover'
+          className='seller-dashboard-create'
         >
-          <PlusCircle size={16} />
+          <PlusCircle size={18} />
           <span>Sell another laptop</span>
         </Link>
-      </div>
+      </header>
 
-      {/* Tabs */}
-      <div className='flex border-b border-gray-200'>
+      <nav className='seller-dashboard-status-grid' aria-label='Filter listings by status'>
         {tabs.map((t) => (
           <Link
             key={t.key}
             href={`/dashboard?tab=${t.key}`}
-            className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
-              activeTab === t.key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-gray-500 hover:text-primary'
-            }`}
+            aria-current={activeTab === t.key ? 'page' : undefined}
+            className={`seller-dashboard-status-card ${activeTab === t.key ? 'is-active' : ''}`}
           >
-            <span>{t.label}</span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs ${
-                activeTab === t.key ? 'bg-secondary text-secondary-foreground' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              {t.count}
-            </span>
+            <span className='seller-dashboard-status-icon'><t.icon size={18} /></span>
+            <span className='seller-dashboard-status-label'>{t.label}</span>
+            <span className='seller-dashboard-status-count'>{t.count}</span>
           </Link>
         ))}
-      </div>
+      </nav>
 
-      {/* Listings list */}
+      <section className='seller-dashboard-listings' aria-labelledby='seller-dashboard-listings-title'>
+        <div className='seller-dashboard-section-heading'>
+          <div>
+            <p className='seller-dashboard-section-eyebrow'>Your inventory</p>
+            <h2 id='seller-dashboard-listings-title'>{currentTab.label} listings</h2>
+          </div>
+          <span className='seller-dashboard-total'>{currentTab.count} total</span>
+        </div>
+
       {listings && listings.length > 0 ? (
-        <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+        <div className='seller-dashboard-listing-grid'>
           {listings.map((l: any) => {
             const img = coverUrl(l);
             const offersCount = l.offers?.length || 0;
@@ -89,56 +111,56 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   ? 'status-info'
                   : 'status-success';
             return (
-              <div key={l.id} className='flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface shadow-sm'>
-                <div>
-                  <div className='relative aspect-[4/3] bg-gray-100'>
+              <article key={l.id} className='seller-dashboard-listing-card'>
+                <div className='seller-dashboard-listing-image'>
                     {img ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={img} alt={l.title} className='h-full w-full object-cover' />
+                      <img src={img} alt={l.title} />
                     ) : (
-                      <div className='flex h-full items-center justify-center text-xs text-gray-400'>
+                      <div className='seller-dashboard-no-photo'>
+                        <Laptop size={24} />
                         No photo
                       </div>
                     )}
                     <span className={`status-badge ${statusTone} absolute right-2 top-2 capitalize`}>
                       {l.status}
                     </span>
-                  </div>
-                  <div className='p-4 space-y-1.5'>
-                    <p className='text-lg font-bold text-gray-900'>
-                      {l.price ? formatPrice(l.price) : 'No price set'}
-                    </p>
-                    <h3 className='line-clamp-2 font-sans text-sm font-semibold text-gray-800'>{l.title || 'Untitled Draft'}</h3>
-                    <p className='text-xs text-gray-500'>
-                      {conditionLabel(l.condition) || 'Condition not set'} · {l.location || 'Location not set'}
-                    </p>
-                    <div className='flex gap-3 text-xs text-gray-500 pt-1'>
-                      <span>{l.views || 0} views</span>
-                      <span>·</span>
-                      <span>{offersCount} offer{offersCount === 1 ? '' : 's'}</span>
-                    </div>
+                </div>
+                <div className='seller-dashboard-listing-content'>
+                  <p className='seller-dashboard-listing-price'>
+                    {l.price ? formatPrice(l.price) : 'No price set'}
+                  </p>
+                  <h3 className='seller-dashboard-listing-title'>{l.title || 'Untitled Draft'}</h3>
+                  <p className='seller-dashboard-listing-details'>
+                    <span>{conditionLabel(l.condition) || 'Condition not set'}</span>
+                    <span className='seller-dashboard-detail-divider' aria-hidden='true'>·</span>
+                    <span>{l.location || 'Location not set'}</span>
+                  </p>
+                  <div className='seller-dashboard-listing-stats'>
+                    <span><Eye size={14} />{l.views || 0} views</span>
+                    <span><MessageCircle size={14} />{offersCount} offer{offersCount === 1 ? '' : 's'}</span>
                   </div>
                 </div>
 
-                <div className='border-t bg-gray-50 px-4 py-2.5 flex items-center justify-between text-xs font-medium'>
+                <footer className='seller-dashboard-listing-actions'>
                   <Link
                     href={`/sell/${l.id}`}
-                    className='inline-flex items-center gap-1 text-gray-700 hover:text-primary'
+                    className='seller-dashboard-edit-link'
                   >
-                    <Edit3 size={14} />
+                    <Edit3 size={15} />
                     <span>Edit</span>
                   </Link>
                   {l.status !== 'draft' && (
                     <Link
                       href={`/laptops/${l.id}`}
-                      className='inline-flex items-center gap-1 text-primary hover:underline'
+                      className='seller-dashboard-view-link'
                     >
-                      <ExternalLink size={14} />
+                      <ExternalLink size={15} />
                       <span>View live</span>
                     </Link>
                   )}
-                </div>
-              </div>
+                </footer>
+              </article>
             );
           })}
         </div>
@@ -150,6 +172,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           action='Sell a laptop'
         />
       )}
+      </section>
     </div>
   );
 }

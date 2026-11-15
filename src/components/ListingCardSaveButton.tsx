@@ -1,9 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bookmark } from '@/components/icons';
 import { createClient } from '@/lib/supabase/client';
+import {
+  dispatchSavedListingChanged,
+  SAVED_LISTING_CHANGED_EVENT,
+  type SavedListingChange,
+} from '@/lib/saved-listings-events';
 
 type Props = {
   listingId: string;
@@ -16,6 +21,16 @@ export default function ListingCardSaveButton({ listingId, title, initialSaved }
   const [saved, setSaved] = useState(initialSaved);
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState('');
+
+  useEffect(() => {
+    const handleSavedListingChanged = (event: Event) => {
+      const change = (event as CustomEvent<SavedListingChange>).detail;
+      if (change?.listingId === listingId) setSaved(change.saved);
+    };
+
+    window.addEventListener(SAVED_LISTING_CHANGED_EVENT, handleSavedListingChanged);
+    return () => window.removeEventListener(SAVED_LISTING_CHANGED_EVENT, handleSavedListingChanged);
+  }, [listingId]);
 
   async function toggleSaved() {
     if (pending) return;
@@ -44,7 +59,8 @@ export default function ListingCardSaveButton({ listingId, title, initialSaved }
 
       if (result.error) throw result.error;
       setSaved(nextSaved);
-      if (!nextSaved) router.refresh();
+      dispatchSavedListingChanged({ userId: user.id, listingId, saved: nextSaved });
+      router.refresh();
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Could not update your saved laptops.');
     } finally {

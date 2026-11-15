@@ -13,14 +13,17 @@ export default async function NotificationsPage() {
     .from('notifications')
     .select('*')
     .eq('user_id', user.id)
+    .neq('type', 'listing_published')
     .order('created_at', { ascending: false })
     .limit(40);
+  const visibleNotifications = (notifications ?? []).filter((notification: any) => notification.type !== 'listing_published');
 
   // Mark all unread as read
   await supabase
     .from('notifications')
     .update({ read_at: new Date().toISOString() })
     .eq('user_id', user.id)
+    .neq('type', 'listing_published')
     .is('read_at', null);
 
   function notifLink(n: any) {
@@ -42,6 +45,8 @@ export default async function NotificationsPage() {
         return `Listing "${n.payload?.title}" has been reserved for you.`;
       case 'listing_sold':
         return `Listing "${n.payload?.title}" was marked sold.`;
+      case 'saved_listing_sold':
+        return `A laptop you saved, "${n.payload?.title || 'listing'}", has been sold.`;
       default:
         return 'You have a new update.';
     }
@@ -54,9 +59,9 @@ export default async function NotificationsPage() {
         <p className='text-sm text-gray-500'>Updates on messages, offers, holds, and sales.</p>
       </header>
 
-      {notifications && notifications.length > 0 ? (
+      {visibleNotifications.length > 0 ? (
         <div className='divide-y rounded-xl border bg-white shadow-sm overflow-hidden'>
-          {notifications.map((n: any) => (
+          {visibleNotifications.map((n: any) => (
             <Link
               key={n.id}
               href={notifLink(n)}

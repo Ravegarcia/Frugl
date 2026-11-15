@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, AlertCircle } from '@/components/icons';
+import { AlertCircle, CheckCircle2, Gear, ShieldCheck, User } from '@/components/icons';
 
 interface Props {
   user: any;
@@ -88,37 +88,44 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
   }
 
   return (
-    <div className='mx-auto max-w-xl space-y-8'>
-      <div>
-        <h1 className='text-2xl font-bold text-gray-900'>Account & Settings</h1>
-        <p className='text-sm text-gray-500'>Manage your profile, default location, and security.</p>
-      </div>
+    <div className='account-settings-page mx-auto max-w-5xl'>
+      <header className='account-settings-heading'>
+        <span className='account-settings-heading-icon'><Gear size={20} /></span>
+        <div>
+          <h1>Account &amp; Settings</h1>
+          <p>Manage your profile, default location, and security.</p>
+        </div>
+      </header>
 
       {msg && (
-        <div className='flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800'>
+        <div className='account-settings-notice account-settings-success' role='status'>
           <CheckCircle2 size={16} className='shrink-0' />
           <span>{msg}</span>
         </div>
       )}
 
       {err && (
-        <div className='flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
+        <div className='account-settings-notice account-settings-error' role='alert'>
           <AlertCircle size={16} className='shrink-0' />
           <span>{err}</span>
         </div>
       )}
 
-      {/* Profile Form */}
-      <form onSubmit={handleProfileSave} className='rounded-xl border bg-white p-6 shadow-sm space-y-4'>
-        <h2 className='text-base font-semibold text-gray-900'>Profile Details</h2>
+      <div className='account-settings-grid'>
+        <form onSubmit={handleProfileSave} className='account-settings-card account-profile-card'>
+        <h2 className='account-settings-card-title'>
+          <span><User size={17} /></span>
+          Profile Details
+        </h2>
 
-        <div className='space-y-1.5'>
+        <div className='account-profile-fields'>
+        <div className='account-settings-field account-setting-email space-y-1.5'>
           <Label htmlFor='email'>Email Address</Label>
           <Input id='email' value={user?.email || ''} disabled className='bg-gray-50 text-gray-500' />
           <p className='text-[11px] text-gray-400'>Email cannot be changed directly.</p>
         </div>
 
-        <div className='space-y-1.5'>
+        <div className='account-settings-field space-y-1.5'>
           <Label htmlFor='name'>Display Name</Label>
           <Input
             id='name'
@@ -128,7 +135,7 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
           />
         </div>
 
-        <div className='space-y-1.5'>
+        <div className='account-settings-field space-y-1.5'>
           <Label htmlFor='location'>Default City / Location</Label>
           <Input
             id='location'
@@ -139,7 +146,7 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
           <p className='text-[11px] text-gray-400'>Auto-fills as your listing location.</p>
         </div>
 
-        <div className='space-y-1.5'>
+        <div className='account-settings-field account-setting-contact space-y-1.5'>
           <Label htmlFor='contact'>Contact Number (Private)</Label>
           <Input
             id='contact'
@@ -149,16 +156,19 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
           />
           <p className='text-[11px] text-gray-400'>Never shown publicly to guests.</p>
         </div>
+        </div>
 
-        <Button type='submit' disabled={busy}>
+        <Button type='submit' disabled={busy} className='account-settings-profile-save'>
           {busy ? 'Saving...' : 'Save Profile'}
         </Button>
-      </form>
+        </form>
 
-      {/* Password Reset */}
-      <form onSubmit={handlePasswordChange} className='rounded-xl border bg-white p-6 shadow-sm space-y-4'>
-        <h2 className='text-base font-semibold text-gray-900'>Change Password</h2>
-        <div className='space-y-1.5'>
+        <form onSubmit={handlePasswordChange} className='account-settings-card account-password-card'>
+        <h2 className='account-settings-card-title'>
+          <span><ShieldCheck size={17} /></span>
+          Change Password
+        </h2>
+        <div className='account-settings-field space-y-1.5'>
           <Label htmlFor='newPass'>New Password</Label>
           <Input
             id='newPass'
@@ -169,10 +179,11 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
             required
           />
         </div>
-        <Button type='submit' variant='outline' disabled={busy}>
+        <Button type='submit' variant='outline' disabled={busy} className='account-settings-password-save'>
           Update Password
         </Button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }

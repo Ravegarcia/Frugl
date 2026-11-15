@@ -29,6 +29,7 @@ import {
   faExternalLinkAlt,
   faEye,
   faEyeSlash,
+  faFileLines,
   faFlag,
   faGear,
   faHouse,
@@ -37,6 +38,7 @@ import {
   faMagnifyingGlass,
   faMessage,
   faPaperPlane,
+  faPaperclip,
   faPenToSquare,
   faPlusCircle,
   faRightFromBracket,
@@ -115,6 +117,7 @@ export const DoorOpen = icon(faDoorOpen);
 export const Edit3 = icon(faPenToSquare, faPenToSquareRegular, 'regular');
 export const Eye = icon(faEye, faEyeRegular, 'regular');
 export const EyeOff = icon(faEyeSlash, faEyeSlashRegular, 'regular');
+export const FileLines = icon(faFileLines);
 export const ExternalLink = icon(faExternalLinkAlt);
 export const Flag = icon(faFlag, faFlagRegular, 'regular');
 export const Gear = icon(faGear);
@@ -128,6 +131,7 @@ export const RefreshCw = icon(faCircleNotch);
 export const Search = icon(faMagnifyingGlass);
 export const SignOut = icon(faRightFromBracket);
 export const Send = icon(faPaperPlane, faPaperPlaneRegular, 'regular');
+export const Paperclip = icon(faPaperclip);
 export const Shield = icon(faShield);
 export const ShieldAlert = icon(faTriangleExclamation);
 export const ShieldCheck = icon(faShieldHalved);

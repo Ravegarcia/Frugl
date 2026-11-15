@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSessionProfile } from '@/lib/auth';
-import { CARD_SELECT_WITH_SAVED } from '@/lib/queries';
+import { CARD_SELECT } from '@/lib/queries';
 import { BRANDS, CONDITIONS, RAM_OPTIONS, STORAGE_OPTIONS } from '@/lib/constants';
 import { btn, btnOutline, field } from '@/lib/ui';
 import ListingCard from '@/components/ListingCard';
 import EmptyState from '@/components/EmptyState';
+import BrowseIntroShowcase from './BrowseIntroShowcase';
 
 const PAGE_SIZE = 12;
 const SCREENS: Record<string, [number, number]> = { small: [0, 13.99], '14': [14, 14.99], '15': [15, 15.99], big: [16, 99] };
@@ -72,7 +73,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
 
   let query = supabase
     .from('listings')
-    .select(CARD_SELECT_WITH_SAVED, { count: 'exact' })
+    .select(CARD_SELECT, { count: 'exact' })
     .eq('status', availability)
     .eq('is_visible', true);
 
@@ -100,7 +101,18 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
 
   const from = (page - 1) * PAGE_SIZE;
   const { data, count } = await query.range(from, from + PAGE_SIZE - 1);
+  const savedIds = new Set<string>();
+  if (data?.length) {
+    const { data: savedRows, error: savedError } = await supabase
+      .from('saved_listings')
+      .select('listing_id')
+      .eq('user_id', user.id)
+      .in('listing_id', data.map((listing) => listing.id));
+    if (savedError) throw new Error('Could not load saved status for listings: ' + savedError.message);
+    for (const row of savedRows ?? []) savedIds.add(row.listing_id);
+  }
   const pages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
+  const heroListings = data ?? [];
 
   const pageHref = (p: number) => {
     const params = new URLSearchParams();
@@ -112,13 +124,19 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
   return (
     <div className='browse-page'>
       <header className='browse-intro'>
-        <div>
-          <p className='browse-eyebrow'>Browse the marketplace</p>
-          <h1>Find your next laptop</h1>
+        <div className='browse-intro-copy'>
+          <p className='browse-eyebrow'><span /> Browse the marketplace</p>
+          <h1>Find your next <span>laptop.</span></h1>
           <p className='browse-intro-description'>
-            Compare the details that matter, from processor and memory to condition and handover options.
+            Compare real listings by specs, condition, and price to find a laptop that fits your day.
           </p>
+          <div className='browse-intro-highlights' aria-label='Marketplace details'>
+            <span>Processor &amp; memory</span>
+            <span>Seller-set prices</span>
+            <span>Local listings</span>
+          </div>
         </div>
+        <BrowseIntroShowcase listings={heroListings} />
       </header>
 
       <div className='browse-layout'>
@@ -176,7 +194,7 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
           </div>
           {data && data.length > 0 ? (
             <div className='grid grid-cols-2 gap-4 lg:grid-cols-3'>
-              {data.map((l: any) => <ListingCard key={l.id} listing={l} />)}
+              {data.map((l: any) => <ListingCard key={l.id} listing={l} initialSaved={savedIds.has(l.id)} />)}
             </div>
           ) : (
             <EmptyState title='No laptops match your filters' hint='Try removing a filter.' href='/laptops' action='Clear filters' />

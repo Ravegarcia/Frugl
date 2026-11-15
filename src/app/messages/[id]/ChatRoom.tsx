@@ -1,15 +1,94 @@
 'use client';
 
-import { useState, useEffect, useRef, type FormEvent } from 'react';
+import { useState, useEffect, useMemo, useRef, type DragEvent, type FormEvent } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { formatPrice } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
 import TimeAgo from '@/components/TimeAgo';
 import { detectScamPhrases } from '@/lib/scam';
-import { Send, AlertTriangle, ShieldCheck, Tag } from '@/components/icons';
+import {
+  Send,
+  AlertTriangle,
+  ShieldCheck,
+  Tag,
+  ChevronLeft,
+  Paperclip,
+  FileLines,
+  X,
+  Loader2,
+} from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  formatAttachmentSize,
+  isAllowedMessageAttachment,
+  isImageMessageAttachment,
+  MESSAGE_ATTACHMENT_ACCEPT,
+  MESSAGE_ATTACHMENT_BUCKET,
+  MESSAGE_ATTACHMENT_MAX_COUNT,
+  MESSAGE_ATTACHMENT_MAX_TOTAL_SIZE,
+} from '@/lib/messages/attachments';
+
+interface MessageAttachment {
+  path: string;
+  name: string;
+  contentType: string;
+  size: number;
+}
+
+function MessageAttachmentCard({ attachment }: { attachment: MessageAttachment }) {
+  const supabase = useMemo(() => createClient(), []);
+  const [url, setUrl] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const isImage = isImageMessageAttachment(attachment.contentType);
+
+  useEffect(() => {
+    let active = true;
+    void supabase.storage
+      .from(MESSAGE_ATTACHMENT_BUCKET)
+      .createSignedUrl(attachment.path, 3600, { download: isImage ? false : attachment.name })
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          setLoadError('Attachment unavailable');
+          return;
+        }
+        setUrl(data.signedUrl);
+      })
+      .catch(() => {
+        if (active) setLoadError('Attachment unavailable');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [attachment.name, attachment.path, isImage, supabase]);
+
+  if (loadError) return <span className='message-attachment-unavailable'>{loadError}</span>;
+  if (!url) return <span className='message-attachment-loading'>Loading {attachment.name}...</span>;
+
+  if (isImage) {
+    return (
+      <a href={url} target='_blank' rel='noreferrer' className='message-attachment-image-link'>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt={attachment.name} className='message-attachment-image' />
+        <span>{attachment.name}</span>
+      </a>
+    );
+  }
+
+  return (
+    <a href={url} target='_blank' rel='noreferrer' className='message-attachment-file'>
+      <FileLines size={18} />
+      <span className='message-attachment-file-copy'>
+        <strong>{attachment.name}</strong>
+        <span>{formatAttachmentSize(attachment.size)}</span>
+      </span>
+      <span className='message-attachment-download'>Download</span>
+    </a>
+  );
+}
 
 interface Props {
   conversation: any;
@@ -18,7 +97,7 @@ interface Props {
 }
 
 export default function ChatRoom({ conversation, currentUserId, initialOffers }: Props) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const listing = conversation.listings;
   const isBuyer = conversation.buyer_id === currentUserId;
   const otherParty = isBuyer ? conversation.seller : conversation.buyer;
@@ -35,8 +114,11 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
   const [showOfferForm, setShowOfferForm] = useState(false);
   const [offerAmount, setOfferAmount] = useState('');
   const [actionError, setActionError] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -56,9 +138,10 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
           filter: `conversation_id=eq.${conversation.id}`,
         },
         (payload) => {
+          const incoming = payload.new as any;
           setMessages((prev) => {
-            if (prev.some((m) => m.id === payload.new.id)) return prev;
-            return [...prev, payload.new];
+            if (prev.some((m) => m.id === incoming.id)) return prev;
+            return [...prev, incoming];
           });
         }
       )
@@ -72,21 +155,22 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
   // Send message
   async function handleSendMessage(e: FormEvent) {
     e.preventDefault();
-    if (!inputText.trim() || sending) return;
+    if ((!inputText.trim() && selectedFiles.length === 0) || sending) return;
 
     setSending(true);
     setActionError('');
     const textToSend = inputText.trim();
-    setInputText('');
+    const filesToSend = [...selectedFiles];
 
     try {
+      const formData = new FormData();
+      formData.set('conversationId', conversation.id);
+      formData.set('body', textToSend);
+      filesToSend.forEach((file) => formData.append('attachments', file, file.name));
+
       const res = await fetch('/api/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          body: textToSend,
-        }),
+        body: formData,
       });
 
       const data = await res.json();
@@ -98,12 +182,39 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
           return [...prev, data.message];
         });
       }
-    } catch (err: any) {
-      setActionError(err.message || 'Error sending message.');
-      setInputText(textToSend);
+      setInputText('');
+      setSelectedFiles([]);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Error sending message.');
     } finally {
       setSending(false);
     }
+  }
+
+  function addFiles(files: File[]) {
+    if (!files.length) return;
+    const supported = files.filter(isAllowedMessageAttachment);
+    let totalSize = selectedFiles.reduce((total, file) => total + file.size, 0);
+    const remainingSlots = MESSAGE_ATTACHMENT_MAX_COUNT - selectedFiles.length;
+    const accepted: File[] = [];
+    for (const file of supported) {
+      if (accepted.length >= remainingSlots || totalSize + file.size > MESSAGE_ATTACHMENT_MAX_TOTAL_SIZE) continue;
+      accepted.push(file);
+      totalSize += file.size;
+    }
+    if (accepted.length) setSelectedFiles((previous) => [...previous, ...accepted]);
+
+    const errors = [];
+    if (supported.length !== files.length) errors.push('Some files were skipped because their type or size is not supported.');
+    if (accepted.length !== supported.length) errors.push('Attach up to 4 files and 4 MB total per message.');
+    setActionError(errors.join(' '));
+  }
+
+  function handleDropFiles(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDraggingFiles(false);
+    if (sending) return;
+    addFiles(Array.from(event.dataTransfer.files));
   }
 
   // Create offer
@@ -153,34 +264,39 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
   const latestOffer = offers[0];
 
   return (
-    <div className='mx-auto max-w-4xl space-y-3'>
-      {/* Listing Header Bar */}
-      <div className='flex items-center justify-between rounded-xl border bg-white p-3 shadow-sm'>
-        <div className='flex items-center gap-3'>
-          <div className='h-12 w-12 rounded-lg bg-gray-100 overflow-hidden border'>
+    <div className='message-chat'>
+      <header className='message-chat-header'>
+        <Link href='/messages' className='messages-mobile-back' aria-label='Back to inbox'>
+          <ChevronLeft size={18} />
+        </Link>
+        <div className='message-chat-listing'>
+          <div className='message-chat-thumb'>
             {cover ? (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={cover} alt='' className='h-full w-full object-cover' />
+              <img src={cover} alt='' />
             ) : (
-              <div className='flex h-full items-center justify-center text-[9px] text-gray-400'>
-                No photo
-              </div>
+              <span>No photo</span>
             )}
           </div>
-          <div>
+          <div className='message-chat-listing-details'>
             <Link
               href={`/laptops/${listing.id}`}
-              className='text-sm font-semibold text-gray-900 hover:underline line-clamp-1'
+              className='message-chat-listing-title'
             >
               {listing.title}
             </Link>
-            <p className='text-xs font-bold text-primary'>
-              {formatPrice(listing.price)} · <span className='font-normal text-gray-500 capitalize'>{listing.status}</span>
+            <p className='message-chat-listing-meta'>
+              {formatPrice(listing.price)} <span>· {listing.status}</span>
             </p>
+            {otherParty?.id ? (
+              <Link href={`/sellers/${otherParty.id}`} className='message-chat-participant'>
+                {otherParty.name || 'User'} · {isBuyer ? 'Seller' : 'Buyer'}
+              </Link>
+            ) : null}
           </div>
         </div>
 
-        <div className='flex items-center gap-2'>
+        <div className='message-chat-header-actions'>
           {isBuyer && listing.status === 'available' && (
             <Button
               variant='outline'
@@ -193,16 +309,16 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
             </Button>
           )}
           <Link
-            href={`/sellers/${otherParty?.id}`}
-            className='text-xs text-gray-600 hover:underline hidden sm:inline'
+            href={`/laptops/${listing.id}`}
+            className='message-chat-view-listing'
           >
-            {otherParty?.name}
+            View listing
           </Link>
         </div>
-      </div>
+      </header>
 
       {/* Safety Warning Banner */}
-      <div className='flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-xs text-amber-900'>
+      <div className='message-chat-safety'>
         <AlertTriangle size={16} className='text-amber-700 shrink-0' />
         <span>
           <strong>Safety check:</strong> Always meet in a busy public place. Never send downpayments via GCash or share OTP codes in chat.
@@ -211,7 +327,7 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
 
       {/* Offer Form / Status Box */}
       {showOfferForm && (
-        <form onSubmit={handleSendOffer} className='rounded-xl border bg-white p-4 shadow-sm space-y-2'>
+        <form onSubmit={handleSendOffer} className='message-chat-offer-form'>
           <div className='flex items-center gap-2'>
             <Input
               type='number'
@@ -228,7 +344,7 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
       )}
 
       {latestOffer && (
-        <div className='flex items-center justify-between rounded-xl border border-lavender-300 bg-lavender-100 p-3 text-xs'>
+        <div className='message-chat-offer-status'>
           <div>
             <span className='font-semibold text-primary'>
               Offer: {formatPrice(latestOffer.amount)}
@@ -266,15 +382,29 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
       )}
 
       {actionError && (
-        <div className='p-2 text-xs text-red-600 bg-red-50 rounded border border-red-200'>
+        <div className='message-chat-error' role='alert'>
           {actionError}
         </div>
       )}
 
       {/* Chat Messages Log */}
-      <div className='min-h-[350px] max-h-[500px] overflow-y-auto rounded-xl border bg-white p-4 space-y-3 shadow-inner'>
+      <div
+        className={`message-chat-log${isDraggingFiles ? ' is-dragging-files' : ''}`}
+        role='log'
+        aria-label='Chat messages'
+        aria-live='polite'
+        onDragOver={(event) => {
+          if (Array.from(event.dataTransfer.types).includes('Files')) {
+            event.preventDefault();
+            setIsDraggingFiles(true);
+          }
+        }}
+        onDragLeave={() => setIsDraggingFiles(false)}
+        onDrop={handleDropFiles}
+      >
+        {isDraggingFiles && <div className='message-drop-hint'>Drop files to attach</div>}
         {messages.length === 0 ? (
-          <div className='flex h-48 flex-col items-center justify-center text-center text-xs text-gray-400 space-y-1'>
+          <div className='message-chat-empty'>
             <ShieldCheck size={28} className='text-gray-300' />
             <p>Direct chat for this listing.</p>
             <p>Agree on a public meet-up location and inspect before buying.</p>
@@ -282,32 +412,34 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
         ) : (
           messages.map((m) => {
             const isMe = m.sender_id === currentUserId;
-            const flags = detectScamPhrases(m.body);
+            const flags = detectScamPhrases(m.body || '');
+            const attachments: MessageAttachment[] = Array.isArray(m.attachments) ? m.attachments : [];
 
             return (
               <div
                 key={m.id}
-                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                className={`message-row${isMe ? ' is-mine' : ' is-theirs'}`}
               >
-                <div
-                  className={`max-w-[78%] rounded-2xl px-3.5 py-2 text-sm ${
-                    isMe
-                      ? 'bg-secondary text-primary rounded-br-none'
-                      : 'bg-ivory text-primary rounded-bl-none'
-                  }`}
-                >
-                  <p className='whitespace-pre-wrap break-words'>{m.body}</p>
+                <div className='message-bubble'>
+                  {m.body && <p className='message-bubble-text'>{m.body}</p>}
+                  {attachments.length > 0 && (
+                    <div className='message-attachments'>
+                      {attachments.map((attachment) => (
+                        <MessageAttachmentCard key={attachment.path} attachment={attachment} />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Inline scam phrase detection warning for recipient */}
                 {!isMe && flags.length > 0 && (
-                  <div className='mt-1 flex items-center gap-1 text-[11px] font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded'>
+                  <div className='message-scam-warning'>
                     <AlertTriangle size={12} />
                     <span>Warning: Potential scam keyword detected ({flags.join(', ')}).</span>
                   </div>
                 )}
 
-                <span className='mt-0.5 text-[10px] text-gray-400'>
+                <span className='message-timestamp'>
                   <TimeAgo timestamp={m.sent_at} />
                 </span>
               </div>
@@ -318,22 +450,61 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
       </div>
 
       {/* Input Message Box */}
-      <form onSubmit={handleSendMessage} className='flex items-center gap-2'>
-        <Input
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder='Type a message...'
-          className='flex-1 rounded-full'
-          disabled={sending}
-        />
-        <Button
-          type='submit'
-          disabled={sending || !inputText.trim()}
-          aria-label='Send message'
-          className='h-11 w-11 shrink-0 rounded-full p-2.5'
-        >
-          <Send size={16} />
-        </Button>
+      <form onSubmit={handleSendMessage} className='message-chat-compose'>
+        {selectedFiles.length > 0 && (
+          <div className='message-selected-files' aria-label='Files to attach'>
+            {selectedFiles.map((file, index) => (
+              <span className='message-selected-file' key={`${file.name}-${file.lastModified}-${index}`}>
+                <FileLines size={14} />
+                <span>{file.name} · {formatAttachmentSize(file.size)}</span>
+                <button
+                  type='button'
+                  aria-label={`Remove ${file.name}`}
+                  disabled={sending}
+                  onClick={() => setSelectedFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))}
+                >
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className='message-compose-main'>
+          <label className='message-compose-icon-button' title='Attach images or files'>
+            <Paperclip size={18} />
+            <input
+              ref={fileInputRef}
+              type='file'
+              multiple
+              accept={MESSAGE_ATTACHMENT_ACCEPT}
+              className='sr-only'
+              aria-label='Attach images or files'
+              disabled={sending || selectedFiles.length >= MESSAGE_ATTACHMENT_MAX_COUNT}
+              onChange={(event) => {
+                addFiles(Array.from(event.currentTarget.files ?? []));
+                event.currentTarget.value = '';
+              }}
+            />
+          </label>
+          <Input
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder='Write a message...'
+            aria-label='Write a message'
+            maxLength={2000}
+            className='message-compose-input'
+            disabled={sending}
+          />
+          <Button
+            type='submit'
+            disabled={sending || (!inputText.trim() && selectedFiles.length === 0)}
+            aria-label='Send message'
+            className='message-send-button'
+          >
+            {sending ? <Loader2 size={17} className='animate-spin' /> : <Send size={17} />}
+          </Button>
+        </div>
+        <p className='message-compose-hint'>Enter to send · Up to 4 files, 4 MB total</p>
       </form>
     </div>
   );

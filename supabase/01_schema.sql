@@ -198,6 +198,7 @@ create table public.messages (
   conversation_id uuid not null references public.conversations(id) on delete cascade,
   sender_id uuid not null references public.profiles(id) on delete cascade,
   body text not null check (char_length(body) between 1 and 2000),
+  attachments jsonb not null default '[]'::jsonb,
   is_flagged boolean not null default false,
   sent_at timestamptz not null default now(),
   read_at timestamptz
@@ -350,9 +351,27 @@ for each row execute function public.notify_message();
 create function public.notify_listing_status() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  if new.status is distinct from old.status and new.status in ('reserved','sold') and new.buyer_id is not null then
-    insert into public.notifications (user_id, type, payload)
-    values (new.buyer_id, 'listing_' || new.status, jsonb_build_object('listing_id', new.id, 'title', new.title));
+  if new.status is distinct from old.status then
+    if old.status = 'draft' and new.status = 'available' then
+      insert into public.notifications (user_id, type, payload)
+      values (new.seller_id, 'listing_published',
+              jsonb_build_object('listing_id', new.id, 'title', new.title));
+    end if;
+
+    if new.status in ('reserved','sold') and new.buyer_id is not null then
+      insert into public.notifications (user_id, type, payload)
+      values (new.buyer_id, 'listing_' || new.status, jsonb_build_object('listing_id', new.id, 'title', new.title));
+    end if;
+
+    if new.status = 'sold' then
+      insert into public.notifications (user_id, type, payload)
+      select saved.user_id, 'saved_listing_sold',
+             jsonb_build_object('listing_id', new.id, 'title', new.title)
+      from public.saved_listings saved
+      where saved.listing_id = new.id
+        and saved.user_id <> new.seller_id
+        and saved.user_id is distinct from new.buyer_id;
+    end if;
   end if;
   return new;
 end;

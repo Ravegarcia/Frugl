@@ -1,50 +1,93 @@
 import Link from 'next/link';
 import { requireStaff } from '@/lib/auth';
 import { AlertTriangle, ExternalLink, Flag, Laptop, Shield, Users } from '@/components/icons';
+import { findLagunaMunicipality, type LagunaSellerLocation } from '@/lib/admin/laguna-locations';
+import type { createClient } from '@/lib/supabase/server';
+import LagunaMemberMapLoader from './LagunaMemberMapLoader';
 
-const navigation = [
-  {
-    label: 'Overview',
-    href: '/admin',
-    Icon: Shield,
-    group: 'Workspace',
-  },
-  {
-    label: 'Report queue',
-    href: '/admin/reports',
-    Icon: Flag,
-    group: 'Trust & safety',
-  },
-  {
-    label: 'Chat alerts',
-    href: '/admin/alerts',
-    Icon: AlertTriangle,
-    group: 'Trust & safety',
-  },
-  {
-    label: 'Listings',
-    href: '/admin/listings',
-    Icon: Laptop,
-    group: 'Marketplace',
-  },
-  {
-    label: 'Members',
-    href: '/admin/users',
-    Icon: Users,
-    group: 'Marketplace',
-  },
-];
+type DashboardStat = {
+  label: string;
+  value: number;
+  detail: string;
+  href: string;
+  Icon: typeof Flag;
+  tone: 'report' | 'alert' | 'listing' | 'member';
+};
+
+async function getLagunaSellerLocations(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<LagunaSellerLocation[]> {
+  const sellerLocations = new Map<string, string>();
+  const pageSize = 500;
+
+  for (let from = 0; ; from += pageSize) {
+    const { data: listings, error } = await supabase
+      .from('listings')
+      .select('seller_id, location')
+      .eq('is_visible', true)
+      .in('status', ['available', 'reserved'])
+      .order('seller_id')
+      .order('id')
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      throw new Error(`Unable to load active seller locations: ${error.message}`);
+    }
+
+    for (const listing of listings ?? []) {
+      if (!sellerLocations.has(listing.seller_id)) {
+        sellerLocations.set(listing.seller_id, listing.location);
+      }
+    }
+
+    if (!listings || listings.length < pageSize) break;
+  }
+
+  const sellerIds = [...sellerLocations.keys()];
+  const sellerCounts = new Map<string, LagunaSellerLocation>();
+  const profileBatchSize = 500;
+
+  for (let offset = 0; offset < sellerIds.length; offset += profileBatchSize) {
+    const { data: sellers, error } = await supabase
+      .from('profiles')
+      .select('id, default_location')
+      .eq('status', 'active')
+      .in('role', ['buyer', 'seller'])
+      .in('id', sellerIds.slice(offset, offset + profileBatchSize));
+
+    if (error) {
+      throw new Error(`Unable to load active seller profiles: ${error.message}`);
+    }
+
+    for (const seller of sellers ?? []) {
+      const location = seller.default_location?.trim() || sellerLocations.get(seller.id) || null;
+      const municipality = findLagunaMunicipality(location);
+      if (!municipality) continue;
+
+      const existing = sellerCounts.get(municipality.name);
+      sellerCounts.set(municipality.name, {
+        name: municipality.name,
+        coordinates: municipality.coordinates,
+        sellerCount: (existing?.sellerCount ?? 0) + 1,
+      });
+    }
+  }
+
+  return [...sellerCounts.values()].sort(
+    (first, second) => second.sellerCount - first.sellerCount || first.name.localeCompare(second.name),
+  );
+}
 
 export default async function AdminDashboardPage() {
-  const { supabase, profile } = await requireStaff();
+  const { supabase } = await requireStaff();
 
   const [
     openReportsCount,
     chatAlertsCount,
     activeListingsCount,
     membersCount,
-    reportsResult,
     alertsResult,
+    lagunaLocations,
   ] = await Promise.all([
     supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open'),
     supabase.from('chat_alerts').select('id', { count: 'exact', head: true }),
@@ -55,16 +98,11 @@ export default async function AdminDashboardPage() {
       .eq('is_visible', true),
     supabase.from('profiles').select('id', { count: 'exact', head: true }),
     supabase
-      .from('reports')
-      .select('id, target_type, target_id, reason, created_at, reporter:profiles!reports_reporter_id_fkey(name)')
-      .eq('status', 'open')
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase
       .from('chat_alerts')
       .select('id, matched_phrases, created_at, messages(body, sender:profiles!messages_sender_id_fkey(name))')
       .order('created_at', { ascending: false })
       .limit(4),
+    getLagunaSellerLocations(supabase),
   ]);
 
   const results = [
@@ -72,7 +110,6 @@ export default async function AdminDashboardPage() {
     chatAlertsCount,
     activeListingsCount,
     membersCount,
-    reportsResult,
     alertsResult,
   ];
   const failedQuery = results.find((result) => result.error);
@@ -80,7 +117,7 @@ export default async function AdminDashboardPage() {
     throw new Error(`Unable to load admin dashboard: ${failedQuery.error.message}`);
   }
 
-  const stats = [
+  const stats: DashboardStat[] = [
     {
       label: 'Open reports',
       value: openReportsCount.count ?? 0,
@@ -115,54 +152,16 @@ export default async function AdminDashboardPage() {
     },
   ];
 
-  const reports = reportsResult.data ?? [];
   const alerts = alertsResult.data ?? [];
-  const groupedNavigation = ['Workspace', 'Trust & safety', 'Marketplace'];
-  const name = profile?.name?.trim() || 'Admin';
+  const totalLagunaSellers = lagunaLocations.reduce(
+    (total, location) => total + location.sellerCount,
+    0,
+  );
+  const topLagunaLocations = lagunaLocations.slice(0, 5);
+  const mostPopularLocationCount = topLagunaLocations[0]?.sellerCount ?? 0;
 
   return (
-    <div className='admin-dashboard'>
-      <aside className='admin-sidebar' aria-label='Admin dashboard navigation'>
-        <Link href='/admin' className='admin-sidebar-brand'>
-          <span className='admin-brand-mark'>F</span>
-          <span>
-            <strong>Frugl</strong>
-            <small>Admin workspace</small>
-          </span>
-        </Link>
-
-        <nav className='admin-sidebar-nav'>
-          {groupedNavigation.map((group) => {
-            const links = navigation.filter((item) => item.group === group);
-            return (
-              <div className='admin-nav-group' key={group}>
-                <p>{group}</p>
-                {links.map(({ label, href, Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={href === '/admin' ? 'admin-nav-link is-active' : 'admin-nav-link'}
-                    aria-current={href === '/admin' ? 'page' : undefined}
-                  >
-                    <Icon size={17} />
-                    <span>{label}</span>
-                  </Link>
-                ))}
-              </div>
-            );
-          })}
-        </nav>
-
-        <div className='admin-sidebar-user'>
-          <span className='admin-user-avatar'>{name.charAt(0).toUpperCase()}</span>
-          <span className='admin-user-details'>
-            <strong>{name}</strong>
-            <small>{profile?.role === 'admin' ? 'Administrator' : 'Moderator'}</small>
-          </span>
-        </div>
-      </aside>
-
-      <div className='admin-dashboard-main'>
+    <>
         <header className='admin-dashboard-header'>
           <div>
             <p className='admin-eyebrow'>Frugl operations</p>
@@ -180,47 +179,77 @@ export default async function AdminDashboardPage() {
               <span className='admin-stat-icon'><Icon size={18} /></span>
               <span className='admin-stat-label'>{label}</span>
               <strong>{value.toLocaleString()}</strong>
-              <span className='admin-stat-detail'>{detail}</span>
+              <span className='admin-stat-detail'>
+                <span>{detail}</span>
+              </span>
             </Link>
           ))}
         </section>
 
         <div className='admin-panels-grid'>
-          <section className='admin-panel'>
+          <section className='admin-panel admin-laguna-panel'>
             <div className='admin-panel-heading'>
               <div>
-                <p className='admin-eyebrow'>Trust &amp; safety</p>
-                <h2>Recent reports</h2>
+                <p className='admin-eyebrow'>Marketplace locations</p>
+                <h2>Sellers across Laguna</h2>
+                <p className='admin-laguna-description'>
+                  Approximate city-level counts for sellers with active listings; no exact addresses are shown.
+                </p>
               </div>
-              <Link href='/admin/reports'>View queue <ExternalLink size={14} /></Link>
+              <div className='admin-laguna-total'>
+                <strong>{totalLagunaSellers.toLocaleString()}</strong>
+                <span>sellers mapped</span>
+              </div>
             </div>
 
-            {reports.length ? (
-              <div className='admin-report-list'>
-                {reports.map((report) => (
-                  <article className='admin-report-row' key={report.id}>
-                    <span className='admin-report-icon'><Flag size={16} /></span>
-                    <div className='admin-report-copy'>
-                      <strong>{report.reason}</strong>
-                      <span>
-                        {report.target_type === 'listing' ? 'Listing' : 'Member'} reported by{' '}
-                        {report.reporter?.[0]?.name || 'a member'}
-                      </span>
-                    </div>
-                    <span className='admin-status-badge'>Open</span>
-                    <Link href='/admin/reports' className='admin-row-link' aria-label='Review report'>
-                      <ExternalLink size={15} />
-                    </Link>
-                  </article>
-                ))}
+            <div className='admin-laguna-content'>
+              <div className='admin-laguna-map-shell'>
+                <LagunaMemberMapLoader locations={lagunaLocations} />
+                <span className='admin-laguna-region-label'>Laguna, Philippines</span>
+                <a
+                  className='admin-laguna-map-attribution'
+                  href='https://www.openstreetmap.org/copyright'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                >
+                  © OpenStreetMap contributors
+                </a>
               </div>
-            ) : (
-              <div className='admin-empty-state'>
-                <span className='admin-empty-icon'><Shield size={20} /></span>
-                <strong>All caught up</strong>
-                <p>There are no open reports to review.</p>
-              </div>
-            )}
+
+              <aside className='admin-laguna-breakdown' aria-label='Top seller locations in Laguna'>
+                <div className='admin-laguna-breakdown-heading'>
+                  <strong>Top locations</strong>
+                  <span>{lagunaLocations.length} areas</span>
+                </div>
+                {topLagunaLocations.length ? (
+                  <div className='admin-laguna-location-list'>
+                    {topLagunaLocations.map((location) => (
+                      <div className='admin-laguna-location-row' key={location.name}>
+                        <div className='admin-laguna-location-copy'>
+                          <strong>{location.name}</strong>
+                          <span>
+                            {location.sellerCount.toLocaleString()}{' '}
+                            {location.sellerCount === 1 ? 'seller' : 'sellers'}
+                          </span>
+                        </div>
+                        <div className='admin-laguna-location-track' aria-hidden='true'>
+                          <span
+                            style={{
+                              width: `${(location.sellerCount / mostPopularLocationCount) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className='admin-laguna-empty'>
+                    <strong>No Laguna sellers yet</strong>
+                    <span>Sellers with active listings will appear here when available.</span>
+                  </div>
+                )}
+              </aside>
+            </div>
           </section>
 
           <section className='admin-panel'>
@@ -272,7 +301,6 @@ export default async function AdminDashboardPage() {
             </Link>
           ))}
         </section>
-      </div>
-    </div>
+    </>
   );
 }

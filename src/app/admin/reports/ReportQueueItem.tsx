@@ -2,88 +2,97 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+import { ExternalLink } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import TimeAgo from '@/components/TimeAgo';
+import { createClient } from '@/lib/supabase/client';
+
 export default function ReportQueueItem({ report }: { report: any }) {
   const supabase = createClient();
   const [status, setStatus] = useState(report.status);
   const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   async function handleResolve(newStatus: 'resolved' | 'dismissed') {
     setBusy(true);
+    setActionError(null);
     try {
       const { error } = await supabase
         .from('reports')
         .update({ status: newStatus })
         .eq('id', report.id);
 
-      if (!error) setStatus(newStatus);
+      if (error) setActionError(error.message);
+      else setStatus(newStatus);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Unable to update this report.');
     } finally {
       setBusy(false);
     }
   }
 
+  const targetIsListing = report.target_type === 'listing';
+  const targetHref = targetIsListing
+    ? `/laptops/${report.target_id}`
+    : `/sellers/${report.target_id}`;
+
   return (
-    <div className='p-4 space-y-2'>
-      <div className='flex items-center justify-between'>
-        <div className='flex items-center gap-2'>
-          <span className='rounded bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-800 uppercase'>
-            {report.target_type}
+    <article className='admin-report-card' aria-busy={busy}>
+      <header className='admin-report-card-header'>
+        <div className='admin-report-card-labels'>
+          <span className={`admin-report-type ${targetIsListing ? 'is-listing' : 'is-user'}`}>
+            {targetIsListing ? 'Listing report' : 'User report'}
           </span>
-          <span className='text-xs text-gray-500'>Reported by {report.reporter?.name || 'User'}</span>
-          <span className='text-xs text-gray-400'>· <TimeAgo timestamp={report.created_at} /></span>
+          <span className={`admin-report-status is-${status}`}>{status}</span>
         </div>
-        <span className={`text-xs font-medium capitalize ${status === 'open' ? 'text-amber-600' : 'text-gray-400'}`}>
-          {status}
-        </span>
+        <p className='admin-report-reporter'>
+          Reported by <strong>{report.reporter?.name || 'User'}</strong>
+          <span aria-hidden='true'> · </span>
+          <TimeAgo timestamp={report.created_at} />
+        </p>
+      </header>
+
+      <div className='admin-report-reason'>
+        <p className='admin-report-reason-label'>Reason for report</p>
+        <p>{report.reason || 'No reason provided.'}</p>
       </div>
 
-      <p className='text-sm text-gray-800 font-medium'>
-        Reason: <span className='font-normal text-gray-600'>{report.reason}</span>
-      </p>
-
-      <div className='flex items-center justify-between pt-1'>
-        {report.target_type === 'listing' ? (
-          <Link
-            href={`/laptops/${report.target_id}`}
-            target='_blank'
-            className='text-xs text-plum-700 underline font-medium'
-          >
-            Open Reported Listing ↗
-          </Link>
-        ) : (
-          <Link
-            href={`/sellers/${report.target_id}`}
-            target='_blank'
-            className='text-xs text-plum-700 underline font-medium'
-          >
-            Open Reported User ↗
-          </Link>
-        )}
+      <footer className='admin-report-card-footer'>
+        <Link
+          href={targetHref}
+          target='_blank'
+          rel='noopener noreferrer'
+          className='admin-report-target-link'
+        >
+          Open reported {targetIsListing ? 'listing' : 'user'} <ExternalLink size={14} />
+        </Link>
 
         {status === 'open' && (
-          <div className='flex items-center gap-2'>
+          <div className='admin-report-actions'>
             <Button
+              type='button'
               size='sm'
               variant='outline'
               disabled={busy}
               onClick={() => handleResolve('dismissed')}
-              className='text-xs h-7'
+              className='admin-report-action is-dismiss'
             >
               Dismiss
             </Button>
             <Button
+              type='button'
               size='sm'
               disabled={busy}
               onClick={() => handleResolve('resolved')}
-              className='min-h-11 rounded-full border border-primary bg-accent px-4 text-xs font-medium text-accent-foreground hover:bg-accent-hover'
+              className='admin-report-action is-resolve'
             >
-              Mark Resolved
+              Mark resolved
             </Button>
           </div>
         )}
-      </div>
-    </div>
+      </footer>
+
+      {actionError && <p className='admin-report-action-error' role='alert'>{actionError}</p>}
+    </article>
   );
 }

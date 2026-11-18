@@ -360,7 +360,10 @@
 }
 
 .condition-checklist-toggle {
+  display: inline-flex;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
   border: 0;
   background: transparent;
   padding: 0;
@@ -409,10 +412,6 @@
   border-radius: 0.75rem;
   background: var(--ivory);
   padding: 0.85rem;
-}
-
-.condition-checklist[hidden] {
-  display: none;
 }
 
 .condition-checklist-title {

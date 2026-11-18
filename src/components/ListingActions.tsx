@@ -16,6 +16,8 @@ import {
   SAVED_LISTING_CHANGED_EVENT,
   type SavedListingChange,
 } from '@/lib/saved-listings-events';
+import Collapse from '@/components/motion/Collapse';
+import Toast from '@/components/motion/Toast';
 
 type SellerInfo = {
   id: string;
@@ -324,8 +326,7 @@ export default function ListingActions({
             </button>
           </div>
 
-          {showReport && (
-            <div className='product-report-box'>
+          <Collapse open={showReport} className='product-report-box'>
               <textarea
                 rows={3}
                 value={reason}
@@ -340,8 +341,7 @@ export default function ListingActions({
               >
                 Submit report
               </button>
-            </div>
-          )}
+          </Collapse>
         </div>
       )}
 
@@ -351,13 +351,11 @@ export default function ListingActions({
         </p>
       )}
 
-      {offerToastId > 0 && (
-        <div className='product-offer-toast' role='status' aria-live='polite'>
-          <span>
-            Offer sent! You can track it on your <Link href='/offers'>Offers page</Link>.
-          </span>
-        </div>
-      )}
+      <Toast open={offerToastId > 0} toastKey={offerToastId} className='product-offer-toast'>
+        <span>
+          Offer sent! You can track it on your <Link href='/offers'>Offers page</Link>.
+        </span>
+      </Toast>
 
     </div>
   );

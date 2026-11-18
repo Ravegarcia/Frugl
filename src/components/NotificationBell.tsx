@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Bell, Laptop, MessageCircle, Tag } from '@/components/icons';
 import { createClient } from '@/lib/supabase/client';
 import TimeAgo from '@/components/TimeAgo';
+import Popover from '@/components/motion/Popover';
 
 export type NotificationItem = {
   id: string;
@@ -72,7 +73,6 @@ export default function NotificationBell({
   const [notifications, setNotifications] = useState(initialNotifications);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (pathname !== '/notifications' && pathname !== '/dashboard' && !pathname.startsWith('/dashboard/')) return;
@@ -118,32 +118,9 @@ export default function NotificationBell({
     };
   }, [userId]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-        buttonRef.current?.focus();
-      }
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen]);
-
   return (
     <div className='relative' ref={containerRef}>
       <button
-        ref={buttonRef}
         type='button'
         className='relative inline-flex size-11 items-center justify-center rounded-full border-0 bg-transparent text-plum-700! whitespace-nowrap transition-[background-color,box-shadow,color] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-lavender-100 hover:text-plum-900! hover:shadow-[0_5px_14px_rgb(24_13_38_/_0.18)] focus-visible:bg-lavender-100 focus-visible:text-plum-900! focus-visible:shadow-[0_5px_14px_rgb(24_13_38_/_0.18)] aria-[current=page]:bg-secondary-container aria-[current=page]:text-plum-900! aria-[current=page]:shadow-[0_4px_12px_rgb(24_13_38_/_0.16)] aria-[current=page]:hover:bg-accent-hover aria-[current=page]:hover:shadow-[0_6px_16px_rgb(24_13_38_/_0.2)]'
         aria-label={count > 0 ? `Notifications, ${count} unread` : 'Notifications'}
@@ -160,12 +137,15 @@ export default function NotificationBell({
           </span>
         )}
       </button>
-      {isOpen && (
-        <section
-          id='notification-popover'
-          className='absolute right-0 top-[calc(100%+0.55rem)] z-40 flex max-h-[min(34rem,calc(100dvh-5rem))] w-[min(25rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-lavender-300 bg-surface text-foreground shadow-[0_1rem_2.5rem_rgb(24_13_38_/_0.18)]'
-          aria-label='Recent notifications'
-        >
+      <Popover
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        anchorRef={containerRef}
+        id='notification-popover'
+        role='region'
+        ariaLabel='Recent notifications'
+        className='absolute right-0 top-[calc(100%+0.55rem)] z-40 flex max-h-[min(34rem,calc(100dvh-5rem))] w-[min(25rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-lavender-300 bg-surface text-foreground shadow-[0_1rem_2.5rem_rgb(24_13_38_/_0.18)]'
+      >
           <header className='flex min-h-[3.75rem] shrink-0 items-center justify-between gap-3 border-b border-lavender-300 px-4 py-3'>
             <h2 className='text-base font-[650] text-foreground'>Notifications</h2>
             <Link href='/notifications' className='text-[0.8rem] font-semibold text-primary underline-offset-[0.2rem] hover:underline' onClick={() => setIsOpen(false)}>View all</Link>
@@ -203,8 +183,7 @@ export default function NotificationBell({
               <p className='max-w-[19rem] text-[0.78rem] leading-[1.55] text-muted-foreground'>Offers, messages, and listing updates will show up here.</p>
             </div>
           )}
-        </section>
-      )}
+      </Popover>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, type KeyboardEvent } from 'react';
 import { MapPin, AlertTriangle, Loader2 } from '@/components/icons';
+import Popover from '@/components/motion/Popover';
 import type { LocationSuggestion } from '@/app/api/locations/route';
 
 interface LocationAutocompleteProps {
@@ -26,13 +27,14 @@ export default function LocationAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync external value changes
-  useEffect(() => {
+  const [previousValue, setPreviousValue] = useState(value);
+  if (value !== previousValue) {
+    setPreviousValue(value);
     setQuery(value || '');
     if (value && value.trim().length > 0) {
       setIsConfirmed(true);
     }
-  }, [value]);
+  }
 
   // Fetch autocomplete suggestions with debounce
   useEffect(() => {
@@ -67,17 +69,6 @@ export default function LocationAutocomplete({
       controller.abort();
     };
   }, [query, isOpen]);
-
-  // Close popover on outside click
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   function handleSelect(item: LocationSuggestion) {
     setQuery(item.primary);
@@ -128,13 +119,16 @@ export default function LocationAutocomplete({
 
   return (
     <div ref={containerRef} className='location-autocomplete'>
-      {isOpen && suggestions.length > 0 && (
-        <div
-          id={`${id}-listbox`}
-          role='listbox'
-          aria-label='Location suggestions'
-          className='location-autocomplete-popover'
-        >
+      <Popover
+        open={isOpen && suggestions.length > 0}
+        onClose={() => setIsOpen(false)}
+        align='left'
+        anchorRef={containerRef}
+        id={`${id}-listbox`}
+        role='listbox'
+        ariaLabel='Location suggestions'
+        className='location-autocomplete-popover'
+      >
           {suggestions.map((item, idx) => {
             const isActive = idx === activeIndex;
             return (
@@ -156,8 +150,7 @@ export default function LocationAutocomplete({
               </button>
             );
           })}
-        </div>
-      )}
+      </Popover>
 
       <div
         className={`location-autocomplete-box${showWarning ? ' is-warning' : ''}${

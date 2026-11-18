@@ -18,7 +18,11 @@ export const fadeUp: Variants = {
 export const slideIn = (dir: 1 | -1): Variants => ({
   hidden: { opacity: 0, x: 16 * dir },
   visible: { opacity: 1, x: 0, transition: { duration: duration.slow, ease } },
-  exit: { opacity: 0, x: -16 * dir, transition: { duration: duration.fast, ease } },
+  exit: (nextDirection: 1 | -1 = dir) => ({
+    opacity: 0,
+    x: -16 * nextDirection,
+    transition: { duration: duration.fast, ease },
+  }),
 });
 
 export const dropdown: Variants = {
@@ -30,6 +34,12 @@ export const dropdown: Variants = {
 export const toast: Variants = {
   hidden: { opacity: 0, y: -12 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.32, ease } },
+  exit: { opacity: 0, y: -8, transition: { duration: duration.fast, ease } },
+};
+
+export const banner: Variants = {
+  hidden: { opacity: 0, y: -8 },
+  visible: { opacity: 1, y: 0, transition: { duration: duration.base, ease } },
   exit: { opacity: 0, y: -8, transition: { duration: duration.fast, ease } },
 };
 

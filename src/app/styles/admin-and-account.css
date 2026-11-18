@@ -397,7 +397,7 @@
 .admin-stat-card:hover {
   border-color: var(--plum-700);
   box-shadow: 0 8px 20px rgb(24 13 38 / 6%);
-  transform: translateY(-2px);
+  transform: translateY(var(--lift-sm));
 }
 
 .admin-stat-card:focus-visible,
@@ -998,6 +998,7 @@
 }
 
 .admin-report-filter {
+  position: relative;
   display: inline-flex;
   min-height: 2.2rem;
   align-items: center;
@@ -1016,6 +1017,17 @@
   border-color: var(--plum-700);
   background: var(--lavender-100);
   color: var(--plum-900);
+}
+
+.admin-report-filter-indicator {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.2rem;
+  left: 0.35rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--plum-900);
+  pointer-events: none;
 }
 
 .admin-report-filter:focus-visible {
@@ -1586,7 +1598,7 @@
 }
 
 .admin-listing-cover:hover img {
-  transform: scale(1.05);
+  transform: scale(var(--zoom-image));
 }
 
 .admin-listing-details {
@@ -2167,54 +2179,49 @@
   padding-bottom: 1rem;
 }
 
-.account-settings-accordion > summary {
+.account-settings-accordion-trigger {
   display: flex;
+  width: 100%;
   min-height: 2.8rem;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
   color: var(--plum-900);
   cursor: pointer;
-  list-style: none;
+  text-align: left;
 }
 
-.account-settings-accordion > summary::-webkit-details-marker {
-  display: none;
-}
-
-.account-settings-accordion > summary > span {
+.account-settings-accordion-trigger > span:first-child {
   display: grid;
   gap: 0.2rem;
 }
 
-.account-settings-accordion > summary strong {
+.account-settings-accordion-trigger strong {
   font-size: 0.82rem;
   font-weight: 700;
 }
 
-.account-settings-accordion > summary small {
+.account-settings-accordion-trigger small {
   color: var(--muted-foreground);
   font-size: 0.68rem;
   line-height: 1.4;
 }
 
-.account-settings-accordion > summary > svg {
+.account-settings-accordion-trigger > span:last-child {
   flex: 0 0 auto;
   color: var(--plum-700);
-  transition: transform 160ms ease;
 }
 
-.account-settings-accordion[open] > summary > svg {
-  transform: rotate(180deg);
-}
-
-.account-settings-accordion > summary:focus-visible {
+.account-settings-accordion-trigger:focus-visible {
   border-radius: 0.35rem;
   outline: 2px solid var(--plum-700);
   outline-offset: 3px;
 }
 
-.account-settings-accordion[open] > .account-profile-fields,
+.account-settings-accordion .account-profile-fields,
 .account-contact-fields {
   margin-top: 1rem;
 }
@@ -2273,8 +2280,7 @@
   color: var(--success);
   font-size: 0.85rem;
   line-height: 1.45;
-  animation: product-offer-toast-drop 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  transform: translateX(-50%);
+  translate: -50% 0;
 }
 
 .account-settings-notice {

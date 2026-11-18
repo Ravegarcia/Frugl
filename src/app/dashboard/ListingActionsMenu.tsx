@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { CheckCircle, ChevronDown, Edit3, ExternalLink, MessageCircle, ShieldCheck, Trash } from '@/components/icons';
+import Chevron from '@/components/motion/Chevron';
+import Popover from '@/components/motion/Popover';
 
 type Props = {
   listingId: string;
@@ -14,33 +16,11 @@ type Props = {
 
 export default function ListingActionsMenu({ listingId, title, status, messageCount }: Props) {
   const router = useRouter();
-  const menuRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ message: string; isError: boolean } | null>(null);
   const menuId = `listing-actions-${listingId}`;
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) setIsOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsOpen(false);
-        triggerRef.current?.focus();
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen]);
 
   const runAction = async (action: 'status' | 'delete', targetStatus?: string) => {
     if (action === 'delete' && !window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
@@ -85,9 +65,8 @@ export default function ListingActionsMenu({ listingId, title, status, messageCo
   };
 
   return (
-    <div className='seller-dashboard-action-menu' ref={menuRef}>
+    <div className='seller-dashboard-action-menu' ref={menuContainerRef}>
       <button
-        ref={triggerRef}
         type='button'
         className='seller-dashboard-action-trigger'
         aria-expanded={isOpen}
@@ -96,14 +75,15 @@ export default function ListingActionsMenu({ listingId, title, status, messageCo
         onClick={() => setIsOpen((open) => !open)}
       >
         Actions
-        <ChevronDown size={13} className={isOpen ? 'is-open' : ''} />
+        <Chevron open={isOpen}><ChevronDown size={13} /></Chevron>
       </button>
-      <div
+      <Popover
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        anchorRef={menuContainerRef}
         id={menuId}
         className='seller-dashboard-action-popover'
-        data-open={isOpen}
-        aria-hidden={!isOpen}
-        inert={!isOpen}
+        ariaLabel='Listing actions'
       >
         <Link href={`/sell/${listingId}`} onClick={() => setIsOpen(false)}>
           <Edit3 size={15} />
@@ -152,7 +132,7 @@ export default function ListingActionsMenu({ listingId, title, status, messageCo
           <Trash size={15} />
           <span>Delete listing</span>
         </button>
-      </div>
+      </Popover>
       {feedback && (
         <span
           className={`seller-dashboard-action-feedback${feedback.isError ? ' is-error' : ''}`}

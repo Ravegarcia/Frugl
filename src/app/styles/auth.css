@@ -9,12 +9,13 @@
 }
 
 .auth-modal {
-  position: fixed;
-  inset: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
   width: min(26.5rem, calc(100vw - 2rem));
   max-width: calc(100vw - 2rem);
   max-height: calc(100dvh - 1.25rem);
-  margin: auto;
+  margin: 0;
   overflow: hidden;
   border: 1px solid var(--lavender-300);
   border-radius: 1.35rem;
@@ -22,16 +23,6 @@
   padding: 1.25rem 1.6rem 1.05rem;
   color: var(--foreground);
   box-shadow: 0 1.5rem 5rem rgb(18 12 26 / 25%);
-}
-
-.auth-modal[open] {
-  display: flex;
-  flex-direction: column;
-}
-
-.auth-modal::backdrop {
-  background: rgb(18 12 26 / 56%);
-  backdrop-filter: blur(0.45rem);
 }
 
 .auth-modal-header {

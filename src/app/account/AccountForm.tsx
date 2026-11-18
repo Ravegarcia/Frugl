@@ -18,6 +18,10 @@ import {
   UploadCloud,
   User as UserIcon,
 } from '@/components/icons';
+import Chevron from '@/components/motion/Chevron';
+import Collapse from '@/components/motion/Collapse';
+import Toast from '@/components/motion/Toast';
+import Banner from '@/components/motion/Banner';
 
 interface AccountProfile {
   name: string | null;
@@ -64,10 +68,12 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [toastMessage, setToastMessage] = useState('');
+  const [accountDetailsOpen, setAccountDetailsOpen] = useState(true);
+  const [contactDetailsOpen, setContactDetailsOpen] = useState(true);
 
   useEffect(() => {
     if (!toastMessage) return;
-    const timer = window.setTimeout(() => setToastMessage(''), 3200);
+    const timer = window.setTimeout(() => setToastMessage(''), 4000);
     return () => window.clearTimeout(timer);
   }, [toastMessage]);
 
@@ -232,19 +238,15 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
         </div>
       </header>
 
-      {errorMessage && (
-        <div className='account-settings-notice account-settings-error' role='alert'>
+      <Banner open={Boolean(errorMessage)} className='account-settings-notice account-settings-error' role='alert'>
           <AlertCircle size={16} className='shrink-0' />
           <span>{errorMessage}</span>
-        </div>
-      )}
+      </Banner>
 
-      {toastMessage && (
-        <div className='account-settings-toast' role='status' aria-live='polite'>
-          <CheckCircle2 size={18} className='shrink-0' />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      <Toast open={Boolean(toastMessage)} className='account-settings-toast'>
+        <CheckCircle2 size={18} className='shrink-0' />
+        <span>{toastMessage}</span>
+      </Toast>
 
       <div className='account-settings-grid'>
         <form onSubmit={handleProfileSave} className='account-settings-card account-profile-card'>
@@ -285,15 +287,25 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
             </div>
           </section>
 
-          <details className='account-settings-accordion' open>
-            <summary>
+          <section className='account-settings-accordion'>
+            <button
+              type='button'
+              className='account-settings-accordion-trigger'
+              aria-expanded={accountDetailsOpen}
+              aria-controls='account-profile-fields'
+              onClick={() => setAccountDetailsOpen((open) => !open)}
+            >
               <span>
                 <strong>Account Details</strong>
                 <small>This info appears on your public profile.</small>
               </span>
-              <ChevronDown size={18} />
-            </summary>
-            <div className='account-profile-fields'>
+              <Chevron open={accountDetailsOpen}><ChevronDown size={18} /></Chevron>
+            </button>
+            <Collapse
+              id='account-profile-fields'
+              open={accountDetailsOpen}
+              className='account-profile-fields'
+            >
               <div className='account-settings-field space-y-1.5'>
                 <Label htmlFor='name'>Display Name</Label>
                 <Input
@@ -337,18 +349,28 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
                 />
                 <p>{bio.length}/500 characters</p>
               </div>
-            </div>
-          </details>
+            </Collapse>
+          </section>
 
-          <details className='account-settings-accordion' open>
-            <summary>
+          <section className='account-settings-accordion'>
+            <button
+              type='button'
+              className='account-settings-accordion-trigger'
+              aria-expanded={contactDetailsOpen}
+              aria-controls='account-contact-fields'
+              onClick={() => setContactDetailsOpen((open) => !open)}
+            >
               <span>
                 <strong>Contact details</strong>
                 <small>Manage your sign-in email and contact information.</small>
               </span>
-              <ChevronDown size={18} />
-            </summary>
-            <div className='account-contact-fields'>
+              <Chevron open={contactDetailsOpen}><ChevronDown size={18} /></Chevron>
+            </button>
+            <Collapse
+              id='account-contact-fields'
+              open={contactDetailsOpen}
+              className='account-contact-fields'
+            >
               <div className='account-settings-field space-y-1.5'>
                 <Label htmlFor='accountEmail'>Email</Label>
                 <div className='account-settings-email-row'>
@@ -402,8 +424,8 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
                 />
                 <p>Shown on your listings only when provided. Your sign-in email stays private.</p>
               </div>
-            </div>
-          </details>
+            </Collapse>
+          </section>
 
           <Button type='submit' formNoValidate disabled={profileBusy} className='account-settings-profile-save'>
             {profileBusy ? 'Saving...' : 'Save Changes'}

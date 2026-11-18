@@ -664,10 +664,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .product-offer-toast {
-    animation: none;
-  }
-
   *,
   *::before,
   *::after {
@@ -677,7 +673,6 @@
     transition-duration: 0.01ms !important;
   }
 
-  .hero-carousel-slide,
   .hero-carousel-timer span {
     animation: none !important;
   }

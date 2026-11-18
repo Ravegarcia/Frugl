@@ -3,16 +3,19 @@
 import { useState, useEffect, type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Eye, CheckCircle2, AlertCircle, Loader2, UploadCloud, Camera, DoorOpen, MapPin } from '@/components/icons';
+import { Sparkles, Eye, CheckCircle2, AlertCircle, Loader2, UploadCloud, Camera, DoorOpen, MapPin, ChevronDown } from '@/components/icons';
 import { CONDITIONS, DEAL_METHODS, BRANDS, formatPrice } from '@/lib/constants';
 import { CHECKLIST_ITEMS, suggestCondition } from '@/lib/condition';
 import { resizeImage } from '@/lib/client-image';
 import SellListingPreview from '@/components/SellListingPreview';
 import LocationAutocomplete from '@/components/LocationAutocomplete';
+import Chevron from '@/components/motion/Chevron';
+import Collapse from '@/components/motion/Collapse';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import Banner from '@/components/motion/Banner';
 
 interface Props {
   initialListing: any;
@@ -302,18 +305,14 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
           <p className='sell-editor-intro'>
             Review and adjust the details. The preview updates as you edit.
           </p>
-          {error && (
-            <div className='mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700'>
+          <Banner open={Boolean(error)} className='mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700' role='alert'>
               <AlertCircle size={16} className='shrink-0' />
               <span>{error}</span>
-            </div>
-          )}
-          {successMsg && (
-            <div className='mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800'>
+          </Banner>
+          <Banner open={Boolean(successMsg)} className='mb-4 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800'>
               <CheckCircle2 size={16} className='shrink-0' />
               <span>{successMsg}</span>
-            </div>
-          )}
+          </Banner>
           <div className='listing-editor-field-content'>
           {/* AI Banner if auto-filled */}
           {aiTier && (
@@ -446,6 +445,7 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
                 className='condition-checklist-toggle'
               >
                 {showChecklist ? 'Hide condition checklist' : 'Use guided checklist'}
+                <Chevron open={showChecklist}><ChevronDown size={14} /></Chevron>
               </button>
             </div>
 
@@ -463,10 +463,10 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
               ))}
             </select>
 
-            <div
+            <Collapse
               id='condition-checklist'
+              open={showChecklist}
               className='condition-checklist'
-              hidden={!showChecklist}
             >
               <p className='condition-checklist-title'>Guided condition assessment</p>
               <div className='condition-checklist-grid'>
@@ -487,7 +487,7 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
                   </div>
                 ))}
               </div>
-            </div>
+            </Collapse>
           </section>
 
           {/* Model & Specs (Autofilled / Editable) */}

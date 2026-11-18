@@ -35,7 +35,7 @@ export default async function SavedPage() {
       </header>
 
       {items.length > 0 ? (
-        <Stagger className='grid grid-cols-2 gap-4 md:grid-cols-4'>
+        <Stagger className='grid grid-cols-2 gap-4 md:grid-cols-4' animatePresence>
           {items.map((l: any, index) => (
             <StaggerItem
               key={l.id}

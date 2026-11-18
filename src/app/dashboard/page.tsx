@@ -103,7 +103,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <section className='seller-dashboard-listings' aria-label={`${currentTab.label} listings`}>
         {listings && listings.length > 0 ? (
-          <Stagger className='seller-dashboard-listing-grid'>
+          <Stagger className='seller-dashboard-listing-grid' animatePresence>
             {listings.map((l: any, index) => {
               const img = coverUrl(l);
               const offersCount = l.offers?.length || 0;

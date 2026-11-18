@@ -9,6 +9,7 @@ export default function Stagger({
   className,
   children,
   stagger = 0.06,
+  animatePresence = false,
   role,
   'aria-label': ariaLabel,
 }: {
@@ -16,6 +17,7 @@ export default function Stagger({
   className?: string;
   children: ReactNode;
   stagger?: number;
+  animatePresence?: boolean;
   role?: string;
   'aria-label'?: string;
 }) {
@@ -31,7 +33,9 @@ export default function Stagger({
       whileInView='visible'
       viewport={{ once: true, margin: '-80px' }}
     >
-      <AnimatePresence mode='popLayout'>{children}</AnimatePresence>
+      {animatePresence
+        ? <AnimatePresence mode='popLayout'>{children}</AnimatePresence>
+        : children}
     </Element>
   );
 }

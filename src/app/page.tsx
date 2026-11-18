@@ -160,14 +160,14 @@ export default async function Home() {
         )}
       </section>
 
-      <Reveal as='section' id='how-it-works' className='editorial-section how-it-works'>
-        <div className='promise-heading'>
+      <section id='how-it-works' className='editorial-section how-it-works'>
+        <Reveal className='promise-heading'>
           <p className='promise-eyebrow'>Our promise</p>
           <h2>Less guessing. <span className='accent-text'>Better hand-me-downs.</span></h2>
           <p>
             Frugl brings the model, specs, condition, and seller notes together, so you can make a more informed choice.
           </p>
-        </div>
+        </Reveal>
         <Stagger className='step-grid'>
           <StaggerItem as='article' index={0} className='step-tile'>
             <span className='step-icon-tile' aria-hidden='true'><Laptop size={24} /></span>
@@ -185,7 +185,7 @@ export default async function Home() {
             <p>Ask questions, compare details, and arrange a handover with the seller.</p>
           </StaggerItem>
         </Stagger>
-      </Reveal>
+      </section>
 
       <section className='home-cta'>
         <div className='home-cta-copy'>

@@ -31,7 +31,7 @@ export default function StaggerItem({
       role={role}
       layout={layout}
       variants={beyondStaggerLimit ? undefined : fadeUp}
-      initial={beyondStaggerLimit ? false : 'hidden'}
+      initial={beyondStaggerLimit ? false : undefined}
     >
       {children}
     </Element>

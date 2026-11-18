@@ -6,6 +6,9 @@ import EmptyState from '@/components/EmptyState';
 import TimeAgo from '@/components/TimeAgo';
 import { Laptop, MessageCircle, Tag } from '@/components/icons';
 import type { NotificationItem } from '@/components/NotificationBell';
+import TabIndicator from '@/components/motion/TabIndicator';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -397,6 +400,9 @@ export default async function NotificationsPage({
             aria-current={activeFilter === filter.id ? 'page' : undefined}
           >
             {filter.label}
+            {activeFilter === filter.id && (
+              <TabIndicator groupId='notification-filters' className='notification-filter-indicator' />
+            )}
           </Link>
         ))}
       </nav>
@@ -413,8 +419,8 @@ export default async function NotificationsPage({
         }}
       >
         {filteredNotifications.length > 0 ? (
-          <ul className='notification-feed'>
-            {filteredNotifications.map((notification) => {
+          <Stagger as='ul' className='notification-feed'>
+            {filteredNotifications.map((notification, index) => {
               const conversationId =
                 typeof notification.payload.conversation_id === 'string'
                   ? notification.payload.conversation_id
@@ -428,7 +434,7 @@ export default async function NotificationsPage({
               const cover = listingId ? listingsById.get(listingId)?.cover ?? null : null;
 
               return (
-                <li key={notification.id}>
+                <StaggerItem key={notification.id} as='li' index={index}>
                   <Link
                     href={notificationHref(notification)}
                     className={`notification-feed-item${notification.read_at ? '' : ' is-unread'}`}
@@ -454,10 +460,10 @@ export default async function NotificationsPage({
                       <TimeAgo timestamp={notification.created_at} />
                     </span>
                   </Link>
-                </li>
+                </StaggerItem>
               );
             })}
-          </ul>
+          </Stagger>
         ) : (
           <EmptyState
             title={emptyTitle}

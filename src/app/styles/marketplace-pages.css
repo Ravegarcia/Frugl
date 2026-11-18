@@ -965,16 +965,16 @@
 }
 
 .notification-filter {
+  position: relative;
   display: inline-flex;
   min-height: 2.75rem;
   align-items: center;
   margin-bottom: -1px;
-  border-bottom: 2px solid transparent;
   color: var(--plum-700);
   font-size: 0.88rem;
   font-weight: 500;
   text-decoration: none;
-  transition: color 0.16s ease, border-color 0.16s ease;
+  transition: color 0.16s ease;
 }
 
 .notification-filter:hover,
@@ -983,8 +983,17 @@
 }
 
 .notification-filter.is-active {
-  border-bottom-color: var(--primary);
   font-weight: 600;
+}
+
+.notification-filter-indicator {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--primary);
+  pointer-events: none;
 }
 
 .notification-feed {

@@ -1,11 +1,13 @@
 'use client';
 
 import type { PropsWithChildren } from 'react';
-import { domAnimation, LazyMotion, MotionConfig } from 'motion/react';
+import { domAnimation, domMax, LazyMotion, MotionConfig } from 'motion/react';
+
+const motionFeatures = { ...domAnimation, layout: domMax.layout };
 
 export default function MotionProvider({ children }: PropsWithChildren) {
   return (
-    <LazyMotion features={domAnimation} strict>
+    <LazyMotion features={motionFeatures} strict>
       <MotionConfig reducedMotion='user'>{children}</MotionConfig>
     </LazyMotion>
   );

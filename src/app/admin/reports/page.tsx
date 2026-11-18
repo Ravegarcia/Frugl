@@ -12,6 +12,7 @@ import {
 import AdminActivityViewed from '../AdminActivityViewed';
 import AdminPagination from '../AdminPagination';
 import ReportQueueItem from './ReportQueueItem';
+import TabIndicator from '@/components/motion/TabIndicator';
 
 const reportStatusOptions = [
   { value: 'open', label: 'Open' },
@@ -107,6 +108,9 @@ export default async function AdminReportsPage({
               <span className='admin-report-filter-count'>
                 {reportCounts[option.value].toLocaleString()}
               </span>
+              {status === option.value && (
+                <TabIndicator groupId='admin-report-filters' className='admin-report-filter-indicator' />
+              )}
             </Link>
           ))}
         </nav>

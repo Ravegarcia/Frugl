@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-export const json = (body: unknown, status = 200) => NextResponse.json(body, { status });
+export const json = (body: unknown, status = 200, headers?: HeadersInit) =>
+  NextResponse.json(body, { status, headers });
 
 export async function apiUser() {
   const supabase = await createClient();

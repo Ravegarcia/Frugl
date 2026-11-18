@@ -60,7 +60,6 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
   const { supabase, user, profile } = await getSessionProfile();
   if (!user) redirect('/register?next=' + encodeURIComponent(next));
   if (profile?.role === 'admin') redirect('/admin');
-  await supabase.rpc('release_expired_reservations');
 
   const clean = (v?: string) => (v ?? '').replace(/[%,()]/g, '').trim();
   const page = Math.max(1, Number(sp.page) || 1);

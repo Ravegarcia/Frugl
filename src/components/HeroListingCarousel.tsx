@@ -106,7 +106,7 @@ export default function HeroListingCarousel({ listings, guest = false }: { listi
         <Laptop size={48} />
         <h2>Find your next laptop</h2>
         <p>{guest ? 'Register to explore verified details and recent listings.' : 'Browse verified details and recent listings from the Frugl community.'}</p>
-        <Link href={guest ? '/register?next=%2Flaptops' : '/laptops'}>
+        <Link className='button-primary' href={guest ? '/register?next=%2Flaptops' : '/laptops'}>
           {guest ? 'Register to see more' : 'Browse laptops'}
         </Link>
       </div>
@@ -166,7 +166,7 @@ export default function HeroListingCarousel({ listings, guest = false }: { listi
             {activeListing.price !== null && activeListing.price !== '' && (
               <span className='hero-carousel-price'>{formatPrice(activeListing.price)}</span>
             )}
-            <Link href={listingHref} className='hero-carousel-view'>
+            <Link href={listingHref} className='button-primary hero-carousel-view'>
               {guest ? 'Register to see more' : 'View laptop'} <ChevronRight size={14} />
             </Link>
           </div>

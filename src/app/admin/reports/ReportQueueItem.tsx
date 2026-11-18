@@ -89,7 +89,7 @@ export default function ReportQueueItem({ report }: { report: any }) {
               size='sm'
               disabled={busy}
               onClick={() => handleResolve('resolved')}
-              className='admin-report-action is-resolve'
+              className='button-primary admin-report-action is-resolve'
             >
               Mark resolved
             </Button>

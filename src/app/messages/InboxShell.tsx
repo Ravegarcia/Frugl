@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { coverUrl } from '@/lib/queries';
 import TimeAgo from '@/components/TimeAgo';
@@ -16,26 +16,32 @@ interface Props {
 
 export default function InboxShell({ conversations, currentUserId, loadError, children }: Props) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const listingIdFilter = searchParams.get('listingId');
+  const visibleConversations = listingIdFilter
+    ? conversations.filter((conversation) => conversation.listing_id === listingIdFilter)
+    : conversations;
+  const isMessagesRoute = pathname === '/messages' || pathname.startsWith('/messages/');
   const selectedId = pathname.match(/^\/messages\/([^/]+)/)?.[1];
   const [readConversationIds, setReadConversationIds] = useState<string[]>(
     () => selectedId ? [selectedId] : []
   );
 
   return (
-    <div className={`messages-inbox${selectedId ? ' is-chat-open' : ''}`}>
+    <div className={`${isMessagesRoute ? 'messages-inbox' : 'messages-inbox-cached'}${selectedId ? ' is-chat-open' : ''}`}>
       <aside className='messages-sidebar'>
         <header className='messages-sidebar-header'>
           <div>
             <h1>Inbox</h1>
-            <p>{conversations.length ? `${conversations.length} conversation${conversations.length === 1 ? '' : 's'}` : 'Your conversations'}</p>
+            <p>{visibleConversations.length ? `${visibleConversations.length} conversation${visibleConversations.length === 1 ? '' : 's'}` : 'Your conversations'}</p>
           </div>
         </header>
 
         {loadError ? (
           <p className='messages-load-error' role='alert'>{loadError}</p>
-        ) : conversations.length ? (
+        ) : visibleConversations.length ? (
           <nav className='messages-conversation-list' aria-label='Conversations'>
-            {conversations.map((conversation) => {
+            {visibleConversations.map((conversation) => {
               const isBuyer = conversation.buyer_id === currentUserId;
               const otherParty = isBuyer ? conversation.seller : conversation.buyer;
               const listing = conversation.listings;
@@ -88,9 +94,11 @@ export default function InboxShell({ conversations, currentUserId, loadError, ch
         ) : (
           <div className='messages-list-empty'>
             <MessageCircle size={26} className='text-plum-700' />
-            <p>No chats yet</p>
-            <span>Message a seller or reply to a buyer to start a conversation.</span>
-            <Link href='/laptops' className='messages-start-link'>Browse laptops</Link>
+            <p>{listingIdFilter ? 'No messages for this listing yet' : 'No chats yet'}</p>
+            <span>{listingIdFilter ? 'Conversations about this listing will appear here.' : 'Message a seller or reply to a buyer to start a conversation.'}</span>
+            <Link href={listingIdFilter ? '/messages' : '/laptops'} className='messages-start-link'>
+              {listingIdFilter ? 'View all conversations' : 'Browse laptops'}
+            </Link>
           </div>
         )}
       </aside>

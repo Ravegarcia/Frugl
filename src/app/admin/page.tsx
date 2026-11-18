@@ -169,7 +169,7 @@ async function AdminDashboardContent() {
             <h1>Marketplace overview</h1>
             <p>Keep listings trustworthy and help the community trade with confidence.</p>
           </div>
-          <Link href='/admin/reports' className='admin-header-action'>
+          <Link href='/admin/reports' className='button-primary admin-header-action'>
             Review reports <ExternalLink size={15} />
           </Link>
         </header>

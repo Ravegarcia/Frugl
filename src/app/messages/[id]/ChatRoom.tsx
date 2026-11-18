@@ -247,12 +247,15 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
   // Handle offer action (accept, decline, withdraw)
   async function handleOfferStatus(offerId: string, status: string) {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('offers')
         .update({ status })
-        .eq('id', offerId);
+        .eq('id', offerId)
+        .select('id, status')
+        .maybeSingle();
 
       if (error) throw new Error(error.message);
+      if (!data) throw new Error('This offer is no longer available to update.');
       setOffers((prev) =>
         prev.map((o) => (o.id === offerId ? { ...o, status } : o))
       );
@@ -355,18 +358,21 @@ export default function ChatRoom({ conversation, currentUserId, initialOffers }:
           <div className='flex items-center gap-2'>
             {!isBuyer && latestOffer.status === 'pending' && (
               <>
-                <button
+                <Button
+                  type='button'
                   onClick={() => handleOfferStatus(latestOffer.id, 'accepted')}
-                  className='min-h-11 rounded-full border border-primary bg-accent px-4 font-medium text-accent-foreground hover:bg-accent-hover'
+                  size='sm'
                 >
                   Accept
-                </button>
-                <button
+                </Button>
+                <Button
+                  type='button'
                   onClick={() => handleOfferStatus(latestOffer.id, 'declined')}
-                  className='rounded border border-gray-300 px-2.5 py-1 text-gray-700 hover:bg-gray-100'
+                  size='sm'
+                  variant='outline'
                 >
                   Decline
-                </button>
+                </Button>
               </>
             )}
             {isBuyer && latestOffer.status === 'pending' && (

@@ -1,123 +1,224 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
-import { useState, type ReactNode } from 'react';
-import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { conditionLabel, dealLabel, formatPrice } from '@/lib/constants';
 import TimeAgo from '@/components/TimeAgo';
-import { CheckCircle, Laptop } from '@/components/icons';
+import {
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Laptop,
+} from '@/components/icons';
 
 type Props = {
   listing: any;
   photos: string[];
-  seller?: { id: string; name: string; seller_verified?: boolean } | null;
-  children?: ReactNode;
+  trackView?: boolean;
+  checklist?: [string, string][];
 };
 
-export default function ListingDetails({ listing, photos, seller, children }: Props) {
+export default function ListingDetails({
+  listing,
+  photos,
+  trackView = false,
+  checklist = [],
+}: Props) {
   const [index, setIndex] = useState(0);
+  const totalPhotos = photos.length;
+  const safeIndex = totalPhotos > 0 ? Math.min(index, totalPhotos - 1) : 0;
+  const current = photos[safeIndex];
   const listedAt = listing.published_at ?? listing.created_at;
-  const current = photos[Math.min(index, Math.max(photos.length - 1, 0))];
+  const trackedViewId = useRef<string | null>(null);
 
-  const details = [
-    ['Condition', conditionLabel(listing.condition)],
-    ['Brand', listing.brand],
-    ['Model', listing.model],
-    ['Deal method', (listing.deal_methods ?? []).map(dealLabel).join(', ')],
-  ].filter(([, v]) => v);
+  useEffect(() => {
+    if (!trackView || trackedViewId.current === listing.id) return;
+    trackedViewId.current = listing.id;
 
-  const specs = [
-    ['CPU', listing.cpu],
-    ['GPU', listing.gpu],
-    ['RAM', listing.ram],
-    ['Storage', listing.storage],
-    ['Screen', listing.screen_size ? listing.screen_size + ' in' : ''],
-  ].filter(([, v]) => v);
+    void fetch(`/api/listings/${encodeURIComponent(listing.id)}/view`, {
+      method: 'POST',
+    }).then((response) => {
+      if (!response.ok) console.error('Could not record this listing view.');
+    }).catch((error: unknown) => {
+      console.error('Could not record this listing view:', error);
+    });
+  }, [listing.id, trackView]);
+
+  const conditionText = conditionLabel(listing.condition) || 'Pre-owned';
+  const dealMethodsText =
+    (listing.deal_methods ?? []).map(dealLabel).filter(Boolean).join(', ') || 'Meetup / Pickup';
+
+  const detailsItems = [
+    { label: 'Condition', value: conditionText },
+    { label: 'Brand', value: listing.brand || '—' },
+    { label: 'Model', value: listing.model || '—' },
+    { label: 'Deal Method', value: dealMethodsText },
+  ];
+
+  const displayAndBuildParts = [
+    listing.screen_size ? `${listing.screen_size}-inch display` : '',
+    ...checklist.map(([k, v]) => `${k}: ${v}`),
+  ].filter(Boolean);
+
+  const displayAndBuildValue =
+    displayAndBuildParts.length > 0 ? displayAndBuildParts.join(' · ') : 'Standard display & build';
+
+  const specsItems = [
+    { index: 1, label: 'Processor (CPU)', value: listing.cpu || 'Not specified' },
+    { index: 2, label: 'Graphics Card (GPU)', value: listing.gpu || 'Not specified' },
+    { index: 3, label: 'RAM (Memory)', value: listing.ram || 'Not specified' },
+    { index: 4, label: 'Storage (SSD)', value: listing.storage || 'Not specified' },
+    { index: 5, label: 'Display and Build', value: displayAndBuildValue },
+  ];
+
+  function showPreviousPhoto() {
+    if (totalPhotos <= 1) return;
+    setIndex((currentIdx) => (currentIdx - 1 + totalPhotos) % totalPhotos);
+  }
+
+  function showNextPhoto() {
+    if (totalPhotos <= 1) return;
+    setIndex((currentIdx) => (currentIdx + 1) % totalPhotos);
+  }
 
   return (
-    <div className='listing-details space-y-5'>
-      <div>
-        <div className='listing-detail-image aspect-[4/3]'>
+    <div className='product-details-flow'>
+      {/* Top Media Showcase */}
+      <div className='product-gallery'>
+        <div className={`product-gallery-stage${totalPhotos <= 1 ? ' is-single-photo' : ''}`}>
           {current ? (
-            <img src={current} alt={listing.title || 'Laptop photo'} className='h-full w-full object-cover' />
+            <img
+              src={current}
+              alt={listing.title || 'Laptop photo'}
+              className='product-gallery-main-img'
+              fetchPriority='high'
+            />
           ) : (
             <div className='listing-photo-placeholder'>
-              <Laptop size={36} />
-              <span>No photos yet</span>
+              <Laptop size={40} />
+              <span>No photos uploaded</span>
             </div>
           )}
+
+          {totalPhotos > 1 && (
+            <>
+              <button
+                type='button'
+                onClick={showPreviousPhoto}
+                className='product-gallery-nav product-gallery-nav-prev'
+                aria-label='Previous photo'
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type='button'
+                onClick={showNextPhoto}
+                className='product-gallery-nav product-gallery-nav-next'
+                aria-label='Next photo'
+              >
+                <ChevronRight size={16} />
+              </button>
+              <div className='product-gallery-dots' aria-label='Photo indicator'>
+                {photos.map((photo, i) => (
+                  <button
+                    key={photo + i}
+                    type='button'
+                    onClick={() => setIndex(i)}
+                    className={`product-gallery-dot${i === safeIndex ? ' is-active' : ''}`}
+                    aria-label={`Go to photo ${i + 1}`}
+                    aria-pressed={i === safeIndex}
+                  />
+                ))}
+              </div>
+              <span className='product-gallery-counter'>
+                {safeIndex + 1} / {totalPhotos}
+              </span>
+            </>
+          )}
         </div>
-        {photos.length > 1 && (
-          <div className='mt-2 flex gap-2 overflow-x-auto'>
+
+        {totalPhotos > 1 && (
+          <div className='product-gallery-thumbs'>
             {photos.map((p, i) => (
-              <button key={p} type='button' aria-pressed={i === index} aria-label={`View photo ${i + 1}`} onClick={() => setIndex(i)} className={'h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2 ' + (i === index ? 'border-primary' : 'border-transparent')}>
-                <img src={p} alt='' className='h-full w-full object-cover' />
+              <button
+                key={p + i}
+                type='button'
+                aria-pressed={i === safeIndex}
+                aria-label={`View photo ${i + 1}`}
+                onClick={() => setIndex(i)}
+                className={`product-gallery-thumb${i === safeIndex ? ' is-active' : ''}`}
+              >
+                <img src={p} alt='' loading='lazy' decoding='async' />
               </button>
             ))}
           </div>
         )}
       </div>
 
-      <div>
-        <h1 className='listing-title'>{listing.title || 'Your listing title'}</h1>
-        <p className='listing-detail-price'>{listing.price ? formatPrice(listing.price) : 'Price'}</p>
-        <p className='text-sm text-gray-500'>
-          Listed <TimeAgo timestamp={listedAt} />{listing.location ? ' in ' + listing.location : ''}
+      {/* 1. Title, Price, Listed time and location */}
+      <header className='product-header-block'>
+        <div className='product-title-row'>
+          <h1 className='product-title'>{listing.title || 'Untitled laptop listing'}</h1>
+          {listing.status === 'reserved' && (
+            <span className='status-badge status-warning'>Reserved</span>
+          )}
+          {listing.status === 'sold' && (
+            <span className='status-badge status-muted'>Sold</span>
+          )}
+        </div>
+
+        <p className='product-price'>
+          {listing.price ? formatPrice(listing.price) : 'Price on request'}
         </p>
-        {listing.status === 'reserved' && <p className='status-badge status-warning mt-2'>Reserved</p>}
-        {listing.status === 'sold' && <p className='status-badge status-muted mt-2'>Sold</p>}
-      </div>
 
-      {children}
+        <p className='product-listed-meta'>
+          Listed <TimeAgo timestamp={listedAt} />
+          {listing.location ? ` in ${listing.location}` : ''}
+        </p>
 
-      {details.length > 0 && (
-        <section>
-          <h2 className='mb-1 font-semibold'>Details</h2>
-          <dl className='grid grid-cols-2 gap-x-4 gap-y-1 text-sm'>
-            {details.map(([k, v]) => (
-              <div key={k} className='contents'><dt className='text-gray-500'>{k}</dt><dd>{v}</dd></div>
-            ))}
-          </dl>
-        </section>
-      )}
+      </header>
 
-      {specs.length > 0 && (
-        <section>
-          <h2 className='mb-1 font-semibold'>
-            Specs
-            {listing.specs_verified && (
-              <span className='status-badge status-success ml-2'>
-                <CheckCircle size={12} />
-                Verified
-              </span>
-            )}
-          </h2>
-          <dl className='grid grid-cols-2 gap-x-4 gap-y-1 text-sm'>
-            {specs.map(([k, v]) => (
-              <div key={k} className='contents'><dt className='text-gray-500'>{k}</dt><dd>{v}</dd></div>
-            ))}
-          </dl>
-        </section>
-      )}
+      {/* 2. Details: Condition, Brand, Model, Deal Method */}
+      <section className='product-content-section'>
+        <h2>Details</h2>
+        <dl className='product-kv-list'>
+          {detailsItems.map((item) => (
+            <div key={item.label} className='product-kv-row'>
+              <dt>{item.label}</dt>
+              <dd>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
-      {listing.description && (
-        <section>
-          <h2 className='mb-1 font-semibold'>Description</h2>
-          <p className='whitespace-pre-wrap text-sm'>{listing.description}</p>
-        </section>
-      )}
-
-      {seller && (
-        <section className='rounded-2xl border border-border bg-surface p-4 text-sm'>
-          <p className='text-gray-500'>Seller</p>
-          <Link href={'/sellers/' + seller.id} className='font-medium underline'>{seller.name}</Link>
-          {seller.seller_verified && (
-            <span className='status-badge status-success ml-2'>
+      {/* 3. Specs */}
+      <section className='product-content-section'>
+        <div className='product-section-title-row'>
+          <h2>Specs</h2>
+          {listing.specs_verified && (
+            <span className='status-badge status-success'>
               <CheckCircle size={12} />
-              Verified
+              Verified specs
             </span>
           )}
-        </section>
-      )}
+        </div>
+
+        <dl className='product-kv-list'>
+          {specsItems.map((spec) => (
+            <div key={spec.label} className='product-kv-row'>
+              <dt>{spec.label}</dt>
+              <dd>{spec.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      {/* 4. Description */}
+      <section className='product-content-section'>
+        <h2>Description</h2>
+        <p className='product-description-text'>
+          {listing.description || 'No additional description provided by the seller.'}
+        </p>
+      </section>
     </div>
   );
 }

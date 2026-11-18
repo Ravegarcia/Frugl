@@ -1,0 +1,315 @@
+
+@reference "../globals.css";
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+.admin-listings-section {
+  gap: 1rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(ellipse at 100% 0, color-mix(in srgb, var(--lavender-100) 52%, transparent), transparent 34%),
+    var(--surface);
+  padding: clamp(1rem, 2.2vw, 1.4rem);
+  box-shadow: 0 10px 26px rgb(24 13 38 / 4%);
+}
+
+.admin-listings-section-heading {
+  align-items: center;
+  border-bottom: 1px solid var(--surface-container);
+  padding: 0 0 0.9rem;
+}
+
+.admin-listings-section-heading h2 {
+  font-size: 1.12rem;
+  letter-spacing: -0.035em;
+}
+
+.admin-listings-count {
+  border: 1px solid var(--lavender-300);
+  padding: 0.4rem 0.75rem;
+  white-space: nowrap;
+}
+
+.admin-listings-list {
+  display: grid;
+  gap: 0.65rem;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-listing-row,
+.admin-listing-row + .admin-listing-row {
+  border: 1px solid var(--outline-variant);
+  border-radius: 1rem;
+  background: var(--surface);
+  padding: clamp(0.75rem, 1.7vw, 1rem);
+  box-shadow: 0 4px 14px rgb(24 13 38 / 3%);
+}
+
+.admin-listing-row:hover {
+  border-color: var(--lavender-300);
+  background: color-mix(in srgb, var(--lavender-100) 16%, var(--surface));
+}
+
+.admin-listing-cover {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 0.9rem;
+}
+
+.admin-listing-title {
+  font-size: 0.88rem;
+}
+
+.admin-listing-toggle {
+  max-width: 17rem;
+}
+
+.admin-listing-action {
+  min-height: 2.55rem;
+  border-radius: 0.8rem;
+  padding-inline: 0.8rem;
+}
+
+.admin-reports-page {
+  gap: 1rem;
+}
+
+.admin-reports-toolbar {
+  border: 1px solid var(--outline-variant);
+  border-radius: 1rem;
+  background: linear-gradient(110deg, var(--cream), var(--surface));
+  padding: 0.75rem;
+}
+
+.admin-reports-filters {
+  gap: 0.45rem;
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--surface-container) 70%, transparent);
+  padding: 0.25rem;
+}
+
+.admin-report-filter {
+  min-height: 2.35rem;
+  border-color: transparent;
+  border-radius: 0.65rem;
+  padding: 0.45rem 0.85rem;
+  white-space: nowrap;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.admin-report-filter:hover {
+  border-color: transparent;
+  background: var(--surface);
+  color: var(--plum-900);
+}
+
+.admin-report-filter.is-active {
+  border-color: var(--outline-variant);
+  background: var(--surface);
+  color: var(--plum-900);
+  box-shadow: 0 2px 6px rgb(24 13 38 / 7%);
+}
+
+.admin-report-filter-count {
+  display: inline-grid;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface-container);
+  padding-inline: 0.3rem;
+  color: var(--muted-foreground);
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.admin-report-filter.is-active .admin-report-filter-count {
+  background: var(--lavender-100);
+  color: var(--plum-900);
+}
+
+.admin-reports-count {
+  border: 1px solid var(--lavender-300);
+  border-radius: 999px;
+  background: var(--surface);
+  padding: 0.4rem 0.7rem;
+  color: var(--plum-700);
+  white-space: nowrap;
+}
+
+.admin-report-card {
+  border-radius: 1.1rem;
+  box-shadow: 0 5px 16px rgb(24 13 38 / 4%);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.admin-report-card:hover {
+  border-color: var(--lavender-300);
+  box-shadow: 0 9px 22px rgb(24 13 38 / 7%);
+}
+
+.admin-report-reason {
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, var(--ivory) 65%, var(--surface));
+  padding: 0.8rem 0.9rem;
+}
+
+.admin-pagination {
+  gap: 1rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 1rem;
+  background: linear-gradient(110deg, var(--surface), var(--cream));
+  padding: 0.65rem;
+}
+
+.admin-pagination-control {
+  min-width: 7.5rem;
+  min-height: 2.55rem;
+  gap: 0.55rem;
+  border-color: var(--lavender-300);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  padding-inline: 0.9rem;
+  color: var(--plum-900);
+  box-shadow: 0 2px 6px rgb(24 13 38 / 4%);
+}
+
+.admin-pagination-control:hover:not([aria-disabled='true']) {
+  border-color: var(--plum-700);
+  background: var(--lavender-100);
+}
+
+.admin-pagination-status {
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .admin-listing-row,
+  .admin-listing-row + .admin-listing-row {
+    grid-template-columns: 3.25rem minmax(0, 1fr);
+  }
+
+  .admin-listing-cover {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .admin-listing-toggle {
+    grid-column: 1 / -1;
+    max-width: none;
+    justify-content: flex-start;
+  }
+
+  .admin-reports-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-reports-filters {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .admin-pagination-control {
+    min-width: auto;
+    padding-inline: 0.65rem;
+  }
+}
+.button-primary {
+  border: 0;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  box-shadow: 0 2px 6px rgb(24 13 38 / 10%);
+  font-family: inherit;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+[data-slot='button'] {
+  border: 0;
+  border-radius: 9999px;
+}
+
+.button-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 7px 16px rgb(24 13 38 / 16%);
+  transform: translateY(-2px);
+}
+
+.button-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.button-primary:focus-visible {
+  outline: 2px solid var(--plum-700);
+  outline-offset: 3px;
+}
+
+.button-primary:disabled {
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+button,
+[data-slot='button'],
+[role='button'],
+a[class*='-btn'],
+a[class*='-button'],
+a[class*='-action'],
+a[class*='-cta'] {
+  border-radius: 9999px !important;
+}
+
+button.product-gallery-thumb {
+  border-radius: 0.6rem !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button-primary {
+    transition: none;
+  }
+
+  .button-primary:hover:not(:disabled),
+  .button-primary:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+@media (max-width: 400px) {
+  .seller-listings-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .seller-listings-controls {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seller-listings-filter-trigger,
+  .seller-listings-filter-chevron,
+  .seller-listings-filter-menu,
+  .seller-listings-filter-option {
+    transition: none;
+  }
+}

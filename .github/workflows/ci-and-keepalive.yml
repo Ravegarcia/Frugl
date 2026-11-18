@@ -6,11 +6,13 @@ on:
   pull_request:
     branches: [ main ]
   schedule:
-    # Run every 4 days at midnight UTC to prevent free-tier Supabase projects from pausing
+    # Keep Supabase active and release expired reservations on a short schedule.
     - cron: '0 0 */4 * *'
+    - cron: '*/15 * * * *'
 
 jobs:
   test:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -42,7 +44,7 @@ jobs:
           NEXT_PUBLIC_SITE_URL: 'http://localhost:3000'
 
   keep-alive:
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' && github.event.schedule == '0 0 */4 * *'
     runs-on: ubuntu-latest
     steps:
       - name: Supabase Ping Query
@@ -50,3 +52,20 @@ jobs:
           curl -f -X GET "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}/rest/v1/laptop_models?select=id&limit=1" \
             -H "apikey: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}"
+
+  release-expired-reservations:
+    if: github.event_name == 'schedule' && github.event.schedule == '*/15 * * * *'
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ vars.PRODUCTION_SITE_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Release expired reservations
+        run: |
+          if [ -z "$SITE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::Set the PRODUCTION_SITE_URL repository variable and CRON_SECRET repository secret."
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error \
+            --request POST "${SITE_URL%/}/api/cron/release-reservations" \
+            --header "Authorization: Bearer ${CRON_SECRET}"

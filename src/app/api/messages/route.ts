@@ -2,6 +2,7 @@ import { apiUser, json } from '@/lib/api';
 import { detectScamPhrases } from '@/lib/scam';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { withinLimit } from '@/lib/usage';
+import { secondsUntilDailyReset } from '@/lib/usage-policy';
 import {
   isAllowedMessageAttachment,
   MESSAGE_ATTACHMENT_MAX_COUNT,
@@ -13,6 +14,7 @@ export async function GET() {
   const { supabase, user, profile } = await apiUser();
   if (!user) return json({ error: 'Please sign in.' }, 401);
   if (profile?.role === 'admin') return json({ error: 'Admin accounts cannot use marketplace messaging.' }, 403);
+  if (profile?.status !== 'active') return json({ error: 'Your account is suspended.' }, 403);
 
   // Get user's conversations
   const { data: convs, error } = await supabase
@@ -32,7 +34,10 @@ export async function GET() {
     .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
     .order('updated_at', { ascending: false });
 
-  if (error) return json({ error: error.message }, 400);
+  if (error) {
+    console.error('Could not load conversations:', error.message);
+    return json({ error: 'Could not load conversations.' }, 500);
+  }
 
   return json({ conversations: convs || [] });
 }
@@ -41,14 +46,20 @@ export async function POST(request: Request) {
   const { supabase, user, profile } = await apiUser();
   if (!user) return json({ error: 'Please sign in.' }, 401);
   if (profile?.role === 'admin') return json({ error: 'Admin accounts cannot use marketplace messaging.' }, 403);
+  if (profile?.status !== 'active') return json({ error: 'Your account is suspended.' }, 403);
 
-  const contentLength = Number(request.headers.get('content-length'));
-  if (contentLength > MESSAGE_ATTACHMENT_MAX_TOTAL_SIZE + 128 * 1024) {
+  const contentLengthHeader = request.headers.get('content-length');
+  const contentLength = contentLengthHeader === null ? null : Number(contentLengthHeader);
+  if (contentLength !== null && (!Number.isSafeInteger(contentLength) || contentLength < 0 || contentLength > MESSAGE_ATTACHMENT_MAX_TOTAL_SIZE + 128 * 1024)) {
     return json({ error: 'Attachments and message must be 4 MB or smaller.' }, 413);
   }
 
-  if (!(await withinLimit(user.id, 'message'))) {
-    return json({ error: 'Daily message limit reached.' }, 429);
+  const limit = await withinLimit(user.id, 'message');
+  if (limit === 'unavailable') {
+    return json({ error: 'We could not verify your message limit. Please try again shortly.' }, 503, { 'Retry-After': '60' });
+  }
+  if (limit === 'limited') {
+    return json({ error: 'Daily message limit reached.' }, 429, { 'Retry-After': String(secondsUntilDailyReset()) });
   }
 
   let conversationId: unknown;
@@ -63,7 +74,11 @@ export async function POST(request: Request) {
     }
     conversationId = form.get('conversationId');
     body = form.get('body');
-    files = form.getAll('attachments').filter((value): value is File => value instanceof File);
+    const rawFiles = form.getAll('attachments');
+    if (rawFiles.some((value) => !(value instanceof File))) {
+      return json({ error: 'Attachments must be uploaded as files.' }, 400);
+    }
+    files = rawFiles.filter((value): value is File => value instanceof File);
   } else {
     try {
       const payload = await request.json();
@@ -74,7 +89,11 @@ export async function POST(request: Request) {
     }
   }
 
-  if (typeof conversationId !== 'string' || !conversationId || typeof body !== 'string') {
+  if (
+    typeof conversationId !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(conversationId) ||
+    typeof body !== 'string'
+  ) {
     return json({ error: 'Message body and conversationId are required.' }, 400);
   }
   if (!body.trim() && files.length === 0) {
@@ -96,17 +115,27 @@ export async function POST(request: Request) {
   }
 
   // Verify user belongs to this conversation
-  const { data: conv } = await supabase
+  const { data: conv, error: conversationError } = await supabase
     .from('conversations')
     .select('id, buyer_id, seller_id')
     .eq('id', conversationId)
     .maybeSingle();
 
+  if (conversationError) {
+    console.error('Could not verify chat conversation:', conversationError.message);
+    return json({ error: 'Could not verify the conversation.' }, 500);
+  }
   if (!conv || (conv.buyer_id !== user.id && conv.seller_id !== user.id)) {
     return json({ error: 'Conversation not found.' }, 404);
   }
 
-  const admin = createAdminClient();
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch (error) {
+    console.error('Could not initialize chat storage:', error instanceof Error ? error.message : 'Unknown error');
+    return json({ error: 'Messaging is temporarily unavailable.' }, 503, { 'Retry-After': '60' });
+  }
   const storage = admin.storage.from('message-attachments');
   const uploadedPaths: string[] = [];
   const attachments: { path: string; name: string; contentType: string; size: number }[] = [];
@@ -125,7 +154,7 @@ export async function POST(request: Request) {
         const { error: cleanupError } = await storage.remove(uploadedPaths);
         if (cleanupError) console.error('Could not clean up chat attachments:', cleanupError.message);
       }
-      return json({ error: `Could not upload "${file.name}". Please try again.` }, 400);
+      return json({ error: 'Could not upload an attachment. Please try again.' }, 503, { 'Retry-After': '60' });
     }
     uploadedPaths.push(path);
     attachments.push({
@@ -161,9 +190,10 @@ export async function POST(request: Request) {
     if (attachments.length > 0 && msgError.message.includes("Could not find the 'attachments' column")) {
       return json({
         error: 'File uploads are not set up yet. Run supabase/07_message_attachments.sql in Supabase; text messages can still be sent.',
-      }, 503);
+      }, 503, { 'Retry-After': '300' });
     }
-    return json({ error: msgError.message }, 400);
+    console.error('Could not save chat message:', msgError.message);
+    return json({ error: 'Could not send this message.' }, 500);
   }
 
   // If flagged, log a chat alert for the admin team
@@ -175,5 +205,5 @@ export async function POST(request: Request) {
     if (alertError) console.error('Could not save chat scam alert:', alertError.message);
   }
 
-  return json({ message, flagged: isFlagged });
+  return json({ message, flagged: isFlagged }, 201);
 }

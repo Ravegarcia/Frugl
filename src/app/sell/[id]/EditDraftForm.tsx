@@ -8,6 +8,7 @@ import { CONDITIONS, DEAL_METHODS, BRANDS, formatPrice } from '@/lib/constants';
 import { CHECKLIST_ITEMS, suggestCondition } from '@/lib/condition';
 import { resizeImage } from '@/lib/client-image';
 import SellListingPreview from '@/components/SellListingPreview';
+import LocationAutocomplete from '@/components/LocationAutocomplete';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,7 +54,7 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
   const [description, setDescription] = useState(initialListing.description || '');
   const [dealMethods, setDealMethods] = useState<string[]>(initialListing.deal_methods || ['public_meetup']);
   const [location, setLocation] = useState(initialListing.location || userLocation || '');
-  const [addressDetail, setAddressDetail] = useState(initialListing.address_detail || '');
+  const addressDetail = initialListing.address_detail || '';
 
   // Specs
   const [cpu, setCpu] = useState(initialListing.cpu || '');
@@ -628,25 +629,12 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
               </div>
             </div>
 
-            <div className='sell-hint-pair'>
-              <div className='sell-hint-field'>
-                <Label htmlFor='location'>City / Barangay <span className='text-red-500'>*</span></Label>
-                <Input
-                  id='location'
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder='e.g. Quezon City, Manila'
-                />
-              </div>
-              <div className='sell-hint-field'>
-                <Label htmlFor='addressDetail'>Exact Landmark / Address (Private)</Label>
-                <Input
-                  id='addressDetail'
-                  value={addressDetail}
-                  onChange={(e) => setAddressDetail(e.target.value)}
-                  placeholder='Shown only upon reservation'
-                />
-              </div>
+            <div className='sell-hint-field'>
+              <LocationAutocomplete
+                id='location'
+                value={location}
+                onChange={setLocation}
+              />
             </div>
             </div>
           </section>

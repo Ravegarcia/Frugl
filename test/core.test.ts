@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rankCandidates, combineConfidence, hasClearLead, modelLabel, type CatalogModel } from '../src/lib/ai/match';
+import { rankCandidates, hasClearLead, type CatalogModel } from '../src/lib/ai/match';
 import { modelPrefill } from '../src/lib/ai/prefill';
 import { tierFor } from '../src/lib/ai/tier';
 import { detectScamPhrases } from '../src/lib/scam';
@@ -10,6 +10,10 @@ import {
   MESSAGE_ATTACHMENT_MAX_SIZE,
 } from '../src/lib/messages/attachments';
 import { findLagunaMunicipality } from '../src/lib/admin/laguna-locations';
+import { validateListingPatch } from '../src/lib/listings/validation';
+import { sellerListingStatusPatch } from '../src/lib/listings/status';
+import { resolveUsageLimit, secondsUntilDailyReset } from '../src/lib/usage-policy';
+import { safeRedirectPath } from '../src/lib/auth/redirect';
 
 const SAMPLE_CATALOG: CatalogModel[] = [
   {
@@ -185,6 +189,87 @@ describe('Message attachments', () => {
     expect(isAllowedMessageAttachment({ type: 'image/png', size: MESSAGE_ATTACHMENT_MAX_SIZE + 1 })).toBe(false);
     expect(isAllowedMessageAttachment({ type: 'application/x-msdownload', size: 1024 })).toBe(false);
     expect(isImageMessageAttachment('application/pdf')).toBe(false);
+  });
+});
+
+describe('Listing patch validation', () => {
+  it('accepts supported editable values and trims text', () => {
+    expect(validateListingPatch({
+      title: '  ThinkPad T14  ',
+      price: 25000,
+      condition: 'lightly_used',
+      deal_methods: ['public_meetup'],
+      screen_size: 14,
+    })).toEqual({
+      valid: true,
+      patch: {
+        title: 'ThinkPad T14',
+        price: 25000,
+        condition: 'lightly_used',
+        deal_methods: ['public_meetup'],
+        screen_size: 14,
+      },
+    });
+  });
+
+  it('rejects unknown fields, invalid choices, and unsafe numeric values', () => {
+    expect(validateListingPatch({ seller_id: 'another-user' }).valid).toBe(false);
+    expect(validateListingPatch({ condition: 'unknown' }).valid).toBe(false);
+    expect(validateListingPatch({ price: -1 }).valid).toBe(false);
+    expect(validateListingPatch({ screen_size: 14.25 }).valid).toBe(false);
+    expect(validateListingPatch(null).valid).toBe(false);
+  });
+});
+
+describe('Seller listing status actions', () => {
+  it('supports active, reserved, and sold transitions with reservation cleanup', () => {
+    expect(sellerListingStatusPatch('available', 'reserved')).toEqual({
+      status: 'reserved',
+      reserved_by: null,
+      reserved_until: null,
+      buyer_id: null,
+    });
+    expect(sellerListingStatusPatch('reserved', 'available')).toEqual({
+      status: 'available',
+      reserved_by: null,
+      reserved_until: null,
+      buyer_id: null,
+    });
+    expect(sellerListingStatusPatch('reserved', 'sold')).toEqual({
+      status: 'sold',
+      reserved_by: null,
+      reserved_until: null,
+    });
+  });
+
+  it('rejects unsupported, draft, and repeated status transitions', () => {
+    expect(sellerListingStatusPatch('draft', 'available')).toBeNull();
+    expect(sellerListingStatusPatch('sold', 'available')).toBeNull();
+    expect(sellerListingStatusPatch('available', 'draft')).toBeNull();
+    expect(sellerListingStatusPatch('available', 'available')).toBeNull();
+  });
+});
+
+describe('Usage limit decisions', () => {
+  it('fails closed when the usage counter is unavailable', () => {
+    expect(resolveUsageLimit(null, true)).toBe('unavailable');
+    expect(resolveUsageLimit(null, false)).toBe('unavailable');
+    expect(resolveUsageLimit(false, false)).toBe('limited');
+    expect(resolveUsageLimit(true, false)).toBe('allowed');
+  });
+
+  it('returns a positive retry delay until the next UTC day', () => {
+    expect(secondsUntilDailyReset(new Date('2026-11-15T12:00:00.000Z'))).toBe(43200);
+  });
+});
+
+describe('Authentication redirects', () => {
+  it('keeps internal paths and rejects external redirect forms', () => {
+    expect(safeRedirectPath('/dashboard?tab=active')).toBe('/dashboard?tab=active');
+    expect(safeRedirectPath('https://outside.example')).toBe('/');
+    expect(safeRedirectPath('//outside.example')).toBe('/');
+    expect(safeRedirectPath('/\\\\outside.example')).toBe('/');
+    expect(safeRedirectPath('/%2e//outside.example')).toBe('/');
   });
 });
 

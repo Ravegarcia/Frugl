@@ -4,7 +4,9 @@ import { formatPrice, conditionLabel } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
 import { createAdminClient } from '@/lib/supabase/admin';
 import EmptyState from '@/components/EmptyState';
-import { PlusCircle, ExternalLink, Edit3, Laptop, ShieldCheck, CheckCircle, Eye, MessageCircle } from '@/components/icons';
+import ListingStatusNav from './ListingStatusNav';
+import ListingActionsMenu from './ListingActionsMenu';
+import { PlusCircle, Laptop, Eye, MessageCircle } from '@/components/icons';
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'active' } = await searchParams;
@@ -41,6 +43,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .eq('status', listingStatus)
     .order('created_at', { ascending: false });
 
+  const messageCountByListing = new Map<string, number>();
+  if (listings?.length) {
+    const { data: conversations, error: conversationsError } = await supabase
+      .from('conversations')
+      .select('listing_id')
+      .eq('seller_id', user.id)
+      .in('listing_id', listings.map((listing) => listing.id));
+    if (conversationsError) {
+      console.error('Could not load listing conversation counts:', conversationsError.message);
+      throw new Error(`Could not load listing conversations: ${conversationsError.message}`);
+    }
+    for (const conversation of conversations ?? []) {
+      messageCountByListing.set(
+        conversation.listing_id,
+        (messageCountByListing.get(conversation.listing_id) ?? 0) + 1
+      );
+    }
+  }
+
   // Counts for tabs
   const [activeCount, draftCount, reservedCount, soldCount] = await Promise.all([
     supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', user.id).eq('status', 'available'),
@@ -50,128 +71,113 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   ]);
 
   const tabs = [
-    { key: 'active', label: 'Active', count: activeCount.count || 0, icon: Laptop },
-    { key: 'draft', label: 'Drafts', count: draftCount.count || 0, icon: Edit3 },
-    { key: 'reserved', label: 'Reserved', count: reservedCount.count || 0, icon: ShieldCheck },
-    { key: 'sold', label: 'Sold', count: soldCount.count || 0, icon: CheckCircle },
+    { key: 'active', label: 'Active', count: activeCount.count || 0 },
+    { key: 'draft', label: 'Drafts', count: draftCount.count || 0 },
+    { key: 'reserved', label: 'Reserved', count: reservedCount.count || 0 },
+    { key: 'sold', label: 'Sold', count: soldCount.count || 0 },
   ];
   const currentTab = tabs.find((item) => item.key === activeTab) || tabs[0];
 
   return (
     <div className='seller-dashboard'>
-      <header className='seller-dashboard-header'>
-        <div className='seller-dashboard-intro'>
-          <p className='seller-dashboard-eyebrow'>Seller workspace</p>
-          <h1 className='text-2xl font-bold text-gray-900'>My listings dashboard</h1>
-          <p>Manage your draft, active, reserved, and sold listings.</p>
+      <header className='page-banner seller-dashboard-header'>
+        <div className='page-banner-main'>
+          <span className='page-banner-icon' aria-hidden='true'><Laptop size={22} /></span>
+          <div className='page-banner-copy'>
+            <h1 className='page-banner-title'>My Listings</h1>
+            <p className='page-banner-subtitle'>Manage your draft, active, reserved, and sold listings.</p>
+          </div>
         </div>
         <Link
           href='/sell'
-          className='seller-dashboard-create'
+          className='button-primary seller-dashboard-create'
         >
           <PlusCircle size={18} />
           <span>Sell another laptop</span>
         </Link>
       </header>
 
-      <nav className='seller-dashboard-status-grid' aria-label='Filter listings by status'>
-        {tabs.map((t) => (
-          <Link
-            key={t.key}
-            href={`/dashboard?tab=${t.key}`}
-            aria-current={activeTab === t.key ? 'page' : undefined}
-            className={`seller-dashboard-status-card ${activeTab === t.key ? 'is-active' : ''}`}
-          >
-            <span className='seller-dashboard-status-icon'><t.icon size={18} /></span>
-            <span className='seller-dashboard-status-label'>{t.label}</span>
-            <span className='seller-dashboard-status-count'>{t.count}</span>
-          </Link>
-        ))}
-      </nav>
+      <ListingStatusNav tabs={tabs} activeTab={activeTab} />
 
-      <section className='seller-dashboard-listings' aria-labelledby='seller-dashboard-listings-title'>
-        <div className='seller-dashboard-section-heading'>
-          <div>
-            <p className='seller-dashboard-section-eyebrow'>Your inventory</p>
-            <h2 id='seller-dashboard-listings-title'>{currentTab.label} listings</h2>
-          </div>
-          <span className='seller-dashboard-total'>{currentTab.count} total</span>
-        </div>
+      <section className='seller-dashboard-listings' aria-label={`${currentTab.label} listings`}>
+        {listings && listings.length > 0 ? (
+          <div className='seller-dashboard-listing-grid'>
+            {listings.map((l: any) => {
+              const img = coverUrl(l);
+              const offersCount = l.offers?.length || 0;
+              const statusTone = l.status === 'reserved'
+                ? 'status-warning'
+                : l.status === 'sold'
+                  ? 'status-muted'
+                  : l.status === 'draft'
+                    ? 'status-info'
+                    : 'status-success';
+              const statusLabel = l.status === 'available'
+                ? 'Active'
+                : l.status.charAt(0).toUpperCase() + l.status.slice(1);
+              const listedDate = new Intl.DateTimeFormat('en', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                timeZone: 'UTC',
+              }).format(new Date(l.created_at));
 
-      {listings && listings.length > 0 ? (
-        <div className='seller-dashboard-listing-grid'>
-          {listings.map((l: any) => {
-            const img = coverUrl(l);
-            const offersCount = l.offers?.length || 0;
-            const statusTone = l.status === 'reserved'
-              ? 'status-warning'
-              : l.status === 'sold'
-                ? 'status-muted'
-                : l.status === 'draft'
-                  ? 'status-info'
-                  : 'status-success';
-            return (
-              <article key={l.id} className='seller-dashboard-listing-card'>
-                <div className='seller-dashboard-listing-image'>
+              return (
+                <article key={l.id} className='seller-dashboard-listing-card'>
+                  <div className='seller-dashboard-listing-image'>
                     {img ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={img} alt={l.title} />
+                      <img src={img} alt={l.title || 'Laptop listing'} />
                     ) : (
                       <div className='seller-dashboard-no-photo'>
                         <Laptop size={24} />
-                        No photo
+                        <span>No photo</span>
                       </div>
                     )}
-                    <span className={`status-badge ${statusTone} absolute right-2 top-2 capitalize`}>
-                      {l.status}
-                    </span>
-                </div>
-                <div className='seller-dashboard-listing-content'>
-                  <p className='seller-dashboard-listing-price'>
-                    {l.price ? formatPrice(l.price) : 'No price set'}
-                  </p>
-                  <h3 className='seller-dashboard-listing-title'>{l.title || 'Untitled Draft'}</h3>
-                  <p className='seller-dashboard-listing-details'>
-                    <span>{conditionLabel(l.condition) || 'Condition not set'}</span>
-                    <span className='seller-dashboard-detail-divider' aria-hidden='true'>·</span>
-                    <span>{l.location || 'Location not set'}</span>
-                  </p>
-                  <div className='seller-dashboard-listing-stats'>
-                    <span><Eye size={14} />{l.views || 0} views</span>
-                    <span><MessageCircle size={14} />{offersCount} offer{offersCount === 1 ? '' : 's'}</span>
                   </div>
-                </div>
+                  <div className='seller-dashboard-listing-content'>
+                    <h3 className='seller-dashboard-listing-title'>{l.title || 'Untitled Draft'}</h3>
+                    <div className='seller-dashboard-listing-price-row'>
+                      <p className='seller-dashboard-listing-price'>
+                        {l.price ? formatPrice(l.price) : 'No price set'}
+                      </p>
+                      <span className={`status-badge ${statusTone} seller-dashboard-inline-status`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+                    <p className='seller-dashboard-listing-details'>
+                      <span><time dateTime={l.created_at}>Listed {listedDate}</time></span>
+                      <span className='seller-dashboard-detail-divider' aria-hidden='true'>·</span>
+                      <span>{conditionLabel(l.condition) || 'Condition not set'}</span>
+                      <span className='seller-dashboard-detail-divider' aria-hidden='true'>·</span>
+                      <span>{l.location || 'Location not set'}</span>
+                    </p>
+                    <div className='seller-dashboard-listing-stats'>
+                      <span><Eye size={14} />{l.views || 0} views</span>
+                      <span><MessageCircle size={14} />{offersCount} offer{offersCount === 1 ? '' : 's'}</span>
+                    </div>
+                  </div>
 
-                <footer className='seller-dashboard-listing-actions'>
-                  <Link
-                    href={`/sell/${l.id}`}
-                    className='seller-dashboard-edit-link'
-                  >
-                    <Edit3 size={15} />
-                    <span>Edit</span>
-                  </Link>
-                  {l.status !== 'draft' && (
-                    <Link
-                      href={`/laptops/${l.id}`}
-                      className='seller-dashboard-view-link'
-                    >
-                      <ExternalLink size={15} />
-                      <span>View live</span>
-                    </Link>
-                  )}
-                </footer>
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <EmptyState
-          title={`No ${activeTab} listings`}
-          hint={activeTab === 'draft' ? 'You have no saved drafts.' : 'List a laptop to see it here.'}
-          href='/sell'
-          action='Sell a laptop'
-        />
-      )}
+                  <footer className='seller-dashboard-listing-actions'>
+                    <ListingActionsMenu
+                      listingId={l.id}
+                      title={l.title || 'Untitled listing'}
+                      status={l.status}
+                      messageCount={messageCountByListing.get(l.id) ?? 0}
+                    />
+                  </footer>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <EmptyState
+            title={`No ${activeTab} listings`}
+            hint={activeTab === 'draft' ? 'You have no saved drafts.' : 'List a laptop to see it here.'}
+            href='/sell'
+            action='Sell a laptop'
+          />
+        )}
       </section>
     </div>
   );

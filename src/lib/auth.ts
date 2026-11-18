@@ -15,6 +15,7 @@ export async function getSessionProfile() {
 export async function requireUser(next = '/') {
   const s = await getSessionProfile();
   if (!s.user) redirect('/login?next=' + encodeURIComponent(next));
+  if (s.profile?.status !== 'active') redirect('/account-suspended');
   return s;
 }
 

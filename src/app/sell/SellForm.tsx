@@ -524,7 +524,7 @@ export default function SellForm({ sellerName, location }: Props) {
                     </span>
                     <input
                       type='file'
-                      accept='image/*'
+                      accept='image/jpeg,image/png,image/webp'
                       onChange={(e) => setSystemInfoImage(e.target.files?.[0] || null)}
                       className='sr-only'
                     />
@@ -537,7 +537,7 @@ export default function SellForm({ sellerName, location }: Props) {
                     </span>
                     <input
                       type='file'
-                      accept='image/*'
+                      accept='image/jpeg,image/png,image/webp'
                       onChange={(e) => setReceiptOrBoxImage(e.target.files?.[0] || null)}
                       className='sr-only'
                     />

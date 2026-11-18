@@ -9,6 +9,7 @@ create table public.profiles (
   seller_verified boolean not null default false,
   avatar_url text,
   default_location text,
+  public_contact_email text,
   created_at timestamptz not null default now()
 );
 

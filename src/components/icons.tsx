@@ -49,6 +49,7 @@ import {
   faStar,
   faTag,
   faTriangleExclamation,
+  faTrashCan,
   faUser,
   faUsers,
   faWandMagicSparkles,
@@ -61,7 +62,6 @@ type Props = {
   size?: number;
   className?: string;
   variant?: IconVariant;
-  hoverVariant?: IconVariant;
 };
 
 function icon(
@@ -69,26 +69,7 @@ function icon(
   regular: IconDefinition = solid,
   defaultVariant: IconVariant = 'solid'
 ) {
-  return function AppIcon({ size = 20, className, variant = defaultVariant, hoverVariant }: Props) {
-    const iconClassName = className ? `${className} ` : '';
-    const renderIcon = (iconVariant: IconVariant, stateClass: string) => (
-      <FontAwesomeIcon
-        icon={iconVariant === 'regular' ? regular : solid}
-        className={`${iconClassName}${stateClass}`}
-        style={{ width: size, height: size }}
-        aria-hidden='true'
-      />
-    );
-
-    if (hoverVariant) {
-      return (
-        <>
-          {renderIcon(variant, 'icon-hover-default')}
-          {renderIcon(hoverVariant, 'icon-hover-active')}
-        </>
-      );
-    }
-
+  return function AppIcon({ size = 20, className, variant = defaultVariant }: Props) {
     return (
       <FontAwesomeIcon
         icon={variant === 'regular' ? regular : solid}
@@ -139,6 +120,7 @@ export const ShieldHeart = icon(faShieldHeart);
 export const Sparkles = icon(faWandMagicSparkles);
 export const Star = icon(faStar, faStarRegular, 'regular');
 export const Tag = icon(faTag);
+export const Trash = icon(faTrashCan);
 export const UploadCloud = icon(faCloudArrowUp);
 export const User = icon(faUser, faUserRegular, 'regular');
 export const Users = icon(faUsers);

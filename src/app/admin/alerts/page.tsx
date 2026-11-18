@@ -47,7 +47,7 @@ export default async function AdminAlertsPage({
   const alertCount = count ?? 0;
 
   return (
-    <main className='admin-alerts-page'>
+    <div className='admin-alerts-page'>
       <AdminActivityViewed eventType='chat_alert_created' />
       <header className='admin-alerts-header'>
         <div>
@@ -143,6 +143,6 @@ export default async function AdminAlertsPage({
         )}
         <AdminPagination path='/admin/alerts' page={page} totalPages={totalPages} />
       </section>
-    </main>
+    </div>
   );
 }

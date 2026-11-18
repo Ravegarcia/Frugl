@@ -5,9 +5,14 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   const { supabase, user, profile } = await apiUser();
   if (!user) return json({ error: 'Please sign in.' }, 401);
   if (profile?.role === 'admin') return json({ error: 'Admin accounts cannot publish marketplace listings.' }, 403);
+  if (profile?.status !== 'active') return json({ error: 'Your account is suspended.' }, 403);
 
-  const { data: l } = await supabase
+  const { data: l, error: listingError } = await supabase
     .from('listings').select('*, listing_photos(id)').eq('id', id).eq('seller_id', user.id).maybeSingle();
+  if (listingError) {
+    console.error('Could not load listing to publish:', listingError.message);
+    return json({ error: 'Could not verify this listing.' }, 500);
+  }
   if (!l) return json({ error: 'Listing not found.' }, 404);
 
   const missing: string[] = [];
@@ -26,8 +31,17 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     .from('listings')
     .update({ status: 'available', published_at: l.published_at ?? new Date().toISOString() })
     .eq('id', id);
-  if (error) return json({ error: error.message }, 400);
+  if (error) {
+    console.error('Could not publish listing:', error.message);
+    return json({ error: 'Could not publish this listing.' }, 500);
+  }
 
-  await supabase.from('identification_results').update({ confirmed_by_seller: true }).eq('listing_id', id);
+  const { error: identificationError } = await supabase
+    .from('identification_results')
+    .update({ confirmed_by_seller: true })
+    .eq('listing_id', id);
+  if (identificationError) {
+    console.error('Could not record seller confirmation:', identificationError.message);
+  }
   return json({ ok: true });
 }

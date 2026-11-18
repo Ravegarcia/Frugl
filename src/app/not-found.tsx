@@ -7,7 +7,7 @@ export default function NotFound() {
       <span className='empty-state-icon'><Search size={24} /></span>
       <h1>Page not found</h1>
       <p className='empty-state-hint'>That page may have moved or no longer exists.</p>
-      <Link href='/' className='empty-state-action'>Go home</Link>
+      <Link href='/' className='button-primary empty-state-action'>Go home</Link>
     </div>
   );
 }

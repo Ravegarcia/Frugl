@@ -84,7 +84,7 @@ export default async function AdminReportsPage({
   }
 
   return (
-    <main className='admin-reports-page'>
+    <div className='admin-reports-page'>
       <AdminActivityViewed eventType='report_created' />
       <header className='admin-reports-header'>
         <div>
@@ -133,6 +133,6 @@ export default async function AdminReportsPage({
         totalPages={totalPages}
         query={{ status }}
       />
-    </main>
+    </div>
   );
 }

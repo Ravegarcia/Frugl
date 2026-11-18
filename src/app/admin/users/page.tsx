@@ -36,7 +36,7 @@ export default async function AdminUsersPage({
   }
 
   return (
-    <main className='admin-users-page'>
+    <div className='admin-users-page'>
       <AdminActivityViewed eventType='account_created' />
       <header className='admin-users-header'>
         <div>
@@ -79,6 +79,6 @@ export default async function AdminUsersPage({
         )}
         <AdminPagination path='/admin/users' page={page} totalPages={totalPages} />
       </section>
-    </main>
+    </div>
   );
 }

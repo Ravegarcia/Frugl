@@ -2,8 +2,10 @@ import 'server-only';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 
+const SUPPORTED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
 export function isImage(f: unknown): f is File {
-  return typeof f === 'object' && f !== null && 'arrayBuffer' in f && (f as File).size > 0 && String((f as File).type).startsWith('image/');
+  return f instanceof File && f.size > 0 && SUPPORTED_IMAGE_TYPES.has(f.type);
 }
 
 export async function processImage(input: Buffer): Promise<Buffer> {

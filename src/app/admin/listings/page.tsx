@@ -39,7 +39,7 @@ export default async function AdminListingsPage({
   }
 
   return (
-    <main className='admin-listings-page'>
+    <div className='admin-listings-page'>
       <AdminActivityViewed eventType='listing_created' />
       <header className='admin-listings-header'>
         <div>
@@ -109,6 +109,6 @@ export default async function AdminListingsPage({
         )}
         <AdminPagination path='/admin/listings' page={page} totalPages={totalPages} />
       </section>
-    </main>
+    </div>
   );
 }

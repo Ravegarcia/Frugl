@@ -22,7 +22,6 @@ export default async function Home() {
   const canBrowse = Boolean(user && profile?.role !== 'admin');
   const catalogHref = isGuest ? '/register?next=%2Flaptops' : canBrowse ? '/laptops' : '/admin';
   const catalogLabel = isGuest ? 'Register to see more' : canBrowse ? 'Browse all' : 'Admin dashboard';
-  await supabase.rpc('release_expired_reservations');
 
   const base = () =>
     supabase.from('listings').select(CARD_SELECT_WITH_SAVED).in('status', ['available', 'reserved']).eq('is_visible', true);
@@ -49,7 +48,7 @@ export default async function Home() {
           {canBrowse ? (
             <form action='/laptops' className='home-search'>
               <input name='q' aria-label='Search laptops' placeholder='Search by keyword, category, price, etc.' />
-              <button type='submit' aria-label='Search laptops'>
+              <button type='submit' className='button-primary' aria-label='Search laptops'>
                 <Search size={18} />
               </button>
             </form>
@@ -174,7 +173,7 @@ export default async function Home() {
           <h2>Ready to find a laptop that fits?</h2>
           <p>{isGuest ? 'Register to browse the full catalog and compare the details that matter.' : 'Browse real listings, compare the specs, and take it from there.'}</p>
         </div>
-        <Link href={catalogHref}>{isGuest ? 'Register to see more' : canBrowse ? 'Explore laptops' : 'Admin dashboard'}</Link>
+        <Link className='button-primary' href={catalogHref}>{isGuest ? 'Register to see more' : canBrowse ? 'Explore laptops' : 'Admin dashboard'}</Link>
       </section>
     </div>
   );

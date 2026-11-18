@@ -3,6 +3,16 @@ import { Suspense } from 'react';
 import { Audiowide, Geist_Mono, Manrope, Poppins } from 'next/font/google';
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
+import './styles/site-shell.css';
+import './styles/seller-dashboard.css';
+import './styles/listing-detail.css';
+import './styles/home-and-browse.css';
+import './styles/admin-and-account.css';
+import './styles/marketplace-pages.css';
+import './styles/sell-flow.css';
+import './styles/auth.css';
+import './styles/responsive-overrides.css';
+import './styles/final-overrides.css';
 import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import BottomBar from '@/components/BottomBar';
@@ -35,14 +45,21 @@ export const metadata: Metadata = {
   description: 'Buy and sell secondhand laptops with verified specs.',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+  authModal,
+}: {
+  children: React.ReactNode;
+  authModal: React.ReactNode;
+}) {
   return (
     <html lang='en' className={cn(audiowide.variable, poppins.variable, manrope.variable, geistMono.variable, 'font-sans')}>
       <body className='app-body'>
-        <Suspense fallback={<header className='site-header h-14' />}>
+        <Suspense fallback={<header className='sticky top-0 z-20 h-14 bg-transparent px-4 pt-3 max-md:px-2.5 max-md:pt-2' />}>
           <TopBar />
         </Suspense>
         <main className='app-main'>{children}</main>
+        {authModal}
         <Suspense fallback={null}>
           <Footer />
         </Suspense>

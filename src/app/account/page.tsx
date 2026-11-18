@@ -4,20 +4,20 @@ import AccountForm from './AccountForm';
 export default async function AccountPage() {
   const { supabase, user, profile } = await requireMarketplaceUser('/account');
 
-  // Fetch private contact number
-  const { data: privateData } = await supabase
+  const { data: privateData, error: privateError } = await supabase
     .from('profile_private')
     .select('contact_number')
     .eq('id', user.id)
     .maybeSingle();
+  if (privateError) {
+    throw new Error(`Could not load private contact details: ${privateError.message}`);
+  }
 
   return (
-    <div className='py-4'>
-      <AccountForm
-        user={user}
-        profile={profile}
-        contactNumber={privateData?.contact_number || ''}
-      />
-    </div>
+    <AccountForm
+      user={user}
+      profile={profile}
+      contactNumber={privateData?.contact_number || ''}
+    />
   );
 }

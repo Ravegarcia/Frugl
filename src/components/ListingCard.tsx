@@ -33,7 +33,7 @@ export default function ListingCard({
       />
       <div className='listing-card-image aspect-[4/3]'>
         {img ? (
-          <img src={img} alt={listing.title} className='h-full w-full object-cover' />
+          <img src={img} alt={listing.title} className='h-full w-full object-cover' loading='lazy' decoding='async' />
         ) : (
           <div className='listing-photo-placeholder'>
             <Laptop size={32} />
@@ -42,23 +42,25 @@ export default function ListingCard({
         )}
       </div>
       <div className='listing-card-content'>
-        <div className='listing-card-price-row'>
-          <p className='listing-card-price'>{formatPrice(listing.price)}</p>
-          <ListingCardSaveButton
-            key={`${listing.id}-${saved ? 'saved' : 'unsaved'}`}
-            listingId={listing.id}
-            title={listing.title}
-            initialSaved={saved}
-          />
+        <div className='listing-card-main'>
+          <div className='listing-card-price-row'>
+            <p className='listing-card-price'>{formatPrice(listing.price)}</p>
+            <ListingCardSaveButton
+              key={`${listing.id}-${saved ? 'saved' : 'unsaved'}`}
+              listingId={listing.id}
+              title={listing.title}
+              initialSaved={saved}
+            />
+          </div>
+          <p className='listing-card-title line-clamp-2'>{listing.title}</p>
+          {(listing.cpu || listing.ram || listing.storage) && (
+            <p className='listing-card-specs line-clamp-1'>
+              {[listing.cpu, listing.ram, listing.storage].filter(Boolean).join(' · ')}
+            </p>
+          )}
+          {listing.status === 'reserved' && <span className='status-badge status-warning'>Reserved</span>}
+          {listing.status === 'sold' && <span className='status-badge status-muted'>Sold</span>}
         </div>
-        <p className='listing-card-title line-clamp-2'>{listing.title}</p>
-        {(listing.cpu || listing.ram || listing.storage) && (
-          <p className='listing-card-specs line-clamp-1'>
-            {[listing.cpu, listing.ram, listing.storage].filter(Boolean).join(' · ')}
-          </p>
-        )}
-        {listing.status === 'reserved' && <span className='status-badge status-warning'>Reserved</span>}
-        {listing.status === 'sold' && <span className='status-badge status-muted'>Sold</span>}
         <div className='listing-card-meta'>
           {condition && (
             <span className={`condition-chip ${conditionTone}`}>

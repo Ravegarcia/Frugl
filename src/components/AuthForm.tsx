@@ -2,6 +2,8 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { m } from 'motion/react';
+import { duration, ease } from '@/lib/motion';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -376,17 +378,18 @@ export default function AuthForm({
                     overflow: 'hidden',
                   }}
                 >
-                  <span
+                  <m.span
                     className={`auth-strength-fill is-${strength.key}`}
                     style={{
                       display: 'block',
                       height: '100%',
-                      width: `${strength.percent}%`,
+                      width: '100%',
                       backgroundColor: strength.color,
                       borderRadius: '9999px',
-                      transition:
-                        'width 360ms cubic-bezier(0.22, 1, 0.36, 1), background-color 320ms cubic-bezier(0.22, 1, 0.36, 1)',
+                      transformOrigin: 'left',
                     }}
+                    animate={{ scaleX: strength.percent / 100 }}
+                    transition={{ duration: duration.slow, ease }}
                   />
                 </div>
                 {strength.label && (

@@ -102,7 +102,7 @@ export default function ListingActions({ listingId, sellerId, status, userId, in
       .from('reports').insert({ target_type: 'listing', target_id: listingId, reporter_id: userId, reason });
     if (error) setNote(error.message);
     else {
-      setNote('Thank you. A moderator will review this listing.');
+      setNote('Thank you. The Frugl admin team will review this listing.');
       setPanel('');
       setReason('');
     }

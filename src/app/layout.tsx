@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { Audiowide, Geist_Mono, Poppins } from 'next/font/google';
+import { Audiowide, Geist_Mono, Manrope, Poppins } from 'next/font/google';
 import 'leaflet/dist/leaflet.css';
 import './globals.css';
 import TopBar from '@/components/TopBar';
@@ -20,6 +20,11 @@ const poppins = Poppins({
   variable: '--font-poppins',
 });
 
+const manrope = Manrope({
+  subsets: ['latin'],
+  variable: '--font-manrope',
+});
+
 const geistMono = Geist_Mono({
   subsets: ['latin'],
   variable: '--font-geist-mono',
@@ -32,7 +37,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang='en' className={cn(audiowide.variable, poppins.variable, geistMono.variable, 'font-sans')}>
+    <html lang='en' className={cn(audiowide.variable, poppins.variable, manrope.variable, geistMono.variable, 'font-sans')}>
       <body className='app-body'>
         <Suspense fallback={<header className='site-header h-14' />}>
           <TopBar />

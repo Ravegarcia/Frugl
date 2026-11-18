@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { requireStaff } from '@/lib/auth';
 import { AlertTriangle, ExternalLink, Flag, Laptop, Shield, Users } from '@/components/icons';
@@ -52,7 +53,7 @@ async function getLagunaSellerLocations(
       .from('profiles')
       .select('id, default_location')
       .eq('status', 'active')
-      .in('role', ['buyer', 'seller'])
+      .eq('role', 'buyer')
       .in('id', sellerIds.slice(offset, offset + profileBatchSize));
 
     if (error) {
@@ -78,7 +79,7 @@ async function getLagunaSellerLocations(
   );
 }
 
-export default async function AdminDashboardPage() {
+async function AdminDashboardContent() {
   const { supabase } = await requireStaff();
 
   const [
@@ -302,5 +303,19 @@ export default async function AdminDashboardPage() {
           ))}
         </section>
     </>
+  );
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className='admin-dashboard-content-loading' role='status'>
+          Loading marketplace overview...
+        </div>
+      }
+    >
+      <AdminDashboardContent />
+    </Suspense>
   );
 }

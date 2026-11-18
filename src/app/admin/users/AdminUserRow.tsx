@@ -4,7 +4,7 @@ import { useState } from 'react';
 import TimeAgo from '@/components/TimeAgo';
 import { createClient } from '@/lib/supabase/client';
 
-type ManageableRole = 'buyer' | 'moderator' | 'admin';
+type ManageableRole = 'buyer' | 'admin';
 
 type AdminUser = {
   id: string;
@@ -18,7 +18,6 @@ type AdminUser = {
 
 const roleOptions: { value: ManageableRole; label: string }[] = [
   { value: 'buyer', label: 'Buyer / Seller' },
-  { value: 'moderator', label: 'Moderator' },
   { value: 'admin', label: 'Admin' },
 ];
 
@@ -26,15 +25,27 @@ function isManageableRole(role: string): role is ManageableRole {
   return roleOptions.some((option) => option.value === role);
 }
 
-export default function AdminUserRow({ user, currentRole }: { user: AdminUser; currentRole: string }) {
+export default function AdminUserRow({
+  user,
+  currentRole,
+  currentUserId,
+}: {
+  user: AdminUser;
+  currentRole: string;
+  currentUserId: string;
+}) {
   const supabase = createClient();
   const [status, setStatus] = useState(user.status);
   const [verified, setVerified] = useState(user.seller_verified);
-  const [role, setRole] = useState(user.role === 'seller' ? 'buyer' : user.role);
+  const [role, setRole] = useState<ManageableRole>(
+    isManageableRole(user.role) ? user.role : 'buyer',
+  );
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const isAdmin = currentRole === 'admin';
+  const isSelf = user.id === currentUserId;
+  const canManageAccount = isAdmin && !isSelf;
   const displayName = user.name?.trim() || 'Unnamed account';
   const initials = displayName === 'Unnamed account'
     ? 'U'
@@ -105,41 +116,45 @@ export default function AdminUserRow({ user, currentRole }: { user: AdminUser; c
       </div>
 
       <div className='admin-member-actions'>
-        {isAdmin && (
-          <label className='admin-member-role'>
-            <span className='sr-only'>Role for {displayName}</span>
-            <select
-              value={role}
+        {canManageAccount ? (
+          <>
+            <label className='admin-member-role'>
+              <span className='sr-only'>Role for {displayName}</span>
+              <select
+                value={role}
+                disabled={busy}
+                onChange={(event) => {
+                  if (isManageableRole(event.target.value)) void changeRole(event.target.value);
+                }}
+              >
+                {roleOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              type='button'
+              onClick={toggleVerify}
               disabled={busy}
-              onChange={(event) => {
-                if (isManageableRole(event.target.value)) void changeRole(event.target.value);
-              }}
+              title={verified ? 'Remove verified badge' : 'Grant verified badge'}
+              className={`admin-member-button ${verified ? 'is-verified' : ''}`}
             >
-              {roleOptions.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
-        )}
+              {verified ? 'Verified' : 'Verify seller'}
+            </button>
 
-        <button
-          type='button'
-          onClick={toggleVerify}
-          disabled={busy}
-          title={verified ? 'Remove verified badge' : 'Grant verified badge'}
-          className={`admin-member-button ${verified ? 'is-verified' : ''}`}
-        >
-          {verified ? 'Verified' : 'Verify seller'}
-        </button>
-
-        <button
-          type='button'
-          onClick={toggleSuspend}
-          disabled={busy}
-          className={`admin-member-button ${status === 'active' ? 'is-danger' : 'is-reactivate'}`}
-        >
-          {status === 'active' ? 'Suspend' : 'Activate'}
-        </button>
+            <button
+              type='button'
+              onClick={toggleSuspend}
+              disabled={busy}
+              className={`admin-member-button ${status === 'active' ? 'is-danger' : 'is-reactivate'}`}
+            >
+              {status === 'active' ? 'Suspend' : 'Activate'}
+            </button>
+          </>
+        ) : isSelf ? (
+          <span className='admin-member-permission-note'>Your account is protected</span>
+        ) : null}
 
         {actionError && <p className='admin-member-error' role='alert'>{actionError}</p>}
       </div>

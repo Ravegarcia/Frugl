@@ -35,7 +35,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   if (!existing) return json({ error: 'Listing not found.' }, 404);
 
   const isOwner = existing.seller_id === user.id;
-  const isStaff = profile?.status === 'active' && ['moderator', 'admin'].includes(profile?.role);
+  const isStaff = profile?.status === 'active' && profile?.role === 'admin';
   if (!isOwner && !isStaff) return json({ error: 'Forbidden.' }, 403);
 
   const body = await request.json();
@@ -89,7 +89,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   if (!existing) return json({ error: 'Listing not found.' }, 404);
 
   const isOwner = existing.seller_id === user.id;
-  const isStaff = profile?.status === 'active' && ['moderator', 'admin'].includes(profile?.role);
+  const isStaff = profile?.status === 'active' && profile?.role === 'admin';
   if (!isOwner && !isStaff) return json({ error: 'Forbidden.' }, 403);
 
   const { error } = await supabase.from('listings').delete().eq('id', id);

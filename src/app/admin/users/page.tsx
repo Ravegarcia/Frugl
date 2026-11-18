@@ -1,16 +1,39 @@
 import { Users } from '@/components/icons';
+import { redirect } from 'next/navigation';
+import {
+  ADMIN_PAGE_SIZE,
+  getAdminPageRange,
+  parseAdminPage,
+} from '@/lib/admin/pagination';
 import AdminActivityViewed from '../AdminActivityViewed';
+import AdminPagination from '../AdminPagination';
 import { requireStaff } from '@/lib/auth';
 import AdminUserRow from './AdminUserRow';
 
-export default async function AdminUsersPage() {
-  const { supabase, profile: myProfile } = await requireStaff();
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { supabase, profile: myProfile, user: currentUser } = await requireStaff();
+  const { page: pageParam } = await searchParams;
+  const page = parseAdminPage(pageParam);
+  const { from, to } = getAdminPageRange(page);
 
-  const { data: users } = await supabase
+  const { data: users, error, count } = await supabase
     .from('profiles')
-    .select('*')
+    .select('*', { count: 'exact' })
     .order('created_at', { ascending: false })
-    .limit(50);
+    .range(from, to);
+
+  if (error) {
+    throw new Error(`Unable to load admin users: ${error.message}`);
+  }
+
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / ADMIN_PAGE_SIZE));
+  if (page > totalPages) {
+    redirect(`/admin/users?page=${totalPages}`);
+  }
 
   return (
     <main className='admin-users-page'>
@@ -19,10 +42,10 @@ export default async function AdminUsersPage() {
         <div>
           <p className='admin-eyebrow'>Marketplace access</p>
           <h1>Manage users</h1>
-          <p>Review accounts, verify sellers, and manage staff access.</p>
+          <p>Review accounts, verify sellers, and manage administrator access.</p>
           <div className='admin-users-note'>
             <span aria-hidden='true'>i</span>
-            <p>All marketplace members can buy and sell. Seller verification is managed separately.</p>
+            <p>Members can buy or sell. Admins can manage account status, seller verification, and administrator access.</p>
           </div>
         </div>
       </header>
@@ -33,13 +56,18 @@ export default async function AdminUsersPage() {
             <p className='admin-eyebrow'>Account directory</p>
             <h2 id='admin-users-list-title'>User accounts</h2>
           </div>
-          <span className='admin-users-count'>{users?.length ?? 0} shown</span>
+          <span className='admin-users-count'>{(count ?? 0).toLocaleString()} total</span>
         </div>
 
         {users?.length ? (
           <div className='admin-users-list'>
             {users.map((user) => (
-              <AdminUserRow key={user.id} user={user} currentRole={myProfile.role} />
+              <AdminUserRow
+                key={user.id}
+                user={user}
+                currentRole={myProfile.role}
+                currentUserId={currentUser.id}
+              />
             ))}
           </div>
         ) : (
@@ -49,6 +77,7 @@ export default async function AdminUsersPage() {
             <p>New marketplace accounts will appear here.</p>
           </div>
         )}
+        <AdminPagination path='/admin/users' page={page} totalPages={totalPages} />
       </section>
     </main>
   );

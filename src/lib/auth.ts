@@ -25,7 +25,7 @@ export async function requireMarketplaceUser(next = '/') {
 }
 
 export function isStaff(profile: any) {
-  return !!profile && profile.status === 'active' && ['moderator', 'admin'].includes(profile.role);
+  return !!profile && profile.status === 'active' && profile.role === 'admin';
 }
 
 export async function requireStaff() {

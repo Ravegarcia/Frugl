@@ -1,13 +1,27 @@
 import { AlertTriangle, ExternalLink, ShieldCheck } from '@/components/icons';
 import TimeAgo from '@/components/TimeAgo';
+import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth';
+import {
+  ADMIN_PAGE_SIZE,
+  getAdminPageRange,
+  parseAdminPage,
+} from '@/lib/admin/pagination';
 import AdminActivityViewed from '../AdminActivityViewed';
+import AdminPagination from '../AdminPagination';
 import Link from 'next/link';
 
-export default async function AdminAlertsPage() {
+export default async function AdminAlertsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { supabase } = await requireStaff();
+  const { page: pageParam } = await searchParams;
+  const page = parseAdminPage(pageParam);
+  const { from, to } = getAdminPageRange(page);
 
-  const { data: alerts } = await supabase
+  const { data: alerts, error, count } = await supabase
     .from('chat_alerts')
     .select(`
       *,
@@ -18,8 +32,19 @@ export default async function AdminAlertsPage() {
         sender_id,
         sender:profiles!messages_sender_id_fkey(id, name)
       )
-    `)
-    .order('created_at', { ascending: false });
+    `, { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    throw new Error(`Unable to load admin chat alerts: ${error.message}`);
+  }
+
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / ADMIN_PAGE_SIZE));
+  if (page > totalPages) {
+    redirect(`/admin/alerts?page=${totalPages}`);
+  }
+  const alertCount = count ?? 0;
 
   return (
     <main className='admin-alerts-page'>
@@ -42,9 +67,9 @@ export default async function AdminAlertsPage() {
             <p className='admin-eyebrow'>Automated monitoring</p>
             <h2 id='admin-alerts-title'>Flagged messages</h2>
           </div>
-          <span className={`admin-alerts-count ${alerts?.length ? 'has-alerts' : ''}`}>
+          <span className={`admin-alerts-count ${alertCount ? 'has-alerts' : ''}`}>
             <AlertTriangle size={14} />
-            {alerts?.length ?? 0} {alerts?.length === 1 ? 'alert' : 'alerts'}
+            {alertCount.toLocaleString()} {alertCount === 1 ? 'alert' : 'alerts'}
           </span>
         </div>
 
@@ -116,6 +141,7 @@ export default async function AdminAlertsPage() {
             <p>No suspicious off-platform payment or scam keywords have been triggered.</p>
           </div>
         )}
+        <AdminPagination path='/admin/alerts' page={page} totalPages={totalPages} />
       </section>
     </main>
   );

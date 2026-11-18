@@ -1,8 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
-import { divIcon } from 'leaflet';
-import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
+import { useEffect, useRef } from 'react';
+import {
+  divIcon,
+  layerGroup,
+  map as createMap,
+  marker,
+  tileLayer,
+} from 'leaflet';
+import type { LayerGroup } from 'leaflet';
 import type { LagunaSellerLocation } from '@/lib/admin/laguna-locations';
 
 const lagunaCenter: [number, number] = [14.2, 121.35];
@@ -18,47 +24,61 @@ const locationPinIcon = divIcon({
   popupAnchor: [0, -32],
 });
 
-function RemoveDefaultAttribution() {
-  const map = useMap();
+export default function LagunaMemberMap({ locations }: { locations: LagunaSellerLocation[] }) {
+  const mapElement = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<LayerGroup | null>(null);
 
   useEffect(() => {
-    map.attributionControl?.remove();
-  }, [map]);
+    const element = mapElement.current;
+    if (!element) return;
 
-  return null;
-}
+    const map = createMap(element, {
+      center: lagunaCenter,
+      zoom: 9,
+      minZoom: 8,
+      maxZoom: 13,
+      maxBounds: lagunaBounds,
+      maxBoundsViscosity: 1,
+      attributionControl: false,
+      scrollWheelZoom: false,
+    });
+    const markers = layerGroup().addTo(map);
+    tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    markersRef.current = markers;
 
-export default function LagunaMemberMap({ locations }: { locations: LagunaSellerLocation[] }) {
+    return () => {
+      markersRef.current = null;
+      map.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    const markers = markersRef.current;
+    if (!markers) return;
+
+    markers.clearLayers();
+    for (const location of locations) {
+      const popup = document.createElement('div');
+      const name = document.createElement('strong');
+      name.textContent = location.name;
+      const count = document.createElement('div');
+      count.textContent = `${location.sellerCount.toLocaleString()} ${
+        location.sellerCount === 1 ? 'seller' : 'sellers'
+      }`;
+      popup.append(name, count);
+
+      marker(location.coordinates, { icon: locationPinIcon })
+        .bindPopup(popup)
+        .addTo(markers);
+    }
+  }, [locations]);
+
   return (
-    <MapContainer
-      center={lagunaCenter}
-      zoom={9}
-      minZoom={8}
-      maxZoom={13}
-      maxBounds={lagunaBounds}
-      maxBoundsViscosity={1}
-      attributionControl={false}
-      scrollWheelZoom={false}
+    <div
+      ref={mapElement}
       className='admin-laguna-leaflet-map'
-    >
-      <RemoveDefaultAttribution />
-      <TileLayer
-        url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-      />
-      {locations.map((location) => (
-        <Marker
-          key={location.name}
-          position={location.coordinates}
-          icon={locationPinIcon}
-        >
-          <Popup>
-            <strong>{location.name}</strong>
-            <br />
-            {location.sellerCount.toLocaleString()}{' '}
-            {location.sellerCount === 1 ? 'seller' : 'sellers'}
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
+      role='application'
+      aria-label='Map of sellers across Laguna'
+    />
   );
 }

@@ -1,9 +1,10 @@
+import { Suspense } from 'react';
 import { requireStaff } from '@/lib/auth';
 import type { ReactNode } from 'react';
 import type { AdminActivityEvent } from '@/lib/admin/activity';
 import AdminSidebar from './AdminSidebar';
 
-export default async function AdminLayout({ children }: { children: ReactNode }) {
+async function AdminWorkspace({ children }: { children: ReactNode }) {
   const { supabase, user, profile } = await requireStaff();
   const activityEvents: AdminActivityEvent[] = [
     'listing_created',
@@ -33,10 +34,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   };
 
   const name = profile?.name?.trim() || 'Admin';
-  const roleLabel = profile?.role === 'admin' ? 'Administrator' : 'Moderator';
+  const roleLabel = 'Administrator';
 
   return (
-    <div className='admin-dashboard'>
+    <>
       <AdminSidebar
         name={name}
         roleLabel={roleLabel}
@@ -44,6 +45,22 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         initialActivityCounts={initialActivityCounts}
       />
       <div className='admin-dashboard-main'>{children}</div>
+    </>
+  );
+}
+
+export default function AdminLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className='admin-dashboard'>
+      <Suspense
+        fallback={
+          <div className='admin-workspace-loading' role='status'>
+            Loading admin workspace...
+          </div>
+        }
+      >
+        <AdminWorkspace>{children}</AdminWorkspace>
+      </Suspense>
     </div>
   );
 }

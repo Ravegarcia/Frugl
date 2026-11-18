@@ -1,19 +1,42 @@
 import { Laptop } from '@/components/icons';
+import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth';
 import { formatPrice } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
+import {
+  ADMIN_PAGE_SIZE,
+  getAdminPageRange,
+  parseAdminPage,
+} from '@/lib/admin/pagination';
 import AdminActivityViewed from '../AdminActivityViewed';
+import AdminPagination from '../AdminPagination';
 import Link from 'next/link';
 import AdminListingToggle from './AdminListingToggle';
 
-export default async function AdminListingsPage() {
+export default async function AdminListingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const { supabase } = await requireStaff();
+  const { page: pageParam } = await searchParams;
+  const page = parseAdminPage(pageParam);
+  const { from, to } = getAdminPageRange(page);
 
-  const { data: listings } = await supabase
+  const { data: listings, error, count } = await supabase
     .from('listings')
-    .select('*, listing_photos(image_url, sort_order), seller:profiles!listings_seller_id_fkey(name)')
+    .select('*, listing_photos(image_url, sort_order), seller:profiles!listings_seller_id_fkey(name)', { count: 'exact' })
     .order('created_at', { ascending: false })
-    .limit(50);
+    .range(from, to);
+
+  if (error) {
+    throw new Error(`Unable to load admin listings: ${error.message}`);
+  }
+
+  const totalPages = Math.max(1, Math.ceil((count ?? 0) / ADMIN_PAGE_SIZE));
+  if (page > totalPages) {
+    redirect(`/admin/listings?page=${totalPages}`);
+  }
 
   return (
     <main className='admin-listings-page'>
@@ -36,7 +59,7 @@ export default async function AdminListingsPage() {
             <p className='admin-eyebrow'>Inventory</p>
             <h2 id='admin-listings-title'>Recent listings</h2>
           </div>
-          <span className='admin-listings-count'>{listings?.length ?? 0} shown</span>
+          <span className='admin-listings-count'>{(count ?? 0).toLocaleString()} total</span>
         </div>
 
         {listings?.length ? (
@@ -84,6 +107,7 @@ export default async function AdminListingsPage() {
             <p>New marketplace listings will appear here.</p>
           </div>
         )}
+        <AdminPagination path='/admin/listings' page={page} totalPages={totalPages} />
       </section>
     </main>
   );

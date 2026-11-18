@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ExternalLink } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import TimeAgo from '@/components/TimeAgo';
 import { createClient } from '@/lib/supabase/client';
 
 export default function ReportQueueItem({ report }: { report: any }) {
+  const router = useRouter();
   const supabase = createClient();
   const [status, setStatus] = useState(report.status);
   const [busy, setBusy] = useState(false);
@@ -23,7 +25,10 @@ export default function ReportQueueItem({ report }: { report: any }) {
         .eq('id', report.id);
 
       if (error) setActionError(error.message);
-      else setStatus(newStatus);
+      else {
+        setStatus(newStatus);
+        router.refresh();
+      }
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Unable to update this report.');
     } finally {

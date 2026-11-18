@@ -23,7 +23,7 @@ export default function SafetyPage() {
         </ul>
       </section>
 
-      <p className='text-sm text-gray-500'>See a problem? Use the Report button on a listing and a moderator will review it.</p>
+      <p className='text-sm text-gray-500'>See a problem? Use the Report button on a listing and the Frugl admin team will review it.</p>
     </div>
   );
 }

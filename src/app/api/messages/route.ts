@@ -166,7 +166,7 @@ export async function POST(request: Request) {
     return json({ error: msgError.message }, 400);
   }
 
-  // If flagged, log chat alert for moderators
+  // If flagged, log a chat alert for the admin team
   if (isFlagged && message) {
     const { error: alertError } = await admin.from('chat_alerts').insert({
       message_id: message.id,

@@ -27,7 +27,7 @@ async function SellDraftContent({ params }: Props) {
   if (!listing) notFound();
 
   // If user is not the seller and not staff, deny access
-  if (listing.seller_id !== user.id && profile?.role !== 'admin' && profile?.role !== 'moderator') {
+  if (listing.seller_id !== user.id && profile?.role !== 'admin') {
     redirect('/');
   }
 

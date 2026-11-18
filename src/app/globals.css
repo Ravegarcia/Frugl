@@ -140,6 +140,11 @@
   --input: #d1c0e2;
   --ring: #180d26;
   --radius: 0.75rem;
+  --lift-sm: -2px;
+  --lift-md: -4px;
+  --zoom-image: 1.04;
+  --motion-fast: 160ms;
+  --motion-base: 260ms;
   --cream: #f2eee7;
   --surface: #fffdfa;
   --ivory: #f5f3ef;
@@ -274,5 +279,99 @@
     width: min(100% - 2rem, 80rem);
     margin-inline: auto;
     padding-block: 2rem 4rem;
+  }
+}
+
+@keyframes motion-skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.motion-skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--lavender-100) 45%, var(--surface-container));
+}
+
+.motion-skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 75%, transparent), transparent);
+  content: '';
+  transform: translateX(-100%);
+  animation: motion-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.brand-loader {
+  display: grid;
+  min-height: 16rem;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  color: var(--plum-900);
+}
+
+.brand-loader-mark {
+  position: relative;
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  place-items: center;
+}
+
+.brand-loader-ring,
+.brand-loader-orb {
+  position: absolute;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+}
+
+.brand-loader-ring {
+  border: 2px solid var(--lavender-300);
+}
+
+.brand-loader-orb {
+  background: radial-gradient(circle at 35% 30%, var(--surface), var(--lavender-300) 45%, var(--plum-700));
+  box-shadow: 0 0.35rem 1rem rgb(24 13 38 / 16%);
+}
+
+.brand-loader-wordmark {
+  font-family: var(--font-audiowide), sans-serif;
+  font-size: 1.35rem;
+}
+
+.brand-loader-progress {
+  width: 8rem;
+  height: 2px;
+  overflow: hidden;
+  background: var(--lavender-100);
+}
+
+.brand-loader-progress span {
+  display: block;
+  width: 50%;
+  height: 100%;
+  background: var(--plum-700);
+}
+
+.motion-modal-overlay {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 1rem;
+  background: rgb(24 13 38 / 52%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-skeleton::after {
+    animation: none;
+    transform: none;
   }
 }

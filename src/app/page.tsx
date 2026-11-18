@@ -6,6 +6,9 @@ import ListingCard from '@/components/ListingCard';
 import HeroListingCarousel from '@/components/HeroListingCarousel';
 import EmptyState from '@/components/EmptyState';
 import { BadgeCheck, ChevronRight, Laptop, MessageCircle, Search } from '@/components/icons';
+import Reveal from '@/components/motion/Reveal';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 const BRAND_LINKS = [
   { name: 'Apple', slug: 'apple' },
@@ -106,31 +109,47 @@ export default async function Home() {
 
       {featured.data && featured.data.length > 0 && (
         <section>
-          <div className='home-section-heading'>
+          <Reveal className='home-section-heading'>
             <div>
               <p className='mb-2 text-xs font-medium text-gray-500'>Selected for you</p>
               <h2>Featured laptops</h2>
             </div>
             <Link href={catalogHref}>{catalogLabel}</Link>
-          </div>
-          <div className='grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4'>
-            {featured.data.map((listing: any) => <ListingCard key={listing.id} listing={listing} guest={isGuest} />)}
-          </div>
+          </Reveal>
+          <Stagger className='grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4'>
+            {featured.data.map((listing: any, index) => (
+              index < 2 ? (
+                <ListingCard key={listing.id} listing={listing} guest={isGuest} />
+              ) : (
+                <StaggerItem key={listing.id} index={index - 2}>
+                  <ListingCard listing={listing} guest={isGuest} />
+                </StaggerItem>
+              )
+            ))}
+          </Stagger>
         </section>
       )}
 
       <section>
-        <div className='home-section-heading'>
+        <Reveal className='home-section-heading'>
           <div>
             <p className='mb-2 text-xs font-medium text-gray-500'>New to the marketplace</p>
             <h2>Recently listed</h2>
           </div>
           <Link href={catalogHref}>{isGuest ? 'Register to see more' : canBrowse ? 'See all laptops' : 'Admin dashboard'}</Link>
-        </div>
+        </Reveal>
         {newest.data && newest.data.length > 0 ? (
-          <div className='grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4'>
-            {newest.data.map((listing: any) => <ListingCard key={listing.id} listing={listing} guest={isGuest} />)}
-          </div>
+          <Stagger className='grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4'>
+            {newest.data.map((listing: any, index) => (
+              index < 2 ? (
+                <ListingCard key={listing.id} listing={listing} guest={isGuest} />
+              ) : (
+                <StaggerItem key={listing.id} index={index - 2}>
+                  <ListingCard listing={listing} guest={isGuest} />
+                </StaggerItem>
+              )
+            ))}
+          </Stagger>
         ) : (
           <EmptyState
             title='No laptops listed yet'
@@ -141,7 +160,7 @@ export default async function Home() {
         )}
       </section>
 
-      <section id='how-it-works' className='editorial-section how-it-works'>
+      <Reveal as='section' id='how-it-works' className='editorial-section how-it-works'>
         <div className='promise-heading'>
           <p className='promise-eyebrow'>Our promise</p>
           <h2>Less guessing. <span className='accent-text'>Better hand-me-downs.</span></h2>
@@ -149,24 +168,24 @@ export default async function Home() {
             Frugl brings the model, specs, condition, and seller notes together, so you can make a more informed choice.
           </p>
         </div>
-        <div className='step-grid'>
-          <article className='step-tile'>
+        <Stagger className='step-grid'>
+          <StaggerItem as='article' index={0} className='step-tile'>
             <span className='step-icon-tile' aria-hidden='true'><Laptop size={24} /></span>
             <h3>Show us what you have</h3>
             <p>Share a few photos, including the model sticker, to start a listing.</p>
-          </article>
-          <article className='step-tile'>
+          </StaggerItem>
+          <StaggerItem as='article' index={1} className='step-tile'>
             <span className='step-icon-tile' aria-hidden='true'><BadgeCheck size={24} /></span>
             <h3>Review the details</h3>
             <p>AI suggests the model and specs. Sellers check everything before publishing.</p>
-          </article>
-          <article className='step-tile'>
+          </StaggerItem>
+          <StaggerItem as='article' index={2} className='step-tile'>
             <span className='step-icon-tile' aria-hidden='true'><MessageCircle size={24} /></span>
             <h3>Talk it through</h3>
             <p>Ask questions, compare details, and arrange a handover with the seller.</p>
-          </article>
-        </div>
-      </section>
+          </StaggerItem>
+        </Stagger>
+      </Reveal>
 
       <section className='home-cta'>
         <div className='home-cta-copy'>

@@ -5,6 +5,8 @@ import { coverUrl } from '@/lib/queries';
 import { Laptop, Tag } from '@/components/icons';
 import TimeAgo from '@/components/TimeAgo';
 import ListingStatusNav from '@/app/dashboard/ListingStatusNav';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 export default async function OffersPage({
   searchParams,
@@ -58,13 +60,13 @@ export default async function OffersPage({
 
       <section className='seller-dashboard-listings' aria-label={activeTab === 'received' ? 'Offers received' : 'Offers made'}>
         {visibleOffers.length > 0 ? (
-          <div className='offers-list'>
-            {visibleOffers.map((offer: any) => {
+          <Stagger className='offers-list'>
+            {visibleOffers.map((offer: any, index) => {
               const isReceived = activeTab === 'received';
               const cover = coverUrl(offer.listings);
 
               return (
-                <article key={offer.id} className='offers-card'>
+                <StaggerItem key={offer.id} as='article' index={index} className='offers-card'>
                   <div className='offers-card-listing'>
                     <div className='offers-card-image'>
                       {cover ? (
@@ -98,10 +100,10 @@ export default async function OffersPage({
                       {offer.status}
                     </span>
                   </div>
-                </article>
+                </StaggerItem>
               );
             })}
-          </div>
+          </Stagger>
         ) : (
           <div className={`offers-empty${activeTab === 'made' ? ' offers-empty-sent' : ''}`}>
             <span className='offers-empty-icon'><Tag size={18} /></span>

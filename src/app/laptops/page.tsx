@@ -7,6 +7,8 @@ import { btn, btnOutline, field } from '@/lib/ui';
 import ListingCard from '@/components/ListingCard';
 import EmptyState from '@/components/EmptyState';
 import BrowseIntroShowcase from './BrowseIntroShowcase';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 const PAGE_SIZE = 12;
 const SCREENS: Record<string, [number, number]> = { small: [0, 13.99], '14': [14, 14.99], '15': [15, 15.99], big: [16, 99] };
@@ -192,9 +194,17 @@ export default async function BrowsePage({ searchParams }: { searchParams: Promi
             </div>
           </div>
           {data && data.length > 0 ? (
-            <div className='grid grid-cols-2 gap-4 lg:grid-cols-3'>
-              {data.map((l: any) => <ListingCard key={l.id} listing={l} initialSaved={savedIds.has(l.id)} />)}
-            </div>
+            <Stagger className='grid grid-cols-2 gap-4 lg:grid-cols-3'>
+              {data.map((l: any, index) => (
+                index < 4 ? (
+                  <ListingCard key={l.id} listing={l} initialSaved={savedIds.has(l.id)} />
+                ) : (
+                  <StaggerItem key={l.id} index={index - 4}>
+                    <ListingCard listing={l} initialSaved={savedIds.has(l.id)} />
+                  </StaggerItem>
+                )
+              ))}
+            </Stagger>
           ) : (
             <EmptyState title='No laptops match your filters' hint='Try removing a filter.' href='/laptops' action='Clear filters' />
           )}

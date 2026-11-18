@@ -7,6 +7,8 @@ import EmptyState from '@/components/EmptyState';
 import ListingStatusNav from './ListingStatusNav';
 import ListingActionsMenu from './ListingActionsMenu';
 import { PlusCircle, Laptop, Eye, MessageCircle } from '@/components/icons';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'active' } = await searchParams;
@@ -101,8 +103,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <section className='seller-dashboard-listings' aria-label={`${currentTab.label} listings`}>
         {listings && listings.length > 0 ? (
-          <div className='seller-dashboard-listing-grid'>
-            {listings.map((l: any) => {
+          <Stagger className='seller-dashboard-listing-grid'>
+            {listings.map((l: any, index) => {
               const img = coverUrl(l);
               const offersCount = l.offers?.length || 0;
               const statusTone = l.status === 'reserved'
@@ -122,8 +124,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 timeZone: 'UTC',
               }).format(new Date(l.created_at));
 
-              return (
-                <article key={l.id} className='seller-dashboard-listing-card'>
+              const card = (
+                <article className='seller-dashboard-listing-card'>
                   <div className='seller-dashboard-listing-image'>
                     {img ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
@@ -168,8 +170,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </footer>
                 </article>
               );
+              return (
+                <StaggerItem
+                  key={l.id}
+                  index={index}
+                  initiallyVisible={index < 4}
+                  layout
+                >
+                  {card}
+                </StaggerItem>
+              );
             })}
-          </div>
+          </Stagger>
         ) : (
           <EmptyState
             title={`No ${activeTab} listings`}

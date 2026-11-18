@@ -5,6 +5,8 @@ import { AlertTriangle, ExternalLink, Flag, Laptop, Shield, Users } from '@/comp
 import { findLagunaMunicipality, type LagunaSellerLocation } from '@/lib/admin/laguna-locations';
 import type { createClient } from '@/lib/supabase/server';
 import LagunaMemberMapLoader from './LagunaMemberMapLoader';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 type DashboardStat = {
   label: string;
@@ -174,18 +176,20 @@ async function AdminDashboardContent() {
           </Link>
         </header>
 
-        <section className='admin-stats-grid' aria-label='Marketplace summary'>
-          {stats.map(({ label, value, detail, href, Icon, tone }) => (
-            <Link href={href} className={`admin-stat-card tone-${tone}`} key={label}>
-              <span className='admin-stat-icon'><Icon size={18} /></span>
-              <span className='admin-stat-label'>{label}</span>
-              <strong>{value.toLocaleString()}</strong>
-              <span className='admin-stat-detail'>
-                <span>{detail}</span>
-              </span>
-            </Link>
+        <Stagger as='div' className='admin-stats-grid' role='list' aria-label='Marketplace summary'>
+          {stats.map(({ label, value, detail, href, Icon, tone }, index) => (
+            <StaggerItem key={label} index={index} role='listitem'>
+              <Link href={href} className={`admin-stat-card tone-${tone}`}>
+                <span className='admin-stat-icon'><Icon size={18} /></span>
+                <span className='admin-stat-label'>{label}</span>
+                <strong>{value.toLocaleString()}</strong>
+                <span className='admin-stat-detail'>
+                  <span>{detail}</span>
+                </span>
+              </Link>
+            </StaggerItem>
           ))}
-        </section>
+        </Stagger>
 
         <div className='admin-panels-grid'>
           <section className='admin-panel admin-laguna-panel'>

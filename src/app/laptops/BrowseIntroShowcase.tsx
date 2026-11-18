@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { conditionLabel, formatPrice } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
 import { ChevronLeft, ChevronRight, Laptop } from '@/components/icons';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 interface Listing {
   id: string;
@@ -47,7 +49,9 @@ export default function BrowseIntroShowcase({ listings }: { listings: Listing[] 
     if (!track) return;
 
     const card = track.querySelector<HTMLElement>('.browse-intro-product');
-    const gap = Number.parseFloat(window.getComputedStyle(track).columnGap) || 0;
+    const gap = Number.parseFloat(
+      window.getComputedStyle(card?.parentElement?.parentElement ?? track).columnGap
+    ) || 0;
     const step = (card?.getBoundingClientRect().width ?? track.clientWidth) + gap;
     track.scrollBy({ left: direction * step, behavior: 'smooth' });
   }
@@ -65,28 +69,37 @@ export default function BrowseIntroShowcase({ listings }: { listings: Listing[] 
           aria-label='Laptop listings carousel'
           tabIndex={0}
         >
-          {listings.map((listing) => {
-            const image = coverUrl(listing);
-            return (
-              <Link href={`/laptops/${listing.id}`} className='browse-intro-product' key={listing.id}>
-                <span className='browse-intro-product-image'>
-                  {image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={image} alt={listing.title} />
-                  ) : (
-                    <Laptop size={34} />
-                  )}
-                  <span className='browse-intro-product-condition'>{conditionLabel(listing.condition) || 'Laptop'}</span>
-                </span>
-                <span className='browse-intro-product-details'>
-                  <strong>{listing.title}</strong>
-                  <span>{[listing.ram, listing.storage].filter(Boolean).join(' · ') || listing.brand || 'Community listing'}</span>
-                  <b>{formatPrice(listing.price)}</b>
-                </span>
-                <span className='browse-intro-product-arrow' aria-hidden='true'><ChevronRight size={14} /></span>
-              </Link>
-            );
-          })}
+          <Stagger className='browse-intro-product-items'>
+            {listings.map((listing, index) => {
+              const image = coverUrl(listing);
+              return (
+                <StaggerItem
+                  key={listing.id}
+                  index={index}
+                  initiallyVisible={index === 0}
+                  className='browse-intro-product-slot'
+                >
+                  <Link href={`/laptops/${listing.id}`} className='browse-intro-product'>
+                    <span className='browse-intro-product-image'>
+                      {image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={image} alt={listing.title} />
+                      ) : (
+                        <Laptop size={34} />
+                      )}
+                      <span className='browse-intro-product-condition'>{conditionLabel(listing.condition) || 'Laptop'}</span>
+                    </span>
+                    <span className='browse-intro-product-details'>
+                      <strong>{listing.title}</strong>
+                      <span>{[listing.ram, listing.storage].filter(Boolean).join(' · ') || listing.brand || 'Community listing'}</span>
+                      <b>{formatPrice(listing.price)}</b>
+                    </span>
+                    <span className='browse-intro-product-arrow' aria-hidden='true'><ChevronRight size={14} /></span>
+                  </Link>
+                </StaggerItem>
+              );
+            })}
+          </Stagger>
         </div>
       ) : (
         <div className='browse-intro-no-products'>

@@ -6,6 +6,7 @@ import {
   normalizeLocationKey,
 } from '../src/lib/admin/location-aggregates';
 import {
+  getCompletedSaleBuyerIds,
   isLocationSchemaMissing,
   splitAdminLocationAudiences,
 } from '../src/lib/admin/member-locations';
@@ -13,6 +14,14 @@ import { pluralize } from '../src/lib/format';
 import { sanitizeLocationSearchQuery } from '../src/lib/location-validation';
 
 describe('admin location aggregates', () => {
+  it('only counts buyers after a listing is marked sold', () => {
+    expect(getCompletedSaleBuyerIds([
+      { buyer_id: 'accepted-buyer', status: 'reserved' },
+      { buyer_id: 'sold-buyer', status: 'sold' },
+      { buyer_id: null, status: 'sold' },
+    ])).toEqual(new Set(['sold-buyer']));
+  });
+
   it('splits all members, sellers, and buyers by marketplace activity with overlapping users counted once in All', () => {
     const profiles = [
       { id: 'buyer-only', role: 'buyer', location: 'San Pablo, Laguna' },

@@ -151,3 +151,49 @@ begin
     published_at = excluded.published_at;
 end;
 $seed$;
+
+-- Demo images are served by the app from public/demo-listing-photos.
+-- The files labeled as MacBook Pro show MacBook Air, so they are mapped to the Air listing.
+-- No matching photos were supplied for the MacBook Pro or Acer Nitro listings.
+insert into public.listing_photos (listing_id, image_path, image_url, view_type, sort_order)
+select
+  seed.listing_id,
+  seed.image_path,
+  '/' || seed.image_path,
+  'photo',
+  seed.sort_order
+from (
+  values
+    ('50000000-0000-4000-8000-000000000001'::uuid, 'demo-listing-photos/apple-macbook-air-m1/01.jpg', 0),
+    ('50000000-0000-4000-8000-000000000001'::uuid, 'demo-listing-photos/apple-macbook-air-m1/02.jpg', 1),
+    ('50000000-0000-4000-8000-000000000001'::uuid, 'demo-listing-photos/apple-macbook-air-m1/03.jpg', 2),
+    ('50000000-0000-4000-8000-000000000001'::uuid, 'demo-listing-photos/apple-macbook-air-m1/04.jpg', 3),
+    ('50000000-0000-4000-8000-000000000001'::uuid, 'demo-listing-photos/apple-macbook-air-m1/05.jpg', 4),
+    ('50000000-0000-4000-8000-000000000003'::uuid, 'demo-listing-photos/dell-latitude-5420/01.jpg', 0),
+    ('50000000-0000-4000-8000-000000000003'::uuid, 'demo-listing-photos/dell-latitude-5420/02.jpg', 1),
+    ('50000000-0000-4000-8000-000000000004'::uuid, 'demo-listing-photos/dell-xps-13-9310/01.jpg', 0),
+    ('50000000-0000-4000-8000-000000000004'::uuid, 'demo-listing-photos/dell-xps-13-9310/02.jpg', 1),
+    ('50000000-0000-4000-8000-000000000005'::uuid, 'demo-listing-photos/hp-elitebook-840-g7/01.jpg', 0),
+    ('50000000-0000-4000-8000-000000000005'::uuid, 'demo-listing-photos/hp-elitebook-840-g7/02.jpg', 1),
+    ('50000000-0000-4000-8000-000000000006'::uuid, 'demo-listing-photos/hp-pavilion-15/01.jpg', 0),
+    ('50000000-0000-4000-8000-000000000006'::uuid, 'demo-listing-photos/hp-pavilion-15/02.jpg', 1),
+    ('50000000-0000-4000-8000-000000000006'::uuid, 'demo-listing-photos/hp-pavilion-15/03.jpg', 2),
+    ('50000000-0000-4000-8000-000000000007'::uuid, 'demo-listing-photos/lenovo-thinkpad-t14-gen-2/01.jpg', 0),
+    ('50000000-0000-4000-8000-000000000007'::uuid, 'demo-listing-photos/lenovo-thinkpad-t14-gen-2/02.jpg', 1),
+    ('50000000-0000-4000-8000-000000000008'::uuid, 'demo-listing-photos/lenovo-thinkpad-x1-carbon-gen-9/01.jpg', 0),
+    ('50000000-0000-4000-8000-000000000008'::uuid, 'demo-listing-photos/lenovo-thinkpad-x1-carbon-gen-9/02.jpg', 1),
+    ('50000000-0000-4000-8000-000000000008'::uuid, 'demo-listing-photos/lenovo-thinkpad-x1-carbon-gen-9/03.jpg', 2),
+    ('50000000-0000-4000-8000-000000000009'::uuid, 'demo-listing-photos/asus-vivobook-15-x515ea/01.jpg', 0),
+    ('50000000-0000-4000-8000-000000000009'::uuid, 'demo-listing-photos/asus-vivobook-15-x515ea/02.jpg', 1)
+) as seed(listing_id, image_path, sort_order)
+where exists (
+  select 1
+  from public.listings listing
+  where listing.id = seed.listing_id
+)
+and not exists (
+  select 1
+  from public.listing_photos photo
+  where photo.listing_id = seed.listing_id
+    and photo.image_path = seed.image_path
+);

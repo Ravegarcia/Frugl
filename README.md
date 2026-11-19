@@ -188,6 +188,8 @@ The database setup is provided as numbered SQL scripts in `supabase/`, rather th
 
 Do not rerun the base schema scripts against a project that has already been initialized. Scripts `11`–`14` are follow-up authorization, profile, listing-review, backup-storage, and location-coordinate changes; apply them once after scripts `01`–`10`.
 
+The demo listings in `05_demo_laptops_seed.sql` reference static photos under `public/demo-listing-photos/`. Include those assets in the deployed app, then rerun `05_demo_laptops_seed.sql` to add the photo records if the demo listings were seeded earlier. The photo inserts are idempotent.
+
 If applying scripts from a machine with `psql`, use your Supabase database connection string:
 
 ```powershell

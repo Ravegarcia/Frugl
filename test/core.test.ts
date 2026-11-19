@@ -75,6 +75,7 @@ describe('Catalog Matching & Ranking', () => {
     const candidates = rankCandidates(
       SAMPLE_CATALOG,
       {
+        isLaptop: true,
         brand: 'Apple',
         series: 'MacBook Air',
         modelNumber: null,
@@ -93,6 +94,7 @@ describe('Catalog Matching & Ranking', () => {
     const candidates = rankCandidates(
       SAMPLE_CATALOG,
       {
+        isLaptop: true,
         brand: 'Dell',
         series: 'Latitude 5420',
         modelNumber: null,
@@ -109,6 +111,7 @@ describe('Catalog Matching & Ranking', () => {
 
   it('does not guess a catalog model from brand alone', () => {
     const candidates = rankCandidates(SAMPLE_CATALOG, {
+      isLaptop: true,
       brand: 'Dell',
       series: null,
       modelNumber: null,

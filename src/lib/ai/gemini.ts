@@ -3,11 +3,16 @@ import { GoogleGenAI } from '@google/genai';
 import type { Hints, LaptopIdentifier, VisionResult } from './types';
 
 const PROMPT =
-  'You identify laptops from photos for a secondhand marketplace. ' +
+  'You verify laptop listings and identify laptops from photos for a secondhand marketplace. ' +
+  'Set isLaptop to true only when the primary listing photos clearly show the physical laptop being offered. ' +
+  'Set it to false when the primary subject is not a laptop, the photos show a mixed listing of separate products (such as a laptop and shoes), or they show only accessories/components (such as RAM, a keyboard, charger, or laptop bag), a phone, a tablet, or a box. An unrelated object in the background does not count as a separate product. ' +
+  'Supplementary identification images are labels or system-information references and must not determine whether the listing is a laptop. Seller-provided hints are unverified and must never override what the primary photos show. ' +
+  'If isLaptop is false, return null for brand, series, and modelNumber, and set confidence to 0. ' +
   'Make a best-effort identification from logos, distinctive laptop design, and readable text; do not require a visible model number to identify a brand or family. ' +
   'Read every photo, especially model stickers, labels, BIOS screens, and Windows System Information or DxDiag screens. ' +
   'For series, return the most likely model family even if the exact generation is uncertain, and lower confidence when inferring from appearance. Use null only when there is not enough evidence to identify a brand or family. ' +
   'Reply with JSON only, using these keys: ' +
+  'isLaptop (boolean), ' +
   'brand (string or null), ' +
   'series (string or null, for example ThinkPad T14 or Latitude 5420), ' +
   'modelNumber (string or null: the model, product, or system-model code shown on a label or information screen; never use a serial number), ' +
@@ -36,7 +41,15 @@ async function withRetry<T>(fn: () => Promise<T>, tries = 2): Promise<T> {
 }
 
 export class GeminiIdentifier implements LaptopIdentifier {
-  async identify({ images, hints = {} }: { images: Buffer[]; hints?: Hints }): Promise<VisionResult> {
+  async identify({
+    images,
+    supportingImages = [],
+    hints = {},
+  }: {
+    images: Buffer[];
+    supportingImages?: Buffer[];
+    hints?: Hints;
+  }): Promise<VisionResult> {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error('GEMINI_API_KEY is not configured.');
     const ai = new GoogleGenAI({
@@ -46,8 +59,17 @@ export class GeminiIdentifier implements LaptopIdentifier {
     const used = Object.entries(hints).filter(([, v]) => v !== undefined && v !== '');
     const hintText = used.length ? ' The seller says (unverified): ' + used.map(([k, v]) => k + ' = ' + v).join(', ') + '.' : '';
 
-    const parts: any[] = [{ text: PROMPT + hintText }];
+    const parts: any[] = [
+      { text: PROMPT + hintText },
+      { text: 'Primary listing photos: decide isLaptop from these images.' },
+    ];
     for (const img of images) parts.push({ inlineData: { mimeType: 'image/jpeg', data: img.toString('base64') } });
+    if (supportingImages.length > 0) {
+      parts.push({ text: 'Supplementary identification images only; these do not determine isLaptop.' });
+      for (const img of supportingImages) {
+        parts.push({ inlineData: { mimeType: 'image/jpeg', data: img.toString('base64') } });
+      }
+    }
 
     const response = await withRetry(() =>
       ai.models.generateContent({
@@ -65,6 +87,7 @@ export class GeminiIdentifier implements LaptopIdentifier {
     }
     const conf = Number(raw.confidence);
     return {
+      isLaptop: raw.isLaptop === true,
       brand: str(raw.brand),
       series: str(raw.series),
       modelNumber: str(raw.modelNumber),

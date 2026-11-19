@@ -162,6 +162,7 @@ export async function POST(request: Request) {
 
   // 2. resize photos, strip location data, store them
   const buffers: Buffer[] = [];
+  const supportingBuffers: Buffer[] = [];
   const uploadedPaths: string[] = [];
   try {
     const all = [
@@ -171,7 +172,8 @@ export async function POST(request: Request) {
     let order = 0;
     for (const item of all) {
       const buf = await processImage(Buffer.from(await item.f.arrayBuffer()));
-      buffers.push(buf);
+      if (item.type === 'photo') buffers.push(buf);
+      else supportingBuffers.push(buf);
       const up = await uploadListingPhoto(admin, draft.id, buf);
       uploadedPaths.push(up.path);
       const { error: photoError } = await supabase.from('listing_photos').insert({
@@ -198,7 +200,7 @@ export async function POST(request: Request) {
   try {
     if (systemInfoImage) {
       const image = await processImage(Buffer.from(await systemInfoImage.arrayBuffer()));
-      buffers.push(image);
+      supportingBuffers.push(image);
       systemInfoPath = await uploadHintFile(admin, user.id, draft.id, image, 'system-info');
     }
     if (receiptOrBoxImage) {
@@ -213,10 +215,44 @@ export async function POST(request: Request) {
   let vision: Awaited<ReturnType<GeminiIdentifier['identify']>> | null = null;
   let aiError: string | null = null;
   try {
-    vision = await new GeminiIdentifier().identify({ images: buffers, hints });
+    vision = await new GeminiIdentifier().identify({ images: buffers, supportingImages: supportingBuffers, hints });
   } catch (e: any) {
     console.error('identify failed:', e?.message ?? e);
     aiError = 'The AI could not read the photos right now. Please enter the model yourself.';
+  }
+
+  if (vision && !vision.isLaptop) {
+    const cleanupFailures: string[] = [];
+    if (uploadedPaths.length > 0) {
+      const { error: photoCleanupError } = await admin.storage
+        .from('listing-photos')
+        .remove(uploadedPaths);
+      if (photoCleanupError) {
+        console.error('Could not remove rejected listing photos:', photoCleanupError.message);
+        cleanupFailures.push(photoCleanupError.message);
+      }
+    }
+    const hintPaths = [systemInfoPath, receiptPath].filter((path): path is string => path !== null);
+    if (hintPaths.length > 0) {
+      const { error: hintCleanupError } = await admin.storage.from('hint-files').remove(hintPaths);
+      if (hintCleanupError) {
+        console.error('Could not remove rejected listing hints:', hintCleanupError.message);
+        cleanupFailures.push(hintCleanupError.message);
+      }
+    }
+    const { error: draftCleanupError } = await supabase.from('listings').delete().eq('id', draft.id);
+    if (draftCleanupError) {
+      console.error('Could not remove rejected listing draft:', draftCleanupError.message);
+      cleanupFailures.push(draftCleanupError.message);
+    }
+    if (cleanupFailures.length > 0) {
+      return json({
+        error: 'These photos do not appear to show a laptop, and temporary files could not all be removed. Please contact support.',
+      }, 500);
+    }
+    return json({
+      error: 'Frugl only accepts laptop listings. Upload photos of the laptop itself and remove unrelated products, such as shoes.',
+    }, 422);
   }
 
   // 5. match against the catalog and choose a confidence tier

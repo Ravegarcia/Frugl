@@ -12,6 +12,7 @@ export type Hints = Partial<{
 }>;
 
 export type VisionResult = {
+  isLaptop: boolean;
   brand: string | null;
   series: string | null;
   modelNumber: string | null;
@@ -22,5 +23,5 @@ export type VisionResult = {
 
 // Every AI provider implements this one interface, so it can be swapped later.
 export interface LaptopIdentifier {
-  identify(input: { images: Buffer[]; hints?: Hints }): Promise<VisionResult>;
+  identify(input: { images: Buffer[]; supportingImages?: Buffer[]; hints?: Hints }): Promise<VisionResult>;
 }

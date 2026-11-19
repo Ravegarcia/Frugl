@@ -1,6 +1,6 @@
 import { formatPrivacyCount } from '../format';
 
-export const LOCATION_PRIVACY_THRESHOLD = 3;
+export const LOCATION_PRIVACY_THRESHOLD = 2;
 
 export type LocationPerson = {
   id: string;

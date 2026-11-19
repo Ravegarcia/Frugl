@@ -878,7 +878,10 @@ html:has(.admin-dashboard) {
 }
 
 .admin-heatmap-switch button {
+  display: inline-flex;
   min-height: 2rem;
+  align-items: center;
+  gap: 0.35rem;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -888,6 +891,24 @@ html:has(.admin-dashboard) {
   font-size: 0.67rem;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.admin-heatmap-switch-count {
+  display: inline-grid;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--surface);
+  padding-inline: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.56rem;
+  font-weight: 700;
+}
+
+.admin-heatmap-switch button.is-active .admin-heatmap-switch-count {
+  background: rgb(255 255 255 / 18%);
+  color: white;
 }
 
 .admin-heatmap-switch button:hover,
@@ -950,7 +971,34 @@ html:has(.admin-dashboard) {
 
 .admin-heatmap-map-shell .leaflet-top,
 .admin-heatmap-map-shell .leaflet-bottom {
-  z-index: 5;
+  z-index: 1000;
+}
+
+.admin-heatmap-map-shell .leaflet-control-zoom {
+  overflow: hidden;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.65rem;
+  box-shadow: 0 4px 12px rgb(24 13 38 / 16%);
+}
+
+.admin-heatmap-map-shell .leaflet-control-zoom a {
+  width: 2rem;
+  height: 2rem;
+  background: var(--surface);
+  color: var(--plum-900);
+  line-height: 2rem;
+}
+
+.admin-heatmap-map-shell .leaflet-control-zoom a:hover {
+  background: var(--lavender-100);
+  color: var(--plum-900);
+}
+
+.admin-heatmap-map-shell .leaflet-control-zoom a:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid var(--plum-700);
+  outline-offset: -2px;
 }
 
 .admin-heatmap-map,
@@ -1088,6 +1136,22 @@ html:has(.admin-dashboard) {
 
 .admin-heatmap-footer {
   gap: 0.4rem;
+}
+
+.admin-heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--muted-foreground);
+  font-size: 0.58rem;
+  font-weight: 600;
+}
+
+.admin-heatmap-legend-scale {
+  width: 4.5rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fda4af, #fb7185, #e11d48, #9f1239);
 }
 
 .admin-heatmap-privacy-note,

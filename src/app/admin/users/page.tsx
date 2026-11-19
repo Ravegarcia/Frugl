@@ -35,6 +35,7 @@ async function AdminUsersContent({
   const { data: users, error, count } = await supabase
     .from('profiles')
     .select('*', { count: 'exact' })
+    .neq('role', 'admin')
     .order('created_at', { ascending: false })
     .range(from, to);
 
@@ -53,8 +54,8 @@ async function AdminUsersContent({
       <header className='admin-users-header'>
         <div>
           <p className='admin-eyebrow'>Marketplace access</p>
-          <h1>Manage users</h1>
-          <p>Review accounts, verify sellers, and manage administrator access.</p>
+          <h1>Manage members</h1>
+          <p>Review marketplace member accounts and verify sellers.</p>
         </div>
       </header>
 
@@ -62,9 +63,9 @@ async function AdminUsersContent({
         <div className='admin-users-section-heading'>
           <div>
             <p className='admin-eyebrow'>Account directory</p>
-            <h2 id='admin-users-list-title'>User accounts</h2>
+            <h2 id='admin-users-list-title'>Member accounts</h2>
           </div>
-          <span className='admin-users-count'>{(count ?? 0).toLocaleString()} total</span>
+          <span className='admin-users-count'>{(count ?? 0).toLocaleString()} members</span>
         </div>
 
         {users?.length ? (
@@ -81,7 +82,7 @@ async function AdminUsersContent({
         ) : (
           <div className='admin-users-empty'>
             <span aria-hidden='true'><Users size={20} /></span>
-            <strong>No user accounts yet</strong>
+            <strong>No marketplace members yet</strong>
             <p>New marketplace accounts will appear here.</p>
           </div>
         )}

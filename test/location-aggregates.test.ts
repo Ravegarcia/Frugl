@@ -5,11 +5,33 @@ import {
   getSafeLocationQuery,
   normalizeLocationKey,
 } from '../src/lib/admin/location-aggregates';
-import { isLocationSchemaMissing } from '../src/lib/admin/member-locations';
+import {
+  isLocationSchemaMissing,
+  splitAdminLocationAudiences,
+} from '../src/lib/admin/member-locations';
 import { pluralize } from '../src/lib/format';
 import { sanitizeLocationSearchQuery } from '../src/lib/location-validation';
 
 describe('admin location aggregates', () => {
+  it('splits all members, sellers, and buyers by marketplace activity with overlapping users counted once in All', () => {
+    const profiles = [
+      { id: 'buyer-only', role: 'buyer', location: 'San Pablo, Laguna' },
+      { id: 'seller-only', role: 'buyer', location: 'Calamba, Laguna' },
+      { id: 'both', role: 'buyer', location: 'Biñan, Laguna' },
+      { id: 'admin', role: 'admin', location: 'Manila' },
+    ];
+
+    const audiences = splitAdminLocationAudiences(
+      profiles,
+      new Set(['seller-only', 'both']),
+      new Set(['buyer-only', 'both']),
+    );
+
+    expect(audiences.all.map(({ id }) => id)).toEqual(['buyer-only', 'seller-only', 'both']);
+    expect(audiences.sellers.map(({ id }) => id)).toEqual(['seller-only', 'both']);
+    expect(audiences.buyers.map(({ id }) => id)).toEqual(['buyer-only', 'both']);
+  });
+
   it('only treats missing location schema errors as a migration mismatch', () => {
     expect(isLocationSchemaMissing({
       code: '42703',
@@ -100,16 +122,23 @@ describe('admin location aggregates', () => {
     expect(output).not.toContain('one');
   });
 
-  it('counts unique people and suppresses areas with fewer than three members', () => {
+  it('shows a location shared by two unique people', () => {
     const aggregate = aggregateLocations([
       { id: 'same-id', location: 'Quezon City, Metro Manila' },
       { id: 'same-id', location: 'Quezon City, Metro Manila' },
-      { id: 'another-id', location: 'Quezon City, Metro Manila' },
+      { id: 'another-id', location: 'San Pablo, Laguna' },
+      { id: 'third-id', location: 'San Pablo City, Laguna' },
     ]);
 
-    expect(aggregate.totalPeople).toBe(2);
-    expect(aggregate.unmapped).toEqual([]);
-    expect(aggregate.suppressedPeople).toBe(2);
+    expect(aggregate.totalPeople).toBe(3);
+    expect(aggregate.areas).toEqual([{
+      name: 'San Pablo',
+      province: 'Laguna',
+      lat: 14.07,
+      lng: 121.33,
+      count: 2,
+    }]);
+    expect(aggregate.suppressedPeople).toBe(1);
   });
 
   it('formats privacy-safe counts and singular/plural labels', () => {

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { requireStaff } from '@/lib/auth';
@@ -12,6 +13,8 @@ import {
 import AdminActivityViewed from '../AdminActivityViewed';
 import AdminPagination from '../AdminPagination';
 import ReportQueueItem from './ReportQueueItem';
+import TabIndicator from '@/components/motion/TabIndicator';
+import AdminLoading from '../loading';
 
 const reportStatusOptions = [
   { value: 'open', label: 'Open' },
@@ -20,11 +23,21 @@ const reportStatusOptions = [
   { value: 'all', label: 'All reports' },
 ] as const;
 
-export default async function AdminReportsPage({
-  searchParams,
-}: {
+type AdminReportsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
+};
+
+export default function AdminReportsPage(props: AdminReportsPageProps) {
+  return (
+    <Suspense fallback={<AdminLoading />}>
+      <AdminReportsContent {...props} />
+    </Suspense>
+  );
+}
+
+async function AdminReportsContent({
+  searchParams,
+}: AdminReportsPageProps) {
   const { supabase } = await requireStaff();
   const params = await searchParams;
   const page = parseAdminPage(params.page);
@@ -107,6 +120,9 @@ export default async function AdminReportsPage({
               <span className='admin-report-filter-count'>
                 {reportCounts[option.value].toLocaleString()}
               </span>
+              {status === option.value && (
+                <TabIndicator groupId='admin-report-filters' className='admin-report-filter-indicator' />
+              )}
             </Link>
           ))}
         </nav>

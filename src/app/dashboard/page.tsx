@@ -7,14 +7,20 @@ import EmptyState from '@/components/EmptyState';
 import ListingStatusNav from './ListingStatusNav';
 import ListingActionsMenu from './ListingActionsMenu';
 import { PlusCircle, Laptop, Eye, MessageCircle } from '@/components/icons';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'active' } = await searchParams;
   const { supabase, user } = await requireMarketplaceUser('/dashboard');
 
-  const validTabs = ['active', 'draft', 'reserved', 'sold'];
+  const validTabs = ['active', 'draft', 'pending', 'rejected', 'reserved', 'sold'];
   const activeTab = validTabs.includes(tab) ? tab : 'active';
-  const listingStatus = activeTab === 'active' ? 'available' : activeTab;
+  const listingStatus = activeTab === 'active'
+    ? 'available'
+    : activeTab === 'pending'
+      ? 'pending_review'
+      : activeTab;
 
   const admin = createAdminClient();
   const { error: notificationDeleteError } = await admin
@@ -36,12 +42,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
 
   // Fetch seller's listings for current tab
-  const { data: listings } = await supabase
+  const { data: listings, error: listingsError } = await supabase
     .from('listings')
     .select('*, listing_photos(image_url, sort_order), offers(id, status, amount)')
     .eq('seller_id', user.id)
     .eq('status', listingStatus)
     .order('created_at', { ascending: false });
+  if (listingsError) throw new Error(`Could not load your listings: ${listingsError.message}`);
 
   const messageCountByListing = new Map<string, number>();
   if (listings?.length) {
@@ -63,16 +70,29 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }
 
   // Counts for tabs
-  const [activeCount, draftCount, reservedCount, soldCount] = await Promise.all([
+  const [activeCount, draftCount, pendingCount, rejectedCount, reservedCount, soldCount] = await Promise.all([
     supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', user.id).eq('status', 'available'),
     supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', user.id).eq('status', 'draft'),
+    supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', user.id).eq('status', 'pending_review'),
+    supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', user.id).eq('status', 'rejected'),
     supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', user.id).eq('status', 'reserved'),
     supabase.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', user.id).eq('status', 'sold'),
   ]);
+  const countError = [
+    activeCount.error,
+    draftCount.error,
+    pendingCount.error,
+    rejectedCount.error,
+    reservedCount.error,
+    soldCount.error,
+  ].find(Boolean);
+  if (countError) throw new Error(`Could not load listing status counts: ${countError.message}`);
 
   const tabs = [
     { key: 'active', label: 'Active', count: activeCount.count || 0 },
     { key: 'draft', label: 'Drafts', count: draftCount.count || 0 },
+    { key: 'pending', label: 'In review', count: pendingCount.count || 0 },
+    { key: 'rejected', label: 'Needs changes', count: rejectedCount.count || 0 },
     { key: 'reserved', label: 'Reserved', count: reservedCount.count || 0 },
     { key: 'sold', label: 'Sold', count: soldCount.count || 0 },
   ];
@@ -85,7 +105,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <span className='page-banner-icon' aria-hidden='true'><Laptop size={22} /></span>
           <div className='page-banner-copy'>
             <h1 className='page-banner-title'>My Listings</h1>
-            <p className='page-banner-subtitle'>Manage your draft, active, reserved, and sold listings.</p>
+            <p className='page-banner-subtitle'>Track listings through review, manage active items, and update rejected submissions.</p>
           </div>
         </div>
         <Link
@@ -101,20 +121,28 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <section className='seller-dashboard-listings' aria-label={`${currentTab.label} listings`}>
         {listings && listings.length > 0 ? (
-          <div className='seller-dashboard-listing-grid'>
-            {listings.map((l: any) => {
+          <Stagger className='seller-dashboard-listing-grid' animatePresence>
+            {listings.map((l: any, index) => {
               const img = coverUrl(l);
               const offersCount = l.offers?.length || 0;
               const statusTone = l.status === 'reserved'
                 ? 'status-warning'
                 : l.status === 'sold'
                   ? 'status-muted'
-                  : l.status === 'draft'
+                  : l.status === 'rejected'
+                    ? 'status-error'
+                    : l.status === 'draft'
                     ? 'status-info'
-                    : 'status-success';
+                    : l.status === 'pending_review'
+                      ? 'status-warning'
+                      : 'status-success';
               const statusLabel = l.status === 'available'
                 ? 'Active'
-                : l.status.charAt(0).toUpperCase() + l.status.slice(1);
+                : l.status === 'pending_review'
+                  ? 'Awaiting review'
+                  : l.status === 'rejected'
+                    ? 'Needs changes'
+                    : l.status.charAt(0).toUpperCase() + l.status.slice(1);
               const listedDate = new Intl.DateTimeFormat('en', {
                 month: 'short',
                 day: 'numeric',
@@ -122,8 +150,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                 timeZone: 'UTC',
               }).format(new Date(l.created_at));
 
-              return (
-                <article key={l.id} className='seller-dashboard-listing-card'>
+              const card = (
+                <article className='seller-dashboard-listing-card'>
                   <div className='seller-dashboard-listing-image'>
                     {img ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
@@ -152,6 +180,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       <span className='seller-dashboard-detail-divider' aria-hidden='true'>·</span>
                       <span>{l.location || 'Location not set'}</span>
                     </p>
+                    {l.status === 'rejected' && l.review_reason && (
+                      <p className='seller-dashboard-review-reason'>
+                        <strong>Admin feedback:</strong> {l.review_reason}
+                      </p>
+                    )}
                     <div className='seller-dashboard-listing-stats'>
                       <span><Eye size={14} />{l.views || 0} views</span>
                       <span><MessageCircle size={14} />{offersCount} offer{offersCount === 1 ? '' : 's'}</span>
@@ -168,14 +201,30 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   </footer>
                 </article>
               );
+              return (
+                <StaggerItem
+                  key={l.id}
+                  index={index}
+                  initiallyVisible={index < 4}
+                  layout
+                >
+                  {card}
+                </StaggerItem>
+              );
             })}
-          </div>
+          </Stagger>
         ) : (
           <EmptyState
             title={`No ${activeTab} listings`}
-            hint={activeTab === 'draft' ? 'You have no saved drafts.' : 'List a laptop to see it here.'}
-            href='/sell'
-            action='Sell a laptop'
+            hint={activeTab === 'draft'
+              ? 'You have no saved drafts.'
+              : activeTab === 'pending'
+                ? 'Listings submitted for approval will appear here.'
+                : activeTab === 'rejected'
+                  ? 'Listings that need changes will appear here.'
+                  : 'List a laptop to see it here.'}
+            href={activeTab === 'pending' || activeTab === 'rejected' ? undefined : '/sell'}
+            action={activeTab === 'pending' || activeTab === 'rejected' ? undefined : 'Sell a laptop'}
           />
         )}
       </section>

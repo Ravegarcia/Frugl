@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { conditionLabel, formatPrice } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
 import { ChevronLeft, ChevronRight, Laptop } from '@/components/icons';
+import { AnimatePresence, m } from 'motion/react';
+import { slideIn } from '@/lib/motion';
 
 const ROTATION_INTERVAL = 5000;
 
@@ -33,6 +35,7 @@ export default function HeroListingCarousel({ listings, guest = false }: { listi
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   const activeListing = listings[activeIndex];
+  const slideDirection = direction === 'next' ? 1 : -1;
   const isRotating = listings.length > 1
     && !isHovered
     && !hasFocus
@@ -133,14 +136,20 @@ export default function HeroListingCarousel({ listings, guest = false }: { listi
       onFocusCapture={() => setHasFocus(true)}
       onBlurCapture={handleBlur}
     >
-      <article
-        key={activeListing.id}
-        className={`hero-carousel-slide slide-${direction}`}
-        role='group'
-        aria-roledescription='slide'
-        aria-label={`${activeIndex + 1} of ${listings.length}`}
-        aria-live={isRotating ? 'off' : 'polite'}
-      >
+      <AnimatePresence initial={false} mode='wait' custom={slideDirection}>
+        <m.article
+          key={activeListing.id}
+          custom={slideDirection}
+          variants={slideIn(slideDirection)}
+          initial='hidden'
+          animate='visible'
+          exit='exit'
+          className='hero-carousel-slide'
+          role='group'
+          aria-roledescription='slide'
+          aria-label={`${activeIndex + 1} of ${listings.length}`}
+          aria-live={isRotating ? 'off' : 'polite'}
+        >
         <div className='hero-carousel-image'>
           {image ? (
             <img src={image} alt={activeListing.title} />
@@ -171,7 +180,8 @@ export default function HeroListingCarousel({ listings, guest = false }: { listi
             </Link>
           </div>
         </div>
-      </article>
+        </m.article>
+      </AnimatePresence>
 
       <div className='hero-carousel-footer'>
         <div className='hero-carousel-pagination' role='group' aria-label='Choose a laptop'>

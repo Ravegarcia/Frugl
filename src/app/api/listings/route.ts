@@ -7,7 +7,13 @@ export async function POST() {
   if (profile?.status !== 'active') return json({ error: 'Your account is suspended.' }, 403);
   const { data, error } = await supabase
     .from('listings')
-    .insert({ seller_id: user.id, location: profile?.default_location ?? '' })
+    .insert({
+      seller_id: user.id,
+      location: profile?.default_location ?? '',
+      location_lat: profile?.location_lat ?? null,
+      location_lng: profile?.location_lng ?? null,
+      location_label: profile?.location_label ?? null,
+    })
     .select('id')
     .single();
   if (error) {

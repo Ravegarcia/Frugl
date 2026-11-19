@@ -1,11 +1,15 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { redirect } from 'next/navigation';
 import { getSessionProfile } from '@/lib/auth';
 import { CARD_SELECT_WITH_SAVED } from '@/lib/queries';
 import ListingCard from '@/components/ListingCard';
 import HeroListingCarousel from '@/components/HeroListingCarousel';
 import EmptyState from '@/components/EmptyState';
 import { BadgeCheck, ChevronRight, Laptop, MessageCircle, Search } from '@/components/icons';
+import Reveal from '@/components/motion/Reveal';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 const BRAND_LINKS = [
   { name: 'Apple', slug: 'apple' },
@@ -18,6 +22,8 @@ const BRAND_LINKS = [
 
 export default async function Home() {
   const { supabase, user, profile } = await getSessionProfile();
+  if (profile?.role === 'admin') redirect('/admin');
+
   const isGuest = !user;
   const canBrowse = Boolean(user && profile?.role !== 'admin');
   const catalogHref = isGuest ? '/register?next=%2Flaptops' : canBrowse ? '/laptops' : '/admin';
@@ -106,31 +112,47 @@ export default async function Home() {
 
       {featured.data && featured.data.length > 0 && (
         <section>
-          <div className='home-section-heading'>
+          <Reveal className='home-section-heading'>
             <div>
               <p className='mb-2 text-xs font-medium text-gray-500'>Selected for you</p>
               <h2>Featured laptops</h2>
             </div>
             <Link href={catalogHref}>{catalogLabel}</Link>
-          </div>
-          <div className='grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4'>
-            {featured.data.map((listing: any) => <ListingCard key={listing.id} listing={listing} guest={isGuest} />)}
-          </div>
+          </Reveal>
+          <Stagger className='grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4'>
+            {featured.data.map((listing: any, index) => (
+              index < 2 ? (
+                <ListingCard key={listing.id} listing={listing} guest={isGuest} />
+              ) : (
+                <StaggerItem key={listing.id} index={index - 2}>
+                  <ListingCard listing={listing} guest={isGuest} />
+                </StaggerItem>
+              )
+            ))}
+          </Stagger>
         </section>
       )}
 
       <section>
-        <div className='home-section-heading'>
+        <Reveal className='home-section-heading'>
           <div>
             <p className='mb-2 text-xs font-medium text-gray-500'>New to the marketplace</p>
             <h2>Recently listed</h2>
           </div>
           <Link href={catalogHref}>{isGuest ? 'Register to see more' : canBrowse ? 'See all laptops' : 'Admin dashboard'}</Link>
-        </div>
+        </Reveal>
         {newest.data && newest.data.length > 0 ? (
-          <div className='grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4'>
-            {newest.data.map((listing: any) => <ListingCard key={listing.id} listing={listing} guest={isGuest} />)}
-          </div>
+          <Stagger className='grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4'>
+            {newest.data.map((listing: any, index) => (
+              index < 2 ? (
+                <ListingCard key={listing.id} listing={listing} guest={isGuest} />
+              ) : (
+                <StaggerItem key={listing.id} index={index - 2}>
+                  <ListingCard listing={listing} guest={isGuest} />
+                </StaggerItem>
+              )
+            ))}
+          </Stagger>
         ) : (
           <EmptyState
             title='No laptops listed yet'
@@ -142,30 +164,30 @@ export default async function Home() {
       </section>
 
       <section id='how-it-works' className='editorial-section how-it-works'>
-        <div className='promise-heading'>
+        <Reveal className='promise-heading'>
           <p className='promise-eyebrow'>Our promise</p>
           <h2>Less guessing. <span className='accent-text'>Better hand-me-downs.</span></h2>
           <p>
             Frugl brings the model, specs, condition, and seller notes together, so you can make a more informed choice.
           </p>
-        </div>
-        <div className='step-grid'>
-          <article className='step-tile'>
+        </Reveal>
+        <Stagger className='step-grid'>
+          <StaggerItem as='article' index={0} className='step-tile'>
             <span className='step-icon-tile' aria-hidden='true'><Laptop size={24} /></span>
             <h3>Show us what you have</h3>
             <p>Share a few photos, including the model sticker, to start a listing.</p>
-          </article>
-          <article className='step-tile'>
+          </StaggerItem>
+          <StaggerItem as='article' index={1} className='step-tile'>
             <span className='step-icon-tile' aria-hidden='true'><BadgeCheck size={24} /></span>
             <h3>Review the details</h3>
             <p>AI suggests the model and specs. Sellers check everything before publishing.</p>
-          </article>
-          <article className='step-tile'>
+          </StaggerItem>
+          <StaggerItem as='article' index={2} className='step-tile'>
             <span className='step-icon-tile' aria-hidden='true'><MessageCircle size={24} /></span>
             <h3>Talk it through</h3>
             <p>Ask questions, compare details, and arrange a handover with the seller.</p>
-          </article>
-        </div>
+          </StaggerItem>
+        </Stagger>
       </section>
 
       <section className='home-cta'>

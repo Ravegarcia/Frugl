@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ChangeEvent, type DragEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { m, useReducedMotion } from 'motion/react';
 import { Camera, UploadCloud, X, AlertCircle, CheckCircle2 } from '@/components/icons';
 import { resizeImage } from '@/lib/client-image';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { BRANDS } from '@/lib/constants';
 import SellListingPreview from '@/components/SellListingPreview';
+import Banner from '@/components/motion/Banner';
 
 interface PhotoItem {
   file: File;
@@ -25,6 +27,7 @@ const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 export default function SellForm({ sellerName, location }: Props) {
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
 
   // Photo states
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
@@ -260,22 +263,34 @@ export default function SellForm({ sellerName, location }: Props) {
               Add photos and optional details. We’ll use them to identify your laptop and prepare a draft.
             </p>
 
-            {error && (
-              <div className='mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700'>
+            <Banner open={Boolean(error)} className='mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700' role='alert'>
                 <AlertCircle size={18} className='shrink-0' />
                 <span>{error}</span>
-              </div>
-            )}
+            </Banner>
 
             {loading && (
-              <div
+              <m.div
                 role='status'
                 aria-live='polite'
                 aria-busy={!analysisComplete}
                 className='mb-4 flex items-start gap-3 rounded-xl border border-lavender-300 bg-lavender-100 p-4 text-sm text-primary'
+                animate={reduceMotion || analysisComplete ? { opacity: 1 } : { opacity: [0.85, 1] }}
+                transition={reduceMotion || analysisComplete
+                  ? undefined
+                  : { duration: 1.6, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
               >
                 {analysisComplete
-                  ? <CheckCircle2 size={18} className='mt-0.5 shrink-0 text-green-700' />
+                  ? (
+                    <m.span
+                      className='mt-0.5 inline-flex shrink-0 text-green-700'
+                      aria-hidden='true'
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                    >
+                      <CheckCircle2 size={18} />
+                    </m.span>
+                  )
                   : <span className='sell-loading-spinner mt-0.5' aria-hidden='true' />}
                 <div className='min-w-0 flex-1'>
                   <p>{statusMessage || 'Processing...'}</p>
@@ -285,7 +300,7 @@ export default function SellForm({ sellerName, location }: Props) {
                     </p>
                   )}
                 </div>
-              </div>
+              </m.div>
             )}
 
             <section className='sell-form-section sell-photo-section'>

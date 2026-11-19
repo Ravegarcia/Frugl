@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { m } from 'motion/react';
+import { spring } from '@/lib/motion';
 import { Bookmark } from '@/components/icons';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -73,7 +75,7 @@ export default function ListingCardSaveButton({ listingId, title, initialSaved }
 
   return (
     <div className='listing-card-save-control'>
-      <button
+      <m.button
         type='button'
         className='listing-card-save-button group'
         aria-label={saved ? `Remove ${title} from saved laptops` : `Save ${title}`}
@@ -81,6 +83,8 @@ export default function ListingCardSaveButton({ listingId, title, initialSaved }
         title={saved ? 'Remove from saved laptops' : 'Save laptop'}
         disabled={pending}
         onClick={toggleSaved}
+        whileTap={{ scale: 0.9 }}
+        transition={spring}
       >
         <span className='relative inline-block size-[18px] shrink-0'>
           {saved ? (
@@ -100,7 +104,7 @@ export default function ListingCardSaveButton({ listingId, title, initialSaved }
             </>
           )}
         </span>
-      </button>
+      </m.button>
       {feedback && <span className='listing-card-save-feedback' role='status'>{feedback}</span>}
     </div>
   );

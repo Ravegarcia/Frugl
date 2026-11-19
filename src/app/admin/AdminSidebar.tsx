@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Flag, Laptop, Shield, Users } from '@/components/icons';
+import { AlertTriangle, FileLines, Flag, Laptop, Shield, Users } from '@/components/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AdminActivityCountBadge from './AdminActivityCountBadge';
@@ -8,15 +8,16 @@ import type { AdminActivityEvent } from '@/lib/admin/activity';
 
 const navigation = [
   { label: 'Overview', href: '/admin', Icon: Shield, group: 'Workspace' },
+  { label: 'Backups', href: '/admin/backups', Icon: FileLines, group: 'Data protection' },
   {
-    label: 'Report queue',
+    label: 'Reports',
     href: '/admin/reports',
     Icon: Flag,
     group: 'Trust & safety',
     activityType: 'report_created',
   },
   {
-    label: 'Chat alerts',
+    label: 'Scam alerts',
     href: '/admin/alerts',
     Icon: AlertTriangle,
     group: 'Trust & safety',
@@ -24,7 +25,7 @@ const navigation = [
   },
   {
     label: 'Listings',
-    href: '/admin/listings',
+    href: '/admin/listings?status=all',
     Icon: Laptop,
     group: 'Marketplace',
     activityType: 'listing_created',
@@ -44,16 +45,12 @@ const navigation = [
   activityType?: AdminActivityEvent;
 }>;
 
-const navigationGroups = ['Workspace', 'Trust & safety', 'Marketplace'];
+const navigationGroups = ['Workspace', 'Marketplace', 'Trust & safety', 'Data protection'];
 
 export default function AdminSidebar({
-  name,
-  roleLabel,
   staffId,
   initialActivityCounts,
 }: {
-  name: string;
-  roleLabel: string;
   staffId: string;
   initialActivityCounts: Record<AdminActivityEvent, number>;
 }) {
@@ -76,9 +73,10 @@ export default function AdminSidebar({
             <div className='admin-nav-group' key={group}>
               <p>{group}</p>
               {links.map(({ label, href, Icon, activityType }) => {
-                const active = href === '/admin'
-                  ? pathname === href
-                  : pathname === href || pathname.startsWith(`${href}/`);
+                const path = href.split('?')[0];
+                const active = path === '/admin'
+                  ? pathname === path
+                  : pathname === path || pathname.startsWith(`${path}/`);
 
                 return (
                   <Link
@@ -104,13 +102,6 @@ export default function AdminSidebar({
         })}
       </nav>
 
-      <div className='admin-sidebar-user'>
-        <span className='admin-user-avatar'>{name.charAt(0).toUpperCase()}</span>
-        <span className='admin-user-details'>
-          <strong>{name}</strong>
-          <small>{roleLabel}</small>
-        </span>
-      </div>
     </aside>
   );
 }

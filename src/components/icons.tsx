@@ -25,6 +25,7 @@ import {
   faCircleExclamation,
   faCircleNotch,
   faCloudArrowUp,
+  faDownload,
   faDoorOpen,
   faExternalLinkAlt,
   faEye,
@@ -95,6 +96,7 @@ export const ChevronDown = icon(faChevronDown);
 export const ChevronLeft = icon(faChevronLeft);
 export const ChevronRight = icon(faChevronRight);
 export const DoorOpen = icon(faDoorOpen);
+export const Download = icon(faDownload);
 export const Edit3 = icon(faPenToSquare, faPenToSquareRegular, 'regular');
 export const Eye = icon(faEye, faEyeRegular, 'regular');
 export const EyeOff = icon(faEyeSlash, faEyeSlashRegular, 'regular');

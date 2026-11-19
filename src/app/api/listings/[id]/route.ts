@@ -34,7 +34,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // Check ownership or staff
   const { data: existing, error: existingError } = await supabase
     .from('listings')
-    .select('id, seller_id, status')
+    .select('id, seller_id, status, location, location_lat, location_lng, location_label')
     .eq('id', id)
     .maybeSingle();
 
@@ -47,6 +47,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const isOwner = existing.seller_id === user.id;
   const isStaff = profile?.status === 'active' && profile?.role === 'admin';
   if (!isOwner && !isStaff) return json({ error: 'Forbidden.' }, 403);
+  if (isOwner && existing.status === 'pending_review') {
+    return json({ error: 'This listing is awaiting review and cannot be edited.' }, 409);
+  }
 
   let body: unknown;
   try {
@@ -58,9 +61,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const validation = validateListingPatch(body);
   if (validation.valid === false) return json({ error: validation.error }, 422);
 
+  const patch = validation.patch;
+  const includesCoordinates =
+    Object.prototype.hasOwnProperty.call(patch, 'location_lat') &&
+    Object.prototype.hasOwnProperty.call(patch, 'location_lng');
+  if (
+    typeof patch.location === 'string' &&
+    patch.location !== existing.location &&
+    !includesCoordinates
+  ) {
+    patch.location_lat = null;
+    patch.location_lng = null;
+    patch.location_label = null;
+  }
+
   const { data, error } = await supabase
     .from('listings')
-    .update(validation.patch)
+    .update(patch)
     .eq('id', id)
     .select('*')
     .single();

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Users } from '@/components/icons';
 import { redirect } from 'next/navigation';
 import {
@@ -9,12 +10,23 @@ import AdminActivityViewed from '../AdminActivityViewed';
 import AdminPagination from '../AdminPagination';
 import { requireStaff } from '@/lib/auth';
 import AdminUserRow from './AdminUserRow';
+import AdminLoading from '../loading';
 
-export default async function AdminUsersPage({
-  searchParams,
-}: {
+type AdminUsersPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
+};
+
+export default function AdminUsersPage(props: AdminUsersPageProps) {
+  return (
+    <Suspense fallback={<AdminLoading />}>
+      <AdminUsersContent {...props} />
+    </Suspense>
+  );
+}
+
+async function AdminUsersContent({
+  searchParams,
+}: AdminUsersPageProps) {
   const { supabase, profile: myProfile, user: currentUser } = await requireStaff();
   const { page: pageParam } = await searchParams;
   const page = parseAdminPage(pageParam);
@@ -43,10 +55,6 @@ export default async function AdminUsersPage({
           <p className='admin-eyebrow'>Marketplace access</p>
           <h1>Manage users</h1>
           <p>Review accounts, verify sellers, and manage administrator access.</p>
-          <div className='admin-users-note'>
-            <span aria-hidden='true'>i</span>
-            <p>Members can buy or sell. Admins can manage account status, seller verification, and administrator access.</p>
-          </div>
         </div>
       </header>
 

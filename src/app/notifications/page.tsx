@@ -6,6 +6,9 @@ import EmptyState from '@/components/EmptyState';
 import TimeAgo from '@/components/TimeAgo';
 import { Laptop, MessageCircle, Tag } from '@/components/icons';
 import type { NotificationItem } from '@/components/NotificationBell';
+import TabIndicator from '@/components/motion/TabIndicator';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -24,12 +27,13 @@ const CATEGORY_BY_TYPE: Record<string, Exclude<NotificationFilter, 'all' | 'for-
   message: 'messages',
   listing_reserved: 'listings',
   listing_sold: 'listings',
+  listing_rejected: 'listings',
   saved_listing_sold: 'listings',
   listing_saved: 'listings',
 };
 
 const FOR_ACTION_TYPES = new Set(['offer', 'message', 'listing_reserved']);
-const ACTIVITY_TYPES = new Set(['offer_update', 'listing_sold', 'saved_listing_sold', 'listing_saved']);
+const ACTIVITY_TYPES = new Set(['offer_update', 'listing_sold', 'listing_rejected', 'saved_listing_sold', 'listing_saved']);
 
 function isNotificationFilter(value: string | undefined): value is NotificationFilter {
   return FILTERS.some((filter) => filter.id === value);
@@ -166,6 +170,15 @@ function renderNotificationCopy(
           <strong>{rawTitle}</strong> was marked as sold.
         </>
       );
+    case 'listing_rejected': {
+      const reason = typeof payload.reason === 'string' ? payload.reason.trim() : '';
+      return (
+        <>
+          <strong>{rawTitle}</strong> needs changes before it can be published.
+          {reason ? <> Administrator feedback: {reason}</> : null}
+        </>
+      );
+    }
     case 'saved_listing_sold': {
       const sellerName =
         (typeof payload.seller_name === 'string' && payload.seller_name.trim()) ||
@@ -397,6 +410,9 @@ export default async function NotificationsPage({
             aria-current={activeFilter === filter.id ? 'page' : undefined}
           >
             {filter.label}
+            {activeFilter === filter.id && (
+              <TabIndicator groupId='notification-filters' className='notification-filter-indicator' />
+            )}
           </Link>
         ))}
       </nav>
@@ -413,8 +429,8 @@ export default async function NotificationsPage({
         }}
       >
         {filteredNotifications.length > 0 ? (
-          <ul className='notification-feed'>
-            {filteredNotifications.map((notification) => {
+          <Stagger as='ul' className='notification-feed'>
+            {filteredNotifications.map((notification, index) => {
               const conversationId =
                 typeof notification.payload.conversation_id === 'string'
                   ? notification.payload.conversation_id
@@ -428,7 +444,7 @@ export default async function NotificationsPage({
               const cover = listingId ? listingsById.get(listingId)?.cover ?? null : null;
 
               return (
-                <li key={notification.id}>
+                <StaggerItem key={notification.id} as='li' index={index}>
                   <Link
                     href={notificationHref(notification)}
                     className={`notification-feed-item${notification.read_at ? '' : ' is-unread'}`}
@@ -454,10 +470,10 @@ export default async function NotificationsPage({
                       <TimeAgo timestamp={notification.created_at} />
                     </span>
                   </Link>
-                </li>
+                </StaggerItem>
               );
             })}
-          </ul>
+          </Stagger>
         ) : (
           <EmptyState
             title={emptyTitle}

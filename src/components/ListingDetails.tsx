@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Laptop,
 } from '@/components/icons';
+import Reveal from '@/components/motion/Reveal';
 
 type Props = {
   listing: any;
@@ -178,7 +179,7 @@ export default function ListingDetails({
       </header>
 
       {/* 2. Details: Condition, Brand, Model, Deal Method */}
-      <section className='product-content-section'>
+      <Reveal as='section' className='product-content-section'>
         <h2>Details</h2>
         <dl className='product-kv-list'>
           {detailsItems.map((item) => (
@@ -188,10 +189,10 @@ export default function ListingDetails({
             </div>
           ))}
         </dl>
-      </section>
+      </Reveal>
 
       {/* 3. Specs */}
-      <section className='product-content-section'>
+      <Reveal as='section' className='product-content-section'>
         <div className='product-section-title-row'>
           <h2>Specs</h2>
           {listing.specs_verified && (
@@ -210,15 +211,15 @@ export default function ListingDetails({
             </div>
           ))}
         </dl>
-      </section>
+      </Reveal>
 
       {/* 4. Description */}
-      <section className='product-content-section'>
+      <Reveal as='section' className='product-content-section'>
         <h2>Description</h2>
         <p className='product-description-text'>
           {listing.description || 'No additional description provided by the seller.'}
         </p>
-      </section>
+      </Reveal>
     </div>
   );
 }

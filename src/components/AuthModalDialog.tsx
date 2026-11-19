@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { X } from '@/components/icons';
 import AuthForm from '@/components/AuthForm';
+import Modal from '@/components/motion/Modal';
 
 export type AuthModalMode = 'login' | 'register' | 'forgot';
 
@@ -17,25 +18,9 @@ export default function AuthModalDialog({
   isStandalonePage?: boolean;
 }) {
   const router = useRouter();
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const [activeMode, setActiveMode] = useState<AuthModalMode>(mode);
-
-  useEffect(() => {
-    setActiveMode(mode);
-  }, [mode]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (!dialog.open) {
-      dialog.showModal();
-      dialog.querySelector<HTMLInputElement>('input')?.focus();
-    }
-    return () => {
-      if (dialog.open) dialog.close();
-    };
-  }, []);
+  const [isVisible, setIsVisible] = useState(true);
+  const closeAfterExitRef = useRef(false);
 
   function handleModeChange(nextMode: AuthModalMode) {
     setActiveMode(nextMode);
@@ -49,7 +34,7 @@ export default function AuthModalDialog({
     window.history.replaceState(window.history.state, '', url);
   }
 
-  function close() {
+  function finishClose() {
     if (isStandalonePage || window.history.length <= 1) {
       router.push(next || '/');
     } else {
@@ -57,23 +42,20 @@ export default function AuthModalDialog({
     }
   }
 
+  function close() {
+    if (!isVisible) return;
+    closeAfterExitRef.current = true;
+    setIsVisible(false);
+  }
+
   return (
-    <dialog
-      ref={dialogRef}
+    <Modal
+      open={isVisible}
+      onClose={close}
+      labelledBy='auth-title'
       className='auth-modal'
-      aria-labelledby='auth-title'
-      onCancel={(event) => {
-        event.preventDefault();
-        close();
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          close();
-        }
-      }}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) close();
+      onExitComplete={() => {
+        if (closeAfterExitRef.current) finishClose();
       }}
     >
       <div className='auth-modal-header'>
@@ -94,6 +76,6 @@ export default function AuthModalDialog({
           onModeChange={handleModeChange}
         />
       </div>
-    </dialog>
+    </Modal>
   );
 }

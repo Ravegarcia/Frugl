@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { AdminActivityEvent } from '@/lib/admin/activity';
 
@@ -21,7 +20,6 @@ export default function AdminActivityCountBadge({
   eventType: AdminActivityEvent;
   initialCount: number;
 }) {
-  const pathname = usePathname();
   const [count, setCount] = useState(initialCount);
 
   useEffect(() => {
@@ -62,6 +60,7 @@ export default function AdminActivityCountBadge({
         },
       )
       .subscribe((status, error) => {
+        if (!active) return;
         if (status === 'SUBSCRIBED') {
           void refreshCount();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -76,7 +75,7 @@ export default function AdminActivityCountBadge({
       refreshVersion += 1;
       void supabase.removeChannel(channel);
     };
-  }, [eventType, pathname, staffId]);
+  }, [eventType, staffId]);
 
   if (count < 1) return null;
 

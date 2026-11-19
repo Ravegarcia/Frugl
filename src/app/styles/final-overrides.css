@@ -251,7 +251,7 @@
 .button-primary:hover:not(:disabled) {
   background: var(--accent-hover);
   box-shadow: 0 7px 16px rgb(24 13 38 / 16%);
-  transform: translateY(-2px);
+  transform: translateY(var(--lift-sm));
 }
 
 .button-primary:active:not(:disabled) {
@@ -307,8 +307,6 @@ button.product-gallery-thumb {
 
 @media (prefers-reduced-motion: reduce) {
   .seller-listings-filter-trigger,
-  .seller-listings-filter-chevron,
-  .seller-listings-filter-menu,
   .seller-listings-filter-option {
     transition: none;
   }

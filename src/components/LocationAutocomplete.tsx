@@ -2,18 +2,27 @@
 
 import { useState, useEffect, useRef, type KeyboardEvent } from 'react';
 import { MapPin, AlertTriangle, Loader2 } from '@/components/icons';
+import Popover from '@/components/motion/Popover';
 import type { LocationSuggestion } from '@/app/api/locations/route';
 
 interface LocationAutocompleteProps {
   id?: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, selection: LocationSelection | null) => void;
+  required?: boolean;
+}
+
+export interface LocationSelection {
+  label: string;
+  lat: number | null;
+  lng: number | null;
 }
 
 export default function LocationAutocomplete({
   id = 'location',
   value,
   onChange,
+  required = true,
 }: LocationAutocompleteProps) {
   const [query, setQuery] = useState(value || '');
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
@@ -26,13 +35,14 @@ export default function LocationAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync external value changes
-  useEffect(() => {
+  const [previousValue, setPreviousValue] = useState(value);
+  if (value !== previousValue) {
+    setPreviousValue(value);
     setQuery(value || '');
     if (value && value.trim().length > 0) {
       setIsConfirmed(true);
     }
-  }, [value]);
+  }
 
   // Fetch autocomplete suggestions with debounce
   useEffect(() => {
@@ -68,20 +78,9 @@ export default function LocationAutocomplete({
     };
   }, [query, isOpen]);
 
-  // Close popover on outside click
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   function handleSelect(item: LocationSuggestion) {
-    setQuery(item.primary);
-    onChange(item.value);
+    setQuery(item.value);
+    onChange(item.value, { label: item.value, lat: item.lat, lng: item.lng });
     setIsConfirmed(true);
     setTouched(true);
     setIsOpen(false);
@@ -89,7 +88,7 @@ export default function LocationAutocomplete({
 
   function handleInputChange(nextVal: string) {
     setQuery(nextVal);
-    onChange(nextVal);
+    onChange(nextVal, null);
     setIsConfirmed(false);
     setTouched(true);
     if (!isOpen) {
@@ -124,17 +123,20 @@ export default function LocationAutocomplete({
     }
   }
 
-  const showWarning = (touched || isOpen) && (!query.trim() || !isConfirmed);
+  const showWarning = required && (touched || isOpen) && (!query.trim() || !isConfirmed);
 
   return (
     <div ref={containerRef} className='location-autocomplete'>
-      {isOpen && suggestions.length > 0 && (
-        <div
-          id={`${id}-listbox`}
-          role='listbox'
-          aria-label='Location suggestions'
-          className='location-autocomplete-popover'
-        >
+      <Popover
+        open={isOpen && suggestions.length > 0}
+        onClose={() => setIsOpen(false)}
+        align='left'
+        anchorRef={containerRef}
+        id={`${id}-listbox`}
+        role='listbox'
+        ariaLabel='Location suggestions'
+        className='location-autocomplete-popover'
+      >
           {suggestions.map((item, idx) => {
             const isActive = idx === activeIndex;
             return (
@@ -156,8 +158,7 @@ export default function LocationAutocomplete({
               </button>
             );
           })}
-        </div>
-      )}
+      </Popover>
 
       <div
         className={`location-autocomplete-box${showWarning ? ' is-warning' : ''}${
@@ -171,7 +172,7 @@ export default function LocationAutocomplete({
 
         <div className='location-autocomplete-content'>
           <label htmlFor={id} className='location-autocomplete-label'>
-            Location <span className='text-red-500'>*</span>
+            Location {required && <span className='text-red-500'>*</span>}
           </label>
           <input
             ref={inputRef}
@@ -193,14 +194,15 @@ export default function LocationAutocomplete({
                   s.value.toLowerCase() === query.trim().toLowerCase()
               );
               if (exact) {
-                setQuery(exact.primary);
-                onChange(exact.value);
+                setQuery(exact.value);
+                onChange(exact.value, { label: exact.value, lat: exact.lat, lng: exact.lng });
                 setIsConfirmed(true);
               }
             }}
             onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder='Enter a city or barangay'
+            maxLength={120}
             className='location-autocomplete-input'
           />
         </div>

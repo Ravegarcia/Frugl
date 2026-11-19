@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import TimeAgo from '@/components/TimeAgo';
-import { createClient } from '@/lib/supabase/client';
 
 type ManageableRole = 'buyer' | 'admin';
 
@@ -34,7 +33,6 @@ export default function AdminUserRow({
   currentRole: string;
   currentUserId: string;
 }) {
-  const supabase = createClient();
   const [status, setStatus] = useState(user.status);
   const [verified, setVerified] = useState(user.seller_verified);
   const [role, setRole] = useState<ManageableRole>(
@@ -52,17 +50,26 @@ export default function AdminUserRow({
     : displayName.split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase();
 
   async function updateProfile(
-    update: () => PromiseLike<{ error: { message: string } | null }>,
+    field: 'status' | 'seller_verified' | 'role',
+    value: string | boolean,
     onSuccess: () => void,
   ) {
     setBusy(true);
     setActionError(null);
     try {
-      const { error } = await update();
-      if (error) {
-        setActionError(error.message);
-        return;
-      }
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      });
+      const result: unknown = await response.json();
+      const message = typeof result === 'object'
+        && result !== null
+        && 'error' in result
+        && typeof result.error === 'string'
+        ? result.error
+        : 'Unable to update this account.';
+      if (!response.ok) throw new Error(message);
       onSuccess();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Unable to update this account.');
@@ -74,7 +81,8 @@ export default function AdminUserRow({
   async function toggleSuspend() {
     const next = status === 'active' ? 'suspended' : 'active';
     await updateProfile(
-      () => supabase.from('profiles').update({ status: next }).eq('id', user.id),
+      'status',
+      next,
       () => setStatus(next),
     );
   }
@@ -82,7 +90,8 @@ export default function AdminUserRow({
   async function toggleVerify() {
     const next = !verified;
     await updateProfile(
-      () => supabase.from('profiles').update({ seller_verified: next }).eq('id', user.id),
+      'seller_verified',
+      next,
       () => setVerified(next),
     );
   }
@@ -90,7 +99,8 @@ export default function AdminUserRow({
   async function changeRole(newRole: ManageableRole) {
     if (!isAdmin) return;
     await updateProfile(
-      () => supabase.from('profiles').update({ role: newRole }).eq('id', user.id),
+      'role',
+      newRole,
       () => setRole(newRole),
     );
   }

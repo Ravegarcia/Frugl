@@ -9,13 +9,13 @@
   border-radius: 1.25rem;
   background: var(--card);
   color: var(--foreground);
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) ease;
 }
 
 .listing-card:hover {
   border-color: var(--plum-700);
   box-shadow: 0 12px 30px rgb(24 13 38 / 8%);
-  transform: translateY(-2px);
+  transform: translateY(var(--lift-sm));
 }
 
 .listing-card-image {
@@ -73,11 +73,11 @@
 }
 
 .listing-card-image img {
-  transition: transform 280ms ease;
+  transition: transform 220ms ease;
 }
 
 .listing-card:hover .listing-card-image img {
-  transform: scale(1.025);
+  transform: scale(var(--zoom-image));
 }
 
 .listing-card-price-row {
@@ -222,6 +222,12 @@
   border-color: var(--lavender-300);
   background: var(--lavender-100);
   color: var(--plum-900);
+}
+
+.status-error {
+  border-color: var(--error-border);
+  background: var(--error-container);
+  color: var(--destructive);
 }
 
 .status-warning {

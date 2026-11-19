@@ -1,9 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { Fragment } from 'react';
 import ListingCard from '@/components/ListingCard';
 import EmptyState from '@/components/EmptyState';
 import { ChevronDown, Search } from '@/components/icons';
+import Chevron from '@/components/motion/Chevron';
+import Popover from '@/components/motion/Popover';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 type SellerListing = {
   id: string;
@@ -36,29 +41,7 @@ export default function SellerListings({
   const [selectedStatuses, setSelectedStatuses] = useState(['available', 'reserved']);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
-  const filterTriggerRef = useRef<HTMLButtonElement>(null);
   const statuses = isOwnProfile ? OWNER_STATUSES : PUBLIC_STATUSES;
-
-  useEffect(() => {
-    if (!isFilterOpen) return;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!filterRef.current?.contains(event.target as Node)) setIsFilterOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setIsFilterOpen(false);
-        filterTriggerRef.current?.focus();
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isFilterOpen]);
 
   const filteredListings = useMemo(() => {
     const term = query.trim().toLocaleLowerCase();
@@ -97,7 +80,6 @@ export default function SellerListings({
           </label>
           <div className='seller-listings-filter' ref={filterRef}>
             <button
-              ref={filterTriggerRef}
               type='button'
               className='seller-listings-filter-trigger'
               aria-expanded={isFilterOpen}
@@ -106,17 +88,18 @@ export default function SellerListings({
             >
               Filters
               <span className='seller-listings-filter-count'>{selectedStatuses.length}</span>
-              <ChevronDown
-                size={14}
-                className={`seller-listings-filter-chevron${isFilterOpen ? ' is-open' : ''}`}
-              />
+              <Chevron open={isFilterOpen} className='seller-listings-filter-chevron'>
+                <ChevronDown size={14} />
+              </Chevron>
             </button>
-            <div
+            <Popover
+              open={isFilterOpen}
+              onClose={() => setIsFilterOpen(false)}
+              align='right'
+              anchorRef={filterRef}
               id='seller-listing-status-filters'
               className='seller-listings-filter-menu'
-              data-open={isFilterOpen}
-              aria-hidden={!isFilterOpen}
-              inert={!isFilterOpen}
+              ariaLabel='Listing status filters'
             >
               <fieldset>
                 <legend>Listing status</legend>
@@ -132,7 +115,7 @@ export default function SellerListings({
                   </label>
                 ))}
               </fieldset>
-            </div>
+            </Popover>
           </div>
         </div>
       </div>
@@ -140,11 +123,19 @@ export default function SellerListings({
       {listings.length === 0 ? (
         <EmptyState title='No active listings' />
       ) : filteredListings.length > 0 ? (
-        <div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
-          {filteredListings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
+        <Stagger className='grid grid-cols-2 gap-4 md:grid-cols-4'>
+          {filteredListings.map((listing, index) => (
+            index < 4 ? (
+              <Fragment key={listing.id}>
+                <ListingCard listing={listing} />
+              </Fragment>
+            ) : (
+              <StaggerItem key={listing.id} index={index - 4}>
+                <ListingCard listing={listing} />
+              </StaggerItem>
+            )
           ))}
-        </div>
+        </Stagger>
       ) : (
         <EmptyState
           title='No matching listings'

@@ -237,28 +237,6 @@
   justify-self: stretch;
 }
 
-@keyframes hero-carousel-enter {
-  from {
-    opacity: 0;
-    transform: translateX(1rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes hero-carousel-enter-previous {
-  from {
-    opacity: 0;
-    transform: translateX(-1rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 @keyframes hero-carousel-countdown {
   to {
     transform: scaleX(1);
@@ -304,11 +282,6 @@
 .hero-carousel-slide {
   position: absolute;
   inset: 0;
-  animation: hero-carousel-enter 360ms ease both;
-}
-
-.hero-carousel-slide.slide-previous {
-  animation-name: hero-carousel-enter-previous;
 }
 
 .hero-carousel-image {
@@ -642,11 +615,11 @@
   background: var(--surface);
   padding: clamp(1.5rem, 3vw, 2.25rem) 1.5rem;
   text-align: center;
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) ease;
 }
 
 .step-tile:hover {
-  transform: translateY(-4px);
+  transform: translateY(var(--lift-md));
   border-color: var(--plum-700);
   box-shadow: 0 16px 32px rgb(24 13 38 / 10%);
 }
@@ -924,12 +897,23 @@
 
 .browse-intro-product-track {
   display: flex;
-  gap: 0.65rem;
   min-width: 0;
   overflow-x: auto;
   padding: 0.15rem 0.15rem 0.55rem;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
+}
+
+.browse-intro-product-items {
+  display: flex;
+  min-width: 100%;
+  width: max-content;
+  gap: 0.65rem;
+}
+
+.browse-intro-product-slot {
+  flex: 0 0 calc((100% - 1.3rem) / 3);
+  min-width: 0;
 }
 
 .browse-intro-product-track::-webkit-scrollbar {
@@ -944,7 +928,7 @@
 .browse-intro-product {
   position: relative;
   display: grid;
-  flex: 0 0 calc((100% - 1.3rem) / 3);
+  width: 100%;
   min-width: 0;
   align-content: start;
   overflow: hidden;
@@ -956,12 +940,12 @@
   text-decoration: none;
   scroll-snap-align: start;
   box-shadow: 0 8px 20px rgb(24 13 38 / 7%);
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  transition: transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease, border-color var(--motion-fast) ease;
 }
 
 .browse-intro-product:hover,
 .browse-intro-product:focus-visible {
-  transform: translateY(-3px);
+  transform: translateY(var(--lift-sm));
   border-color: var(--lavender-300);
   box-shadow: 0 12px 24px rgb(24 13 38 / 12%);
 }
@@ -990,7 +974,7 @@
 }
 
 .browse-intro-product:hover .browse-intro-product-image img {
-  transform: scale(1.04);
+  transform: scale(var(--zoom-image));
 }
 
 .browse-intro-product-condition {

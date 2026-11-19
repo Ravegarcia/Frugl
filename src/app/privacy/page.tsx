@@ -46,8 +46,10 @@ export default function PrivacyPage() {
       <section className='space-y-2'>
         <h2 className='text-lg font-semibold'>Your choices</h2>
         <p className='text-sm text-gray-700'>
-          You can update your account information from the account settings page, manage saved listings, and contact us
-          to ask questions about your personal data.
+          You can update your account information, manage saved listings, or permanently delete your account from the
+          account settings page. Deleting your account removes your profile, listings and their photos, saved listings,
+          offers, conversations and attachments, and reviews. Some safety reports and staff audit records may be
+          retained for security purposes. You can also contact us with questions about your personal data.
         </p>
       </section>
 

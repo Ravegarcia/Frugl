@@ -5,6 +5,12 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/client';
+import LocationAutocomplete, { type LocationSelection } from '@/components/LocationAutocomplete';
+import {
+  isValidLocationCoordinates,
+  isValidLocationLabel,
+  LOCATION_LABEL_MAX_LENGTH,
+} from '@/lib/location-validation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,11 +24,18 @@ import {
   UploadCloud,
   User as UserIcon,
 } from '@/components/icons';
+import Chevron from '@/components/motion/Chevron';
+import Collapse from '@/components/motion/Collapse';
+import Toast from '@/components/motion/Toast';
+import Banner from '@/components/motion/Banner';
 
 interface AccountProfile {
   name: string | null;
   avatar_url: string | null;
   default_location: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
+  location_label: string | null;
   public_contact_email: string | null;
   region: string | null;
   city: string | null;
@@ -33,22 +46,36 @@ interface Props {
   user: Pick<User, 'id' | 'email'>;
   profile: AccountProfile;
   contactNumber: string;
+  requiresPasswordForDeletion: boolean;
 }
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_AVATAR_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-export default function AccountForm({ user, profile, contactNumber }: Props) {
+export default function AccountForm({ user, profile, contactNumber, requiresPasswordForDeletion }: Props) {
   const router = useRouter();
   const supabase = createClient();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const publicEmailInputRef = useRef<HTMLInputElement>(null);
 
-  const legacyLocationParts = (profile.default_location || '').split(',');
+  const initialLocation =
+    profile.default_location ||
+    [profile.city, profile.region].filter(Boolean).join(', ');
   const [name, setName] = useState(profile.name || '');
-  const [region, setRegion] = useState(profile.region || legacyLocationParts.slice(1).join(',').trim());
-  const [city, setCity] = useState(profile.city || legacyLocationParts[0]?.trim() || '');
+  const [location, setLocation] = useState(initialLocation);
+  const [locationSelection, setLocationSelection] = useState<LocationSelection | null>(() => {
+    const lat = profile.location_lat;
+    const lng = profile.location_lng;
+    const hasCoordinates =
+      typeof lat === 'number' &&
+      typeof lng === 'number' &&
+      isValidLocationCoordinates(lat, lng);
+    const label = profile.location_label || (hasCoordinates ? initialLocation : '');
+    return label || hasCoordinates
+      ? { label, lat: hasCoordinates ? lat : null, lng: hasCoordinates ? lng : null }
+      : null;
+  });
   const [bio, setBio] = useState(profile.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url || '');
   const [publicContactEmail, setPublicContactEmail] = useState(profile.public_contact_email || '');
@@ -62,12 +89,18 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
   const [emailBusy, setEmailBusy] = useState(false);
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [toastMessage, setToastMessage] = useState('');
+  const [accountDetailsOpen, setAccountDetailsOpen] = useState(true);
+  const [contactDetailsOpen, setContactDetailsOpen] = useState(true);
 
   useEffect(() => {
     if (!toastMessage) return;
-    const timer = window.setTimeout(() => setToastMessage(''), 3200);
+    const timer = window.setTimeout(() => setToastMessage(''), 4000);
     return () => window.clearTimeout(timer);
   }, [toastMessage]);
 
@@ -81,14 +114,26 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
       publicEmailInputRef.current?.reportValidity();
       return;
     }
+    const cleanLocation = location.trim();
+    const locationParts = cleanLocation.split(',').map((part) => part.trim());
+    const cleanCity = locationParts[0] || '';
+    const cleanRegion = locationParts.slice(1).filter(Boolean).join(', ');
+    const locationLat = locationSelection?.lat ?? null;
+    const locationLng = locationSelection?.lng ?? null;
+    const locationLabel = locationSelection?.label || null;
+    if (
+      cleanLocation.length > LOCATION_LABEL_MAX_LENGTH ||
+      !isValidLocationCoordinates(locationLat, locationLng) ||
+      !isValidLocationLabel(locationLabel)
+    ) {
+      setErrorMessage(`Enter a valid location with a label no longer than ${LOCATION_LABEL_MAX_LENGTH} characters.`);
+      return;
+    }
     setProfileBusy(true);
     setErrorMessage('');
     setToastMessage('');
 
     try {
-      const cleanCity = city.trim();
-      const cleanRegion = region.trim();
-      const defaultLocation = [cleanCity, cleanRegion].filter(Boolean).join(', ');
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -96,7 +141,10 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
           city: cleanCity || null,
           region: cleanRegion || null,
           bio: bio.trim() || null,
-          default_location: defaultLocation || null,
+          default_location: cleanLocation || null,
+          location_lat: locationLat,
+          location_lng: locationLng,
+          location_label: locationLabel,
           public_contact_email: publicContactEmail.trim() || null,
         })
         .eq('id', user.id);
@@ -218,6 +266,49 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
     }
   }
 
+  async function handleAccountDelete(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!user.email || deleteConfirmation.trim().toLowerCase() !== user.email.toLowerCase()) {
+      setErrorMessage('Enter your account email exactly as shown to confirm deletion.');
+      return;
+    }
+    if (requiresPasswordForDeletion && !deletePassword) {
+      setErrorMessage('Enter your current password to confirm account deletion.');
+      return;
+    }
+
+    setDeleteBusy(true);
+    setErrorMessage('');
+    setToastMessage('');
+
+    try {
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          confirmation: deleteConfirmation,
+          ...(requiresPasswordForDeletion ? { password: deletePassword } : {}),
+        }),
+      });
+      const result: { deleted?: boolean; error?: string } = await response.json();
+      if (!response.ok || !result.deleted) {
+        throw new Error(result.error || 'Could not delete your account.');
+      }
+
+      try {
+        const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+        if (signOutError) console.error('Could not clear the deleted account session from this browser:', signOutError.message);
+      } catch (error) {
+        console.error('Could not clear the deleted account session from this browser:', error instanceof Error ? error.message : 'Unknown error');
+      }
+      router.replace('/');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Could not delete your account.');
+      setDeletePassword('');
+      setDeleteBusy(false);
+    }
+  }
+
   const initials = name.trim().slice(0, 1).toUpperCase() || 'F';
 
   return (
@@ -232,19 +323,15 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
         </div>
       </header>
 
-      {errorMessage && (
-        <div className='account-settings-notice account-settings-error' role='alert'>
+      <Banner open={Boolean(errorMessage)} className='account-settings-notice account-settings-error' role='alert'>
           <AlertCircle size={16} className='shrink-0' />
           <span>{errorMessage}</span>
-        </div>
-      )}
+      </Banner>
 
-      {toastMessage && (
-        <div className='account-settings-toast' role='status' aria-live='polite'>
-          <CheckCircle2 size={18} className='shrink-0' />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      <Toast open={Boolean(toastMessage)} className='account-settings-toast'>
+        <CheckCircle2 size={18} className='shrink-0' />
+        <span>{toastMessage}</span>
+      </Toast>
 
       <div className='account-settings-grid'>
         <form onSubmit={handleProfileSave} className='account-settings-card account-profile-card'>
@@ -285,15 +372,25 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
             </div>
           </section>
 
-          <details className='account-settings-accordion' open>
-            <summary>
+          <section className='account-settings-accordion'>
+            <button
+              type='button'
+              className='account-settings-accordion-trigger'
+              aria-expanded={accountDetailsOpen}
+              aria-controls='account-profile-fields'
+              onClick={() => setAccountDetailsOpen((open) => !open)}
+            >
               <span>
                 <strong>Account Details</strong>
                 <small>This info appears on your public profile.</small>
               </span>
-              <ChevronDown size={18} />
-            </summary>
-            <div className='account-profile-fields'>
+              <Chevron open={accountDetailsOpen}><ChevronDown size={18} /></Chevron>
+            </button>
+            <Collapse
+              id='account-profile-fields'
+              open={accountDetailsOpen}
+              className='account-profile-fields'
+            >
               <div className='account-settings-field space-y-1.5'>
                 <Label htmlFor='name'>Display Name</Label>
                 <Input
@@ -305,24 +402,15 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
                   required
                 />
               </div>
-              <div className='account-settings-field space-y-1.5'>
-                <Label htmlFor='region'>Region</Label>
-                <Input
-                  id='region'
-                  value={region}
-                  onChange={(event) => setRegion(event.target.value)}
-                  placeholder='e.g. Metro Manila'
-                  maxLength={100}
-                />
-              </div>
-              <div className='account-settings-field space-y-1.5'>
-                <Label htmlFor='city'>City</Label>
-                <Input
-                  id='city'
-                  value={city}
-                  onChange={(event) => setCity(event.target.value)}
-                  placeholder='e.g. Caloocan City'
-                  maxLength={100}
+              <div className='account-settings-field account-setting-bio space-y-1.5'>
+                <LocationAutocomplete
+                  id='profile-location'
+                  value={location}
+                  required={false}
+                  onChange={(value, selection) => {
+                    setLocation(value);
+                    setLocationSelection(selection);
+                  }}
                 />
               </div>
               <div className='account-settings-field account-setting-bio space-y-1.5'>
@@ -337,18 +425,28 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
                 />
                 <p>{bio.length}/500 characters</p>
               </div>
-            </div>
-          </details>
+            </Collapse>
+          </section>
 
-          <details className='account-settings-accordion' open>
-            <summary>
+          <section className='account-settings-accordion'>
+            <button
+              type='button'
+              className='account-settings-accordion-trigger'
+              aria-expanded={contactDetailsOpen}
+              aria-controls='account-contact-fields'
+              onClick={() => setContactDetailsOpen((open) => !open)}
+            >
               <span>
                 <strong>Contact details</strong>
                 <small>Manage your sign-in email and contact information.</small>
               </span>
-              <ChevronDown size={18} />
-            </summary>
-            <div className='account-contact-fields'>
+              <Chevron open={contactDetailsOpen}><ChevronDown size={18} /></Chevron>
+            </button>
+            <Collapse
+              id='account-contact-fields'
+              open={contactDetailsOpen}
+              className='account-contact-fields'
+            >
               <div className='account-settings-field space-y-1.5'>
                 <Label htmlFor='accountEmail'>Email</Label>
                 <div className='account-settings-email-row'>
@@ -402,8 +500,8 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
                 />
                 <p>Shown on your listings only when provided. Your sign-in email stays private.</p>
               </div>
-            </div>
-          </details>
+            </Collapse>
+          </section>
 
           <Button type='submit' formNoValidate disabled={profileBusy} className='account-settings-profile-save'>
             {profileBusy ? 'Saving...' : 'Save Changes'}
@@ -459,6 +557,76 @@ export default function AccountForm({ user, profile, contactNumber }: Props) {
           </Button>
         </form>
       </div>
+
+      <section className='account-delete-section' aria-labelledby='account-delete-heading'>
+        <div className='account-delete-copy'>
+          <h2 id='account-delete-heading'>Delete account</h2>
+          <p>
+            This permanently deletes your profile, listings and their photos, saved laptops, offers,
+            conversations and attachments, and reviews. Some safety reports and staff audit records
+            may be retained for security purposes.
+          </p>
+        </div>
+
+        {!deleteAccountOpen ? (
+          <Button
+            type='button'
+            variant='outline'
+            className='account-delete-trigger'
+            onClick={() => setDeleteAccountOpen(true)}
+          >
+            Delete my account
+          </Button>
+        ) : (
+          <form onSubmit={handleAccountDelete} className='account-delete-form'>
+            <p>
+              To confirm, enter your account email <strong>{user.email}</strong>
+              {requiresPasswordForDeletion ? ' and your current password' : ''}. This cannot be undone.
+            </p>
+            <div className='account-settings-field space-y-1.5'>
+              <Label htmlFor='deleteAccountEmail'>Account email</Label>
+              <Input
+                id='deleteAccountEmail'
+                type='email'
+                autoComplete='email'
+                value={deleteConfirmation}
+                onChange={(event) => setDeleteConfirmation(event.target.value)}
+                required
+              />
+            </div>
+            {requiresPasswordForDeletion && (
+              <div className='account-settings-field space-y-1.5'>
+                <Label htmlFor='deleteAccountPassword'>Current password</Label>
+                <Input
+                  id='deleteAccountPassword'
+                  type='password'
+                  autoComplete='current-password'
+                  value={deletePassword}
+                  onChange={(event) => setDeletePassword(event.target.value)}
+                  required
+                />
+              </div>
+            )}
+            <div className='account-delete-actions'>
+              <Button
+                type='button'
+                variant='outline'
+                disabled={deleteBusy}
+                onClick={() => {
+                  setDeleteAccountOpen(false);
+                  setDeleteConfirmation('');
+                  setDeletePassword('');
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type='submit' className='account-delete-confirm' disabled={deleteBusy}>
+                {deleteBusy ? 'Deleting account...' : 'Permanently delete account'}
+              </Button>
+            </div>
+          </form>
+        )}
+      </section>
     </div>
   );
 }

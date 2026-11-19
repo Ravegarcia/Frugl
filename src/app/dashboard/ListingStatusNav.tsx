@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import TabIndicator from '@/components/motion/TabIndicator';
 
 type StatusTab = {
   key: string;
@@ -19,8 +20,6 @@ export default function ListingStatusNav({
   hrefBase?: string;
   ariaLabel?: string;
 }) {
-  const activeIndex = tabs.findIndex((tab) => tab.key === activeTab);
-
   return (
     <nav
       className='seller-dashboard-status-nav'
@@ -36,16 +35,11 @@ export default function ListingStatusNav({
         >
           <span className='seller-dashboard-status-label'>{tab.label}</span>
           <span className='seller-dashboard-status-count'>{tab.count}</span>
+          {activeTab === tab.key && (
+            <TabIndicator groupId={hrefBase} className='seller-dashboard-status-indicator' />
+          )}
         </Link>
       ))}
-      <span
-        className='seller-dashboard-status-indicator'
-        aria-hidden='true'
-        style={{
-          width: `${100 / tabs.length}%`,
-          transform: `translateX(${activeIndex * 100}%)`,
-        }}
-      />
     </nav>
   );
 }

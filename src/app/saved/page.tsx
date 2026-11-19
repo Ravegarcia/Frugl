@@ -2,6 +2,8 @@ import { requireMarketplaceUser } from '@/lib/auth';
 import { CARD_SELECT } from '@/lib/queries';
 import ListingCard from '@/components/ListingCard';
 import EmptyState from '@/components/EmptyState';
+import Stagger from '@/components/motion/Stagger';
+import StaggerItem from '@/components/motion/StaggerItem';
 
 export default async function SavedPage() {
   const { supabase, user } = await requireMarketplaceUser('/saved');
@@ -33,11 +35,18 @@ export default async function SavedPage() {
       </header>
 
       {items.length > 0 ? (
-        <div className='grid grid-cols-2 gap-4 md:grid-cols-4'>
-          {items.map((l: any) => (
-            <ListingCard key={l.id} listing={l} initialSaved />
+        <Stagger className='grid grid-cols-2 gap-4 md:grid-cols-4' animatePresence>
+          {items.map((l: any, index) => (
+            <StaggerItem
+              key={l.id}
+              index={index}
+              initiallyVisible={index < 4}
+              layout
+            >
+              <ListingCard listing={l} initialSaved />
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       ) : (
         <EmptyState
           title='No saved laptops'

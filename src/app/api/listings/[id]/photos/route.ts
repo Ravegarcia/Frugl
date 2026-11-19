@@ -17,7 +17,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const { data: listing, error: listingError } = await supabase
     .from('listings')
-    .select('id')
+    .select('id, status')
     .eq('id', id)
     .eq('seller_id', user.id)
     .maybeSingle();
@@ -26,6 +26,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return json({ error: 'Could not verify the listing.' }, 500);
   }
   if (!listing) return json({ error: 'Listing not found.' }, 404);
+  if (listing.status === 'pending_review') {
+    return json({ error: 'This listing is awaiting review and cannot be edited.' }, 409);
+  }
   const limit = await withinLimit(user.id, 'upload');
   if (limit === 'unavailable') {
     return json({ error: 'We could not verify your upload limit. Please try again shortly.' }, 503, { 'Retry-After': '60' });

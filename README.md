@@ -19,7 +19,7 @@ A laptop marketplace that brings useful product details, seller notes, and AI-as
 
 ## 📸 Screenshots
 
-Screenshots are not currently included in this repository.
+draft.
 
 ---
 

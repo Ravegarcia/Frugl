@@ -149,7 +149,18 @@ export default function AccountForm({ user, profile, contactNumber, requiresPass
         })
         .eq('id', user.id);
 
-      if (profileError) throw new Error(profileError.message);
+      if (profileError) {
+        const missingProfileColumn =
+          ['42703', 'PGRST204'].includes(profileError.code) &&
+          /profiles/i.test(profileError.message) &&
+          /\b(bio|city|region|location_(lat|lng|label))\b/i.test(profileError.message);
+        if (missingProfileColumn) {
+          throw new Error(
+            "Account settings could not be saved because the Supabase profile schema is out of date. Run supabase/12_public_profile_details.sql and supabase/14_location_coordinates.sql in the Supabase SQL Editor, then run NOTIFY pgrst, 'reload schema'; and try again.",
+          );
+        }
+        throw new Error(profileError.message);
+      }
 
       const { error: privateError } = await supabase
         .from('profile_private')

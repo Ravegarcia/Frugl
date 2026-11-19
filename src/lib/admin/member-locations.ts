@@ -17,7 +17,26 @@ type ProfileLocation = LocationPerson & {
   role: string;
 };
 
+export type AdminLocationAudiences = {
+  all: ProfileLocation[];
+  buyers: ProfileLocation[];
+  sellers: ProfileLocation[];
+};
+
 const PAGE_SIZE = 500;
+
+export function splitAdminLocationAudiences(
+  profiles: ProfileLocation[],
+  sellerIds: ReadonlySet<string>,
+  buyerIds: ReadonlySet<string>,
+): AdminLocationAudiences {
+  const members = profiles.filter((profile) => profile.role !== 'admin');
+  return {
+    all: members,
+    buyers: members.filter((profile) => buyerIds.has(profile.id)),
+    sellers: members.filter((profile) => sellerIds.has(profile.id)),
+  };
+}
 
 export function isLocationSchemaMissing(error: { code?: string; message?: string }): boolean {
   const missingSchemaCodes = new Set(['42703', 'PGRST204', '42P01', 'PGRST205']);
@@ -78,21 +97,25 @@ async function loadProfiles(
   }
 }
 
-async function loadActiveSellerIds(
+async function loadMarketplaceAudienceIds(
   supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<Set<string>> {
-  const activeSellerIds = new Set<string>();
+): Promise<{ sellerIds: Set<string>; buyerIds: Set<string> }> {
+  const sellerIds = new Set<string>();
+  const buyerIds = new Set<string>();
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await supabase
       .from('listings')
-      .select('seller_id')
-      .eq('is_visible', true)
-      .in('status', ['available', 'reserved'])
-      .order('seller_id')
+      .select('id, seller_id, buyer_id, status')
+      .order('id')
       .range(from, from + PAGE_SIZE - 1);
-    if (error) throw new Error(`Unable to load active sellers for the admin map: ${error.message}`);
-    for (const listing of data ?? []) activeSellerIds.add(listing.seller_id);
-    if (!data || data.length < PAGE_SIZE) return activeSellerIds;
+    if (error) throw new Error(`Unable to load buyer and seller activity for the admin map: ${error.message}`);
+    for (const listing of data ?? []) {
+      sellerIds.add(listing.seller_id);
+      if (listing.buyer_id && (listing.status === 'reserved' || listing.status === 'sold')) {
+        buyerIds.add(listing.buyer_id);
+      }
+    }
+    if (!data || data.length < PAGE_SIZE) return { sellerIds, buyerIds };
   }
 }
 
@@ -118,9 +141,9 @@ async function loadGeocodes(
 export async function getAdminMemberLocations(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<AdminMemberLocations> {
-  const [profileAttempt, activeSellerIds, geocodeResult] = await Promise.all([
+  const [profileAttempt, audienceIds, geocodeResult] = await Promise.all([
     loadProfiles(supabase, true),
-    loadActiveSellerIds(supabase),
+    loadMarketplaceAudienceIds(supabase),
     loadGeocodes(supabase),
   ]);
   const profileResult = profileAttempt.missingCoordinates
@@ -133,15 +156,16 @@ export async function getAdminMemberLocations(
     console.warn('Location coordinate migration is missing; loading legacy location data for the admin map.');
   }
 
-  const buyers = profiles.filter((profile) => profile.role === 'buyer');
-  const sellers = profiles.filter((profile) => activeSellerIds.has(profile.id));
-  const allMemberIds = new Set([...buyers, ...sellers].map((profile) => profile.id));
-  const allMembers = profiles.filter((profile) => allMemberIds.has(profile.id));
+  const audiences = splitAdminLocationAudiences(
+    profiles,
+    audienceIds.sellerIds,
+    audienceIds.buyerIds,
+  );
 
   return {
-    all: aggregateLocations(allMembers, geocodes),
-    buyers: aggregateLocations(buyers, geocodes),
-    sellers: aggregateLocations(sellers, geocodes),
+    all: aggregateLocations(audiences.all, geocodes),
+    buyers: aggregateLocations(audiences.buyers, geocodes),
+    sellers: aggregateLocations(audiences.sellers, geocodes),
     migrationWarning,
   };
 }

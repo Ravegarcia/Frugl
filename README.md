@@ -47,7 +47,7 @@ The listing flow can use AI to identify a laptop from photos and suggest a price
 - 💬 Contact sellers through conversations and messages
 - 🤝 Send and manage offers
 - 🔔 Receive notifications about marketplace activity
-- ⭐ Leave reviews after a transaction
+- ⭐ Rate the seller after a completed sale and view mutual post-sale reviews
 - 👤 Manage account, profile details, and avatar
 - 🗑️ Permanently delete your account and its marketplace data from account settings
 
@@ -59,6 +59,9 @@ The listing flow can use AI to identify a laptop from photos and suggest a price
 - 💡 Get a price suggestion using the selected model and condition
 - 🖼️ Add and manage listing photos
 - 📊 Manage listings and track their available, reserved, or sold status from the dashboard
+- 🤝 Reserve an item for a person who messaged about it, or complete a sale by selecting a buyer
+- ⭐ Rate the selected buyer from 1–5 stars when recording a sale
+- 🔄 Return a sold listing to available status
 - 💬 Respond to buyer conversations and offers
 - 🔔 Receive listing and offer notifications
 
@@ -111,6 +114,13 @@ The listing flow can use AI to identify a laptop from photos and suggest a price
 | `admin`     | Oversees users, listings, reports, and marketplace settings                |
 
 > Access to protected features is enforced by the application and Supabase row-level security policies.
+
+### Sessions and Account Security
+
+- 🔐 Protected requests validate a server-tracked session tied to the signed-in Supabase user
+- ⏱️ Sessions expire after 30 minutes of inactivity or a 24-hour absolute limit
+- 🚪 Signing out ends the application session; suspending an account or changing its role revokes its active sessions
+- 📝 After a sale, the seller and buyer can submit separate ratings and reviews through the review dialog
 
 ---
 
@@ -331,8 +341,9 @@ The SQL dump includes sensitive database contents, including authentication reco
 ```text
 src/
   app/                                  — Next.js App Router routes and layouts
-    @authModal/                         — Intercepted login, registration, and password-reset dialogs
+    @authModal/                         — Intercepted authentication and post-sale review dialogs
       (.)login/page.tsx
+      (.)reviews/new/page.tsx           — Intercepted post-sale review dialog
       (.)register/page.tsx
       (.)forgot-password/page.tsx
       [...catchAll]/page.tsx
@@ -363,6 +374,8 @@ src/
       LocationHeatmapPanelLoader.tsx
       error.tsx
     api/                                — Next.js route handlers for application APIs
+      auth/session/route.ts             — Create or validate the application session
+      auth/session/heartbeat/route.ts   — Extend the idle timeout after user activity
       account/avatar/route.ts           — Account avatar upload
       admin/backups/route.ts            — List backups and dispatch backup jobs
       admin/backups/[filename]/route.ts — Authenticated private backup download
@@ -404,6 +417,7 @@ src/
     saved/page.tsx                      — Saved listings
     reviews/
       new/page.tsx
+      new/ReviewContent.tsx
       new/LeaveReviewForm.tsx
     sellers/[id]/
       page.tsx                          — Public seller profile
@@ -460,6 +474,8 @@ src/
     LocationAutocomplete.tsx
     NotificationBell.tsx
     ProfileMenu.tsx
+    ReviewModal.tsx                     — Modal shell for post-sale ratings
+    SessionHeartbeat.tsx                — Renews sessions after user activity
     SearchBox.tsx
     SellListingPreview.tsx
     TimeAgo.tsx
@@ -501,6 +517,7 @@ src/
       types.ts
     auth/
       redirect.ts
+      session.ts                        — Server-side session lifecycle helpers
     listings/
       status.ts
       validation.ts
@@ -545,6 +562,9 @@ supabase/                               — Ordered database setup and update sc
   12_public_profile_details.sql
   13_admin_review_and_backups.sql
   14_location_coordinates.sql
+  15_chat_alert_status.sql
+  16_listing_sales_and_reviews.sql
+  17_session_lifecycle.sql
 scripts/
   backfill-location-geocodes.ts         — Dry-run-first Photon location cache backfill
 test/
@@ -568,8 +588,6 @@ npm run lint
 npm test
 npm run build
 ```
-
-The repository does not currently define an `npm run test` script; run Vitest directly with `npx vitest run`.
 
 ---
 

@@ -33,6 +33,7 @@ import {
   faFileLines,
   faFlag,
   faGear,
+  faGaugeHigh,
   faHouse,
   faLaptop,
   faLocationDot,
@@ -46,6 +47,7 @@ import {
   faShield,
   faShieldHalved,
   faShieldHeart,
+  faDatabase,
   faSpinner,
   faStar,
   faTag,
@@ -96,6 +98,7 @@ export const ChevronDown = icon(faChevronDown);
 export const ChevronLeft = icon(faChevronLeft);
 export const ChevronRight = icon(faChevronRight);
 export const DoorOpen = icon(faDoorOpen);
+export const Database = icon(faDatabase);
 export const Download = icon(faDownload);
 export const Edit3 = icon(faPenToSquare, faPenToSquareRegular, 'regular');
 export const Eye = icon(faEye, faEyeRegular, 'regular');
@@ -103,6 +106,7 @@ export const EyeOff = icon(faEyeSlash, faEyeSlashRegular, 'regular');
 export const FileLines = icon(faFileLines);
 export const ExternalLink = icon(faExternalLinkAlt);
 export const Flag = icon(faFlag, faFlagRegular, 'regular');
+export const Gauge = icon(faGaugeHigh);
 export const Gear = icon(faGear);
 export const Home = icon(faHouse);
 export const Laptop = icon(faLaptop);

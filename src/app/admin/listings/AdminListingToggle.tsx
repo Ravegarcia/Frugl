@@ -8,10 +8,12 @@ export default function AdminListingToggle({
   listingId,
   initialVisible,
   initialFeatured,
+  allowFeatured,
 }: {
   listingId: string;
   initialVisible: boolean;
   initialFeatured: boolean;
+  allowFeatured: boolean;
 }) {
   const supabase = createClient();
   const [visible, setVisible] = useState(initialVisible);
@@ -51,18 +53,20 @@ export default function AdminListingToggle({
 
   return (
     <div className='admin-listing-toggle' aria-busy={busy}>
-      <button
-        type='button'
-        onClick={toggleFeatured}
-        disabled={busy}
-        aria-label={featured ? 'Remove listing from featured' : 'Feature listing on homepage'}
-        aria-pressed={featured}
-        title={featured ? 'Remove from featured' : 'Feature on homepage'}
-        className={`admin-listing-action ${featured ? 'is-featured' : ''}`}
-      >
-        <Star size={16} variant={featured ? 'solid' : 'regular'} />
-        <span>{featured ? 'Featured' : 'Feature'}</span>
-      </button>
+      {allowFeatured && (
+        <button
+          type='button'
+          onClick={toggleFeatured}
+          disabled={busy}
+          aria-label={featured ? 'Remove listing from featured' : 'Feature listing on homepage'}
+          aria-pressed={featured}
+          title={featured ? 'Remove from featured' : 'Feature on homepage'}
+          className={`admin-listing-action ${featured ? 'is-featured' : ''}`}
+        >
+          <Star size={16} variant={featured ? 'solid' : 'regular'} />
+          <span>{featured ? 'Unfeature' : 'Feature'}</span>
+        </button>
+      )}
 
       <button
         type='button'
@@ -74,7 +78,7 @@ export default function AdminListingToggle({
         className={`admin-listing-action ${visible ? 'is-visible' : 'is-hidden'}`}
       >
         {visible ? <Eye size={16} /> : <EyeOff size={16} />}
-        <span>{visible ? 'Public' : 'Hidden'}</span>
+        <span>{visible ? 'Hide' : 'Unhide'}</span>
       </button>
 
       {actionError && <p className='admin-listing-action-error' role='alert'>{actionError}</p>}

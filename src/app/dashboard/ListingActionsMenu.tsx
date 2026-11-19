@@ -3,22 +3,24 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle, ChevronDown, Edit3, ExternalLink, MessageCircle, ShieldCheck, Trash } from '@/components/icons';
 import Chevron from '@/components/motion/Chevron';
 import Popover from '@/components/motion/Popover';
+import ListingTransactionDialog from './ListingTransactionDialog';
 
 type Props = {
   listingId: string;
   title: string;
   status: string;
-  messageCount: number;
 };
 
-export default function ListingActionsMenu({ listingId, title, status, messageCount }: Props) {
+export default function ListingActionsMenu({ listingId, title, status }: Props) {
   const router = useRouter();
   const menuContainerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
+  const [transitionMode, setTransitionMode] = useState<'reserved' | 'sold' | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; isError: boolean } | null>(null);
   const menuId = `listing-actions-${listingId}`;
 
@@ -50,7 +52,7 @@ export default function ListingActionsMenu({ listingId, title, status, messageCo
       setFeedback({
         message: action === 'delete'
           ? 'Listing deleted.'
-          : `Listing marked as ${targetStatus === 'available' ? 'active' : targetStatus}.`,
+          : `Listing marked as ${targetStatus}.`,
         isError: false,
       });
       router.refresh();
@@ -99,14 +101,21 @@ export default function ListingActionsMenu({ listingId, title, status, messageCo
         )}
         <Link href={`/messages?listingId=${encodeURIComponent(listingId)}`} onClick={() => setIsOpen(false)}>
           <MessageCircle size={15} />
-          <span>View messages ({messageCount} conversations)</span>
+          <span>View messages</span>
         </Link>
 
         {(status === 'available' || status === 'reserved') && (
           <div className='seller-dashboard-action-separator' aria-hidden='true' />
         )}
         {status === 'available' && (
-          <button type='button' disabled={isBusy} onClick={() => runAction('status', 'reserved')}>
+          <button
+            type='button'
+            disabled={isBusy}
+            onClick={() => {
+              setIsOpen(false);
+              setTransitionMode('reserved');
+            }}
+          >
             <ShieldCheck size={15} />
             <span>Mark as reserved</span>
           </button>
@@ -114,13 +123,26 @@ export default function ListingActionsMenu({ listingId, title, status, messageCo
         {status === 'reserved' && (
           <button type='button' disabled={isBusy} onClick={() => runAction('status', 'available')}>
             <ShieldCheck size={15} />
-            <span>Mark as active</span>
+            <span>Mark as available</span>
           </button>
         )}
         {(status === 'available' || status === 'reserved') && (
-          <button type='button' disabled={isBusy} onClick={() => runAction('status', 'sold')}>
+          <button
+            type='button'
+            disabled={isBusy}
+            onClick={() => {
+              setIsOpen(false);
+              setTransitionMode('sold');
+            }}
+          >
             <CheckCircle size={15} />
             <span>Mark as sold</span>
+          </button>
+        )}
+        {status === 'sold' && (
+          <button type='button' disabled={isBusy} onClick={() => runAction('status', 'available')}>
+            <ShieldCheck size={15} />
+            <span>Mark as available</span>
           </button>
         )}
 
@@ -142,6 +164,28 @@ export default function ListingActionsMenu({ listingId, title, status, messageCo
         >
           {feedback.message}
         </span>
+      )}
+      {transitionMode && (
+        createPortal(
+          <ListingTransactionDialog
+            listingId={listingId}
+            listingTitle={title}
+            mode={transitionMode}
+            open
+            onClose={() => setTransitionMode(null)}
+            onComplete={() => {
+              setTransitionMode(null);
+              setFeedback({
+                message: transitionMode === 'sold'
+                  ? 'Listing marked as sold.'
+                  : 'Listing marked as reserved.',
+                isError: false,
+              });
+              router.refresh();
+            }}
+          />,
+          document.body,
+        )
       )}
     </div>
   );

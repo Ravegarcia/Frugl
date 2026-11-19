@@ -298,7 +298,7 @@ export default function ListingActions({
                   aria-label='Offer amount in PHP'
                 />
               </label>
-              <button type='submit' disabled={busy} className='product-offer-submit'>
+              <button type='submit' disabled={busy} className='button-primary product-offer-submit'>
                 Make Offer
               </button>
             </form>
@@ -337,7 +337,7 @@ export default function ListingActions({
                 type='button'
                 onClick={sendReport}
                 disabled={busy}
-                className='product-report-submit'
+                className='button-primary product-report-submit'
               >
                 Submit report
               </button>

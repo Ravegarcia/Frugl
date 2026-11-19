@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import { Users } from '@/components/icons';
 import { redirect } from 'next/navigation';
 import {
   ADMIN_PAGE_SIZE,
@@ -9,6 +8,7 @@ import {
 import AdminActivityViewed from '../AdminActivityViewed';
 import AdminPagination from '../AdminPagination';
 import { requireStaff } from '@/lib/auth';
+import EmptyState from '@/components/EmptyState';
 import AdminUserRow from './AdminUserRow';
 import AdminLoading from '../loading';
 
@@ -49,27 +49,31 @@ async function AdminUsersContent({
   }
 
   return (
-    <div className='admin-users-page'>
+    <div className='admin-queue-page admin-users-page'>
       <AdminActivityViewed eventType='account_created' />
-      <header className='admin-users-header'>
+      <header className='admin-queue-heading'>
         <div>
           <p className='admin-eyebrow'>Marketplace access</p>
-          <h1>Manage members</h1>
+          <h1 id='admin-users-title'>Manage members</h1>
           <p>Review marketplace member accounts and verify sellers.</p>
         </div>
       </header>
 
-      <section className='admin-users-section' aria-labelledby='admin-users-list-title'>
-        <div className='admin-users-section-heading'>
+      <section className='admin-panel admin-queue-panel admin-users-panel' aria-labelledby='admin-users-list-title'>
+        <div className='admin-users-panel-heading'>
           <div>
             <p className='admin-eyebrow'>Account directory</p>
             <h2 id='admin-users-list-title'>Member accounts</h2>
           </div>
           <span className='admin-users-count'>{(count ?? 0).toLocaleString()} members</span>
         </div>
-
         {users?.length ? (
-          <div className='admin-users-list'>
+          <div
+            className='admin-queue-list admin-users-list'
+            role='list'
+            aria-label='User accounts'
+            tabIndex={0}
+          >
             {users.map((user) => (
               <AdminUserRow
                 key={user.id}
@@ -80,13 +84,15 @@ async function AdminUsersContent({
             ))}
           </div>
         ) : (
-          <div className='admin-users-empty'>
-            <span aria-hidden='true'><Users size={20} /></span>
-            <strong>No marketplace members yet</strong>
-            <p>New marketplace accounts will appear here.</p>
-          </div>
+          <EmptyState title='No marketplace members yet' hint='New marketplace accounts will appear here.' />
         )}
-        <AdminPagination path='/admin/users' page={page} totalPages={totalPages} />
+        <AdminPagination
+          path='/admin/users'
+          page={page}
+          totalPages={totalPages}
+          totalCount={count ?? 0}
+          showSinglePage
+        />
       </section>
     </div>
   );

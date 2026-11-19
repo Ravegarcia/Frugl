@@ -1,14 +1,14 @@
 'use client';
 
-import { AlertTriangle, FileLines, Flag, Laptop, Shield, Users } from '@/components/icons';
+import { AlertTriangle, Database, Flag, Gauge, Laptop, Users } from '@/components/icons';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AdminActivityCountBadge from './AdminActivityCountBadge';
 import type { AdminActivityEvent } from '@/lib/admin/activity';
 
 const navigation = [
-  { label: 'Overview', href: '/admin', Icon: Shield, group: 'Workspace' },
-  { label: 'Backups', href: '/admin/backups', Icon: FileLines, group: 'Data protection' },
+  { label: 'Overview', href: '/admin', Icon: Gauge, group: 'Workspace' },
+  { label: 'Backups', href: '/admin/backups', Icon: Database, group: 'Data protection' },
   {
     label: 'Reports',
     href: '/admin/reports',
@@ -40,7 +40,7 @@ const navigation = [
 ] satisfies Array<{
   label: string;
   href: string;
-  Icon: typeof Shield;
+  Icon: typeof Gauge;
   group: string;
   activityType?: AdminActivityEvent;
 }>;

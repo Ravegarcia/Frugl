@@ -18,7 +18,7 @@ describe('admin pagination', () => {
 
   it('calculates inclusive database ranges', () => {
     expect(getAdminPageRange(1)).toEqual({ from: 0, to: ADMIN_PAGE_SIZE - 1 });
-    expect(getAdminPageRange(3)).toEqual({ from: 50, to: 74 });
+    expect(getAdminPageRange(3)).toEqual({ from: 100, to: 149 });
   });
 
   it('accepts only supported report status filters', () => {

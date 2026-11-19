@@ -1,6 +1,7 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { apiUser, json } from '@/lib/api';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { clearAppSessionCookie } from '@/lib/auth/session';
 
 const PAGE_SIZE = 500;
 const STORAGE_BATCH_SIZE = 100;
@@ -299,5 +300,6 @@ export async function POST(request: Request) {
     }, 503);
   }
 
+  await clearAppSessionCookie();
   return json({ deleted: true }, 200, { 'Cache-Control': 'no-store' });
 }

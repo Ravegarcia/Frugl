@@ -92,6 +92,26 @@ export default function AuthForm({
   const passwordsMatch = hasConfirmTyped && password === confirmPassword;
   const passwordsMismatch = hasConfirmTyped && password !== confirmPassword;
 
+  async function establishSession() {
+    try {
+      const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        cache: 'no-store',
+      });
+      if (response.ok) {
+        window.dispatchEvent(new Event('frugl:app-session-ready'));
+        return true;
+      }
+    } catch (error) {
+      console.error('Could not register the authenticated session:', error);
+    }
+
+    const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+    if (signOutError) console.error('Could not clear a session that was not registered:', signOutError.message);
+    setError('We could not start a secure session. Please try signing in again.');
+    return false;
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -115,9 +135,9 @@ export default function AuthForm({
           } else if (profile.status !== 'active') {
             const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
             if (signOutError) console.error('Could not clear the suspended local session:', signOutError.message);
-            window.location.assign('/account-suspended');
-          } else {
-            window.location.assign(profile.role === 'admin' ? '/admin' : safeRedirectPath(next));
+            router.replace('/account-suspended');
+          } else if (await establishSession()) {
+            router.replace(profile.role === 'admin' ? '/admin' : safeRedirectPath(next));
           }
         }
       } else if (mode === 'register') {
@@ -132,8 +152,11 @@ export default function AuthForm({
             options: { data: { name }, emailRedirectTo: callback('/') },
           });
           if (error) setError(error.message);
-          else if (data.session) window.location.assign(safeRedirectPath(next));
-          else setMessage('Check your email and click the verification link to finish signing up.');
+          else if (data.session) {
+            if (await establishSession()) router.replace(safeRedirectPath(next));
+          } else {
+            setMessage('Check your email and click the verification link to finish signing up.');
+          }
         }
       } else if (mode === 'forgot') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {

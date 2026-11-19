@@ -13,11 +13,13 @@ export default function ListingStatusNav({
   tabs,
   activeTab,
   hrefBase = '/dashboard',
+  paramName = 'tab',
   ariaLabel = 'Filter listings by status',
 }: {
   tabs: StatusTab[];
   activeTab: string;
   hrefBase?: string;
+  paramName?: string;
   ariaLabel?: string;
 }) {
   return (
@@ -29,7 +31,7 @@ export default function ListingStatusNav({
       {tabs.map((tab) => (
         <Link
           key={tab.key}
-          href={`${hrefBase}?tab=${encodeURIComponent(tab.key)}`}
+          href={`${hrefBase}?${new URLSearchParams({ [paramName]: tab.key })}`}
           aria-current={activeTab === tab.key ? 'page' : undefined}
           className={`seller-dashboard-status-tab${activeTab === tab.key ? ' is-active' : ''}`}
         >

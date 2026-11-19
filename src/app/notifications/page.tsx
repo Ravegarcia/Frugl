@@ -32,8 +32,8 @@ const CATEGORY_BY_TYPE: Record<string, Exclude<NotificationFilter, 'all' | 'for-
   listing_saved: 'listings',
 };
 
-const FOR_ACTION_TYPES = new Set(['offer', 'message', 'listing_reserved']);
-const ACTIVITY_TYPES = new Set(['offer_update', 'listing_sold', 'listing_rejected', 'saved_listing_sold', 'listing_saved']);
+const FOR_ACTION_TYPES = new Set(['offer', 'message', 'listing_reserved', 'listing_sold']);
+const ACTIVITY_TYPES = new Set(['offer_update', 'listing_rejected', 'saved_listing_sold', 'listing_saved']);
 
 function isNotificationFilter(value: string | undefined): value is NotificationFilter {
   return FILTERS.some((filter) => filter.id === value);
@@ -167,7 +167,10 @@ function renderNotificationCopy(
     case 'listing_sold':
       return (
         <>
-          <strong>{rawTitle}</strong> was marked as sold.
+          <strong>{rawTitle}</strong>{' '}
+          {typeof payload.transaction_id === 'string'
+            ? 'was sold to you. Rate the seller.'
+            : 'was marked as sold.'}
         </>
       );
     case 'listing_rejected': {
@@ -223,6 +226,9 @@ function notificationHref(notification: NotificationItem) {
       : '/messages';
   }
   if (notification.type === 'offer' || notification.type === 'offer_update') return '/offers';
+  if (notification.type === 'listing_sold' && typeof payload.transaction_id === 'string') {
+    return `/reviews/new?transactionId=${encodeURIComponent(payload.transaction_id)}`;
+  }
   if (typeof payload.listing_id === 'string') return `/laptops/${payload.listing_id}`;
   return '/notifications';
 }

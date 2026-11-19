@@ -31,9 +31,12 @@ export async function PATCH(
     return json({ error: 'Choose approve or reject.' }, 400);
   }
 
+  if (body.reason !== undefined && typeof body.reason !== 'string') {
+    return json({ error: 'The rejection reason must be text.' }, 400);
+  }
   const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
-  if (body.decision === 'reject' && (!reason || reason.length > 1000)) {
-    return json({ error: 'Enter a rejection reason of 1–1000 characters.' }, 400);
+  if (body.decision === 'reject' && reason.length > 1000) {
+    return json({ error: 'The rejection reason must be 1000 characters or fewer.' }, 400);
   }
 
   let admin: ReturnType<typeof createAdminClient>;
@@ -56,7 +59,7 @@ export async function PATCH(
       }
     : {
         status: 'rejected',
-        review_reason: reason,
+        review_reason: reason || null,
         reviewed_at: reviewedAt,
         reviewed_by: user.id,
       };

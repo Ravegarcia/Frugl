@@ -215,16 +215,17 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
         .product-action-stack { display: flex; flex-direction: column; gap: 0.65rem; }
         .product-action-hint { margin: 0; color: var(--plum-700); font-size: 0.88rem; line-height: 1.4; }
         .product-chat-btn { display: inline-flex; width: 100%; min-height: 2.75rem; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.4rem 0.85rem; font-size: 0.95rem; font-weight: 700; text-decoration: none; cursor: pointer; }
-        .product-offer-group { display: grid; grid-template-columns: minmax(0, 1fr) auto; overflow: hidden; border: 1px solid var(--plum-700); border-radius: 0.55rem; background: #fff; }
-        .product-offer-input-wrap { display: flex; align-items: center; gap: 0.4rem; min-width: 0; padding-inline: 0.8rem; }
+        .product-offer-group { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.55rem; }
+        .product-offer-input-wrap { display: flex; min-height: 2.75rem; align-items: center; gap: 0.4rem; min-width: 0; border: 1px solid var(--outline-variant); border-radius: 9999px; background: var(--surface); padding-inline: 0.9rem; }
+        .product-offer-input-wrap:focus-within { border-color: var(--plum-700); box-shadow: 0 0 0 3px rgb(67 54 79 / 12%); }
         .product-offer-currency { color: var(--plum-700); font-size: 0.82rem; font-weight: 700; }
-        .product-offer-input-wrap input { width: 100%; min-width: 0; height: 2.6rem; border: 0; outline: 0; background: transparent; color: var(--plum-900); font-size: 0.92rem; font-weight: 600; }
-        .product-offer-submit { border: 0; border-left: 1px solid var(--plum-700); background: var(--ivory); padding-inline: 1rem; color: var(--plum-900); font-size: 0.86rem; font-weight: 700; white-space: nowrap; cursor: pointer; }
+        .product-offer-input-wrap input { width: 100%; min-width: 0; height: 2.5rem; border: 0; outline: 0; background: transparent; color: var(--plum-900); font-size: 0.92rem; font-weight: 600; box-shadow: none; }
+        .product-offer-submit { min-height: 2.75rem; padding-inline: 1rem; font-size: 0.86rem; font-weight: 700; white-space: nowrap; cursor: pointer; }
         .product-utility-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
-        .product-secondary-btn { display: inline-flex; min-height: 2.45rem; align-items: center; justify-content: center; gap: 0.35rem; border: 1px solid var(--outline-variant); border-radius: 0.5rem; background: #fff; padding: 0.35rem 0.75rem; color: var(--plum-700); font-size: 0.84rem; font-weight: 600; text-decoration: none; cursor: pointer; }
+        .product-secondary-btn { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; gap: 0.35rem; border: 1px solid var(--outline-variant); border-radius: 9999px; background: var(--surface); padding: 0.35rem 0.75rem; color: var(--plum-700); font-size: 0.84rem; font-weight: 600; text-decoration: none; cursor: pointer; }
         .product-report-box { display: flex; flex-direction: column; gap: 0.55rem; padding-top: 0.2rem; }
         .product-report-box textarea { width: 100%; border: 1px solid var(--outline-variant); border-radius: 0.5rem; background: #fff; padding: 0.6rem 0.75rem; color: var(--plum-900); font-size: 0.84rem; outline: none; }
-        .product-report-submit { min-height: 2.35rem; border: 1px solid var(--plum-900); border-radius: 0.5rem; background: var(--plum-900); color: #fff; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+        .product-report-submit { min-height: 2.75rem; align-self: flex-end; padding-inline: 1rem; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
         .product-action-note { margin: 0; border-radius: 0.5rem; padding: 0.35rem 0.55rem; font-size: 0.72rem; line-height: 1.35; }
         .product-action-note.is-success { border: 1px solid var(--success-border); background: var(--success-container); color: var(--success); }
         .product-action-note.is-error { border: 1px solid var(--error-border); background: var(--error-container); color: var(--destructive); }
@@ -252,6 +253,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       <div className='product-page-grid'>
         <div className='product-main-col'>
           <ListingDetails
+            key={listing.id}
             listing={listing}
             photos={photos}
             trackView={profile?.role !== 'admin' && user.id !== listing.seller_id}

@@ -604,8 +604,13 @@
   margin-top: clamp(1.75rem, 4vw, 3rem);
 }
 
+.step-tile-motion {
+  height: 100%;
+}
+
 .step-tile {
   display: flex;
+  height: 100%;
   min-height: 17rem;
   flex-direction: column;
   align-items: center;
@@ -619,9 +624,9 @@
 }
 
 .step-tile:hover {
-  transform: translateY(var(--lift-md));
+  transform: translateY(-7px);
   border-color: var(--plum-700);
-  box-shadow: 0 16px 32px rgb(24 13 38 / 10%);
+  box-shadow: 0 20px 38px rgb(24 13 38 / 13%);
 }
 
 .step-icon-tile {

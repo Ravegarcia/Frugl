@@ -228,6 +228,24 @@ export default function AccountForm({ user, profile, contactNumber, requiresPass
       });
       if (verifyError) throw new Error('Current password could not be verified. Check it and try again.');
 
+      let sessionEstablished = false;
+      try {
+        const sessionResponse = await fetch('/api/auth/session', {
+          method: 'POST',
+          cache: 'no-store',
+        });
+        sessionEstablished = sessionResponse.ok;
+        if (sessionEstablished) window.dispatchEvent(new Event('frugl:app-session-ready'));
+      } catch (error) {
+        console.error('Could not register the password-change session:', error);
+      }
+      if (!sessionEstablished) {
+        const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+        if (signOutError) console.error('Could not clear the unregistered password-change session:', signOutError.message);
+        router.replace('/login?next=%2Faccount');
+        return;
+      }
+
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) throw new Error(updateError.message);
 

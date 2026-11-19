@@ -31,7 +31,9 @@ function notificationText(notification: NotificationItem) {
     case 'listing_reserved':
       return `“${title}” has been reserved for you.`;
     case 'listing_sold':
-      return `“${title}” was marked as sold.`;
+      return typeof payload.transaction_id === 'string'
+        ? `“${title}” was sold to you. Rate the seller.`
+        : `“${title}” was marked as sold.`;
     case 'listing_rejected':
       return `“${title}” needs changes before it can be published${typeof payload.reason === 'string' && payload.reason.trim() ? `: ${payload.reason.trim()}` : '.'}`;
     case 'saved_listing_sold':
@@ -47,6 +49,9 @@ function notificationHref(notification: NotificationItem) {
     return `/messages/${payload.conversation_id}`;
   }
   if (notification.type === 'offer' || notification.type === 'offer_update') return '/offers';
+  if (notification.type === 'listing_sold' && typeof payload.transaction_id === 'string') {
+    return `/reviews/new?transactionId=${encodeURIComponent(payload.transaction_id)}`;
+  }
   if (typeof payload.listing_id === 'string') return `/laptops/${payload.listing_id}`;
   return '/notifications';
 }

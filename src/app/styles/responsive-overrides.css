@@ -1,5 +1,5 @@
 
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .app-body {
     padding-bottom: calc(4rem + env(safe-area-inset-bottom));
   }
@@ -222,14 +222,6 @@
     height: 16rem;
   }
 
-  .admin-users-header,
-  .admin-listings-header,
-  .admin-alerts-header,
-  .admin-reports-header {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
   .admin-report-card-header {
     align-items: flex-start;
     flex-direction: column;
@@ -245,11 +237,11 @@
     justify-content: flex-start;
   }
 
-  .admin-report-action {
+  .admin-queue-action {
     flex: 1;
   }
 
-  .admin-reports-page .empty-state {
+  .admin-queue-panel .empty-state {
     min-height: 15rem;
   }
 
@@ -260,10 +252,6 @@
 
   .admin-chat-alert-link {
     align-self: flex-start;
-  }
-
-  .admin-alerts-empty {
-    min-height: 15rem;
   }
 
   .admin-listing-row {
@@ -280,11 +268,11 @@
   .admin-listing-toggle {
     grid-column: 1 / -1;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
     max-width: none;
   }
 
-  .admin-listing-action {
+  .admin-listing-toggle .admin-listing-action {
     width: 100%;
   }
 
@@ -309,9 +297,19 @@
   }
 
   .admin-member-role select,
-  .admin-member-button {
+  .admin-member-button,
+  .admin-member-role-readonly {
     width: 100%;
     min-width: 0;
+  }
+
+  .admin-member-role-control {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-member-role-readonly {
+    grid-column: 1 / -1;
   }
 
   .admin-member-error {

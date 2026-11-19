@@ -172,20 +172,26 @@ export default async function Home() {
           </p>
         </Reveal>
         <Stagger className='step-grid'>
-          <StaggerItem as='article' index={0} className='step-tile'>
-            <span className='step-icon-tile' aria-hidden='true'><Laptop size={24} /></span>
-            <h3>Show us what you have</h3>
-            <p>Share a few photos, including the model sticker, to start a listing.</p>
+          <StaggerItem index={0} className='step-tile-motion'>
+            <article className='step-tile'>
+              <span className='step-icon-tile' aria-hidden='true'><Laptop size={24} /></span>
+              <h3>Show us what you have</h3>
+              <p>Share a few photos, including the model sticker, to start a listing.</p>
+            </article>
           </StaggerItem>
-          <StaggerItem as='article' index={1} className='step-tile'>
-            <span className='step-icon-tile' aria-hidden='true'><BadgeCheck size={24} /></span>
-            <h3>Review the details</h3>
-            <p>AI suggests the model and specs. Sellers check everything before publishing.</p>
+          <StaggerItem index={1} className='step-tile-motion'>
+            <article className='step-tile'>
+              <span className='step-icon-tile' aria-hidden='true'><BadgeCheck size={24} /></span>
+              <h3>Review the details</h3>
+              <p>AI suggests the model and specs. Sellers check everything before publishing.</p>
+            </article>
           </StaggerItem>
-          <StaggerItem as='article' index={2} className='step-tile'>
-            <span className='step-icon-tile' aria-hidden='true'><MessageCircle size={24} /></span>
-            <h3>Talk it through</h3>
-            <p>Ask questions, compare details, and arrange a handover with the seller.</p>
+          <StaggerItem index={2} className='step-tile-motion'>
+            <article className='step-tile'>
+              <span className='step-icon-tile' aria-hidden='true'><MessageCircle size={24} /></span>
+              <h3>Talk it through</h3>
+              <p>Ask questions, compare details, and arrange a handover with the seller.</p>
+            </article>
           </StaggerItem>
         </Stagger>
       </section>

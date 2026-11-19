@@ -25,11 +25,25 @@ export default function ListingDetails({
   checklist = [],
 }: Props) {
   const [index, setIndex] = useState(0);
+  const [unavailablePhotos, setUnavailablePhotos] = useState<Set<string>>(() => new Set());
   const totalPhotos = photos.length;
   const safeIndex = totalPhotos > 0 ? Math.min(index, totalPhotos - 1) : 0;
   const current = photos[safeIndex];
+  const currentUnavailable = Boolean(current && unavailablePhotos.has(current));
+  const unavailablePhotoHint = totalPhotos > 1
+    ? 'Try another photo.'
+    : 'This photo could not be loaded.';
   const listedAt = listing.published_at ?? listing.created_at;
   const trackedViewId = useRef<string | null>(null);
+
+  function markPhotoUnavailable(photo: string) {
+    setUnavailablePhotos((currentPhotos) => {
+      if (currentPhotos.has(photo)) return currentPhotos;
+      const nextPhotos = new Set(currentPhotos);
+      nextPhotos.add(photo);
+      return nextPhotos;
+    });
+  }
 
   useEffect(() => {
     if (!trackView || trackedViewId.current === listing.id) return;
@@ -86,17 +100,27 @@ export default function ListingDetails({
       {/* Top Media Showcase */}
       <div className='product-gallery'>
         <div className={`product-gallery-stage${totalPhotos <= 1 ? ' is-single-photo' : ''}`}>
-          {current ? (
+          {current && !currentUnavailable ? (
             <img
               src={current}
               alt={listing.title || 'Laptop photo'}
               className='product-gallery-main-img'
               fetchPriority='high'
+              onError={() => markPhotoUnavailable(current)}
             />
           ) : (
-            <div className='listing-photo-placeholder'>
-              <Laptop size={40} />
-              <span>No photos uploaded</span>
+            <div className='product-gallery-placeholder' role='status'>
+              <span className='product-gallery-placeholder-icon' aria-hidden='true'>
+                <Laptop size={32} />
+              </span>
+              <span className='product-gallery-placeholder-title'>
+                {currentUnavailable ? 'Photo unavailable' : 'No photos uploaded'}
+              </span>
+              <span className='product-gallery-placeholder-copy'>
+                {currentUnavailable
+                  ? unavailablePhotoHint
+                  : 'The seller has not added photos to this listing yet.'}
+              </span>
             </div>
           )}
 
@@ -148,7 +172,19 @@ export default function ListingDetails({
                 onClick={() => setIndex(i)}
                 className={`product-gallery-thumb${i === safeIndex ? ' is-active' : ''}`}
               >
-                <img src={p} alt='' loading='lazy' decoding='async' />
+                {unavailablePhotos.has(p) ? (
+                  <span className='product-gallery-thumb-placeholder' aria-hidden='true'>
+                    <Laptop size={18} />
+                  </span>
+                ) : (
+                  <img
+                    src={p}
+                    alt=''
+                    loading='lazy'
+                    decoding='async'
+                    onError={() => markPhotoUnavailable(p)}
+                  />
+                )}
               </button>
             ))}
           </div>

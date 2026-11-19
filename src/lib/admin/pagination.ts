@@ -1,4 +1,4 @@
-export const ADMIN_PAGE_SIZE = 25;
+export const ADMIN_PAGE_SIZE = 50;
 
 export type AdminSearchParam = string | string[] | undefined;
 export type AdminReportStatus = 'open' | 'resolved' | 'dismissed' | 'all';

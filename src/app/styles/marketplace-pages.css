@@ -212,6 +212,65 @@
   background: var(--background);
 }
 
+.review-modal-panel {
+  position: relative;
+  width: min(calc(100vw - 2rem), 34rem);
+  max-height: min(90dvh, 46rem);
+  overflow-y: auto;
+  border: 1px solid var(--lavender-300);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  color: var(--plum-900);
+  box-shadow: 0 20px 55px rgb(24 13 38 / 22%);
+}
+
+.review-modal-close {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid var(--outline-variant);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--plum-700);
+  cursor: pointer;
+}
+
+.review-modal-close:focus-visible {
+  outline: 2px solid var(--plum-700);
+  outline-offset: 3px;
+}
+
+.review-form-in-modal {
+  display: grid;
+  gap: 1.25rem;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding-top: 0.25rem;
+}
+
+.review-form-in-modal > div:first-child h1 {
+  margin: 0;
+  padding-right: 2.25rem;
+  color: var(--plum-900);
+}
+
+.review-form-message-in-modal {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.5rem 2rem 0.5rem 0;
+  text-align: center;
+}
+
+.review-form-message-in-modal p {
+  margin: 0;
+}
+
 .app-main:has(.messages-inbox:not([style*="display: none"]):not([style*="display:none"])) {
   width: 100%;
   margin: 0;

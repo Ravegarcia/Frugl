@@ -62,7 +62,7 @@ export default function AdminListingReviewActions({ listingId }: { listingId: st
       </button>
       {rejecting && (
         <div className='admin-listing-reject-form'>
-          <label htmlFor={`listing-rejection-${listingId}`}>Reason for rejection</label>
+          <label htmlFor={`listing-rejection-${listingId}`}>Reason for rejection (optional)</label>
           <textarea
             id={`listing-rejection-${listingId}`}
             value={reason}
@@ -74,7 +74,7 @@ export default function AdminListingReviewActions({ listingId }: { listingId: st
           />
           <div className='admin-listing-reject-footer'>
             <span>{reason.trim().length}/1000</span>
-            <button type='button' disabled={busy || !reason.trim()} onClick={() => void review('reject')}>
+            <button type='button' disabled={busy} onClick={() => void review('reject')}>
               Send rejection
             </button>
           </div>

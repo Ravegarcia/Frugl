@@ -16,10 +16,9 @@ async function AdminBackupsContent() {
   await requireStaff();
 
   return (
-    <div className='admin-backups-page'>
-      <header className='admin-backups-header'>
+    <div className='admin-queue-page admin-backups-page'>
+      <header className='admin-queue-heading'>
         <div>
-          <p className='admin-eyebrow'>Data protection</p>
           <h1>Database backups</h1>
           <p>Create a SQL snapshot or download a previous backup.</p>
         </div>

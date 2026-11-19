@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { requireStaff } from '@/lib/auth';
 import EmptyState from '@/components/EmptyState';
+import ListingStatusNav from '@/app/dashboard/ListingStatusNav';
 import {
   ADMIN_PAGE_SIZE,
   adminPageHref,
@@ -13,14 +13,13 @@ import {
 import AdminActivityViewed from '../AdminActivityViewed';
 import AdminPagination from '../AdminPagination';
 import ReportQueueItem from './ReportQueueItem';
-import TabIndicator from '@/components/motion/TabIndicator';
 import AdminLoading from '../loading';
 
-const reportStatusOptions = [
-  { value: 'open', label: 'Open' },
-  { value: 'resolved', label: 'Resolved' },
-  { value: 'dismissed', label: 'Dismissed' },
-  { value: 'all', label: 'All reports' },
+const reportStatusLabels = [
+  { key: 'all', label: 'All' },
+  { key: 'open', label: 'Open' },
+  { key: 'resolved', label: 'Resolved' },
+  { key: 'dismissed', label: 'Dismissed' },
 ] as const;
 
 type AdminReportsPageProps = {
@@ -90,6 +89,10 @@ async function AdminReportsContent({
     dismissed: dismissedCountResult.count ?? 0,
     all: totalCountResult.count ?? 0,
   };
+  const reportTabs = reportStatusLabels.map((tab) => ({
+    ...tab,
+    count: reportCounts[tab.key],
+  }));
   const filteredCount = reportCounts[status];
   const totalPages = Math.max(1, Math.ceil(filteredCount / ADMIN_PAGE_SIZE));
   if (page > totalPages) {
@@ -97,58 +100,44 @@ async function AdminReportsContent({
   }
 
   return (
-    <div className='admin-reports-page'>
+    <div className='admin-queue-page admin-reports-page'>
       <AdminActivityViewed eventType='report_created' />
-      <header className='admin-reports-header'>
+      <header className='admin-queue-heading'>
         <div>
-          <p className='admin-eyebrow'>Trust &amp; safety</p>
-          <h1>Report queue</h1>
+          <h1 id='admin-reports-title'>Report queue</h1>
           <p>Review reported listings and suspicious user activity.</p>
         </div>
       </header>
 
-      <div className='admin-reports-toolbar'>
-        <nav className='admin-reports-filters' aria-label='Filter reports by status'>
-          {reportStatusOptions.map((option) => (
-            <Link
-              key={option.value}
-              href={adminPageHref('/admin/reports', 1, { status: option.value })}
-              className={`admin-report-filter${status === option.value ? ' is-active' : ''}`}
-              aria-current={status === option.value ? 'page' : undefined}
-            >
-              {option.label}
-              <span className='admin-report-filter-count'>
-                {reportCounts[option.value].toLocaleString()}
-              </span>
-              {status === option.value && (
-                <TabIndicator groupId='admin-report-filters' className='admin-report-filter-indicator' />
-              )}
-            </Link>
-          ))}
-        </nav>
-        <span className='admin-reports-count'>
-          {filteredCount.toLocaleString()} {filteredCount === 1 ? 'report' : 'reports'}
-        </span>
-      </div>
-
-      {reports && reports.length > 0 ? (
-        <div className='admin-reports-list'>
-          {reports.map((r: any) => (
-            <ReportQueueItem key={r.id} report={r} />
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          title={status === 'all' ? 'No reports yet' : `No ${status} reports`}
-          hint={status === 'open' ? 'The report queue is currently clean.' : 'Try another status filter to review other reports.'}
+      <section className='admin-panel admin-queue-panel' aria-labelledby='admin-reports-title'>
+        <ListingStatusNav
+          tabs={reportTabs}
+          activeTab={status}
+          hrefBase='/admin/reports'
+          paramName='status'
+          ariaLabel='Filter reports by status'
         />
-      )}
-      <AdminPagination
-        path='/admin/reports'
-        page={page}
-        totalPages={totalPages}
-        query={{ status }}
-      />
+        {reports && reports.length > 0 ? (
+          <div className='admin-queue-list admin-reports-list'>
+            {reports.map((report: any) => (
+              <ReportQueueItem key={report.id} report={report} showStatus={status === 'all'} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title={status === 'all' ? 'No reports yet' : `No ${status} reports`}
+            hint={status === 'open' ? 'The report queue is currently clear.' : 'Try another status filter to review reports.'}
+          />
+        )}
+        <AdminPagination
+          path='/admin/reports'
+          page={page}
+          totalPages={totalPages}
+          totalCount={filteredCount}
+          showSinglePage
+          query={{ status }}
+        />
+      </section>
     </div>
   );
 }

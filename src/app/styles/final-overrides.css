@@ -13,34 +13,6 @@
   }
 }
 
-.admin-listings-section {
-  gap: 1rem;
-  border: 1px solid var(--outline-variant);
-  border-radius: 1.25rem;
-  background:
-    radial-gradient(ellipse at 100% 0, color-mix(in srgb, var(--lavender-100) 52%, transparent), transparent 34%),
-    var(--surface);
-  padding: clamp(1rem, 2.2vw, 1.4rem);
-  box-shadow: 0 10px 26px rgb(24 13 38 / 4%);
-}
-
-.admin-listings-section-heading {
-  align-items: center;
-  border-bottom: 1px solid var(--surface-container);
-  padding: 0 0 0.9rem;
-}
-
-.admin-listings-section-heading h2 {
-  font-size: 1.12rem;
-  letter-spacing: -0.035em;
-}
-
-.admin-listings-count {
-  border: 1px solid var(--lavender-300);
-  padding: 0.4rem 0.75rem;
-  white-space: nowrap;
-}
-
 .admin-listings-list {
   display: grid;
   gap: 0.65rem;
@@ -48,15 +20,6 @@
   border: 0;
   background: transparent;
   box-shadow: none;
-}
-
-.admin-listing-row,
-.admin-listing-row + .admin-listing-row {
-  border: 1px solid var(--outline-variant);
-  border-radius: 1rem;
-  background: var(--surface);
-  padding: clamp(0.75rem, 1.7vw, 1rem);
-  box-shadow: 0 4px 14px rgb(24 13 38 / 3%);
 }
 
 .admin-listing-row:hover {
@@ -84,123 +47,14 @@
   padding-inline: 0.8rem;
 }
 
-.admin-reports-page {
-  gap: 1rem;
-}
-
-.admin-reports-toolbar {
-  border: 1px solid var(--outline-variant);
-  border-radius: 1rem;
-  background: linear-gradient(110deg, var(--cream), var(--surface));
-  padding: 0.75rem;
-}
-
-.admin-reports-filters {
-  gap: 0.45rem;
-  border-radius: 0.8rem;
-  background: color-mix(in srgb, var(--surface-container) 70%, transparent);
-  padding: 0.25rem;
-}
-
-.admin-report-filter {
-  min-height: 2.35rem;
-  border-color: transparent;
-  border-radius: 0.65rem;
-  padding: 0.45rem 0.85rem;
-  white-space: nowrap;
-  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
-}
-
-.admin-report-filter:hover {
-  border-color: transparent;
-  background: var(--surface);
-  color: var(--plum-900);
-}
-
-.admin-report-filter.is-active {
-  border-color: var(--outline-variant);
-  background: var(--surface);
-  color: var(--plum-900);
-  box-shadow: 0 2px 6px rgb(24 13 38 / 7%);
-}
-
-.admin-report-filter-count {
-  display: inline-grid;
-  min-width: 1.25rem;
-  height: 1.25rem;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--surface-container);
-  padding-inline: 0.3rem;
-  color: var(--muted-foreground);
-  font-size: 0.58rem;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.admin-report-filter.is-active .admin-report-filter-count {
-  background: var(--lavender-100);
-  color: var(--plum-900);
-}
-
-.admin-reports-count {
-  border: 1px solid var(--lavender-300);
-  border-radius: 999px;
-  background: var(--surface);
-  padding: 0.4rem 0.7rem;
-  color: var(--plum-700);
-  white-space: nowrap;
-}
-
-.admin-report-card {
-  border-radius: 1.1rem;
-  box-shadow: 0 5px 16px rgb(24 13 38 / 4%);
-  transition: border-color 160ms ease, box-shadow 160ms ease;
-}
-
-.admin-report-card:hover {
-  border-color: var(--lavender-300);
-  box-shadow: 0 9px 22px rgb(24 13 38 / 7%);
-}
-
 .admin-report-reason {
   border-radius: 0.8rem;
   background: color-mix(in srgb, var(--ivory) 65%, var(--surface));
   padding: 0.8rem 0.9rem;
 }
 
-.admin-pagination {
-  gap: 1rem;
-  border: 1px solid var(--outline-variant);
-  border-radius: 1rem;
-  background: linear-gradient(110deg, var(--surface), var(--cream));
-  padding: 0.65rem;
-}
-
-.admin-pagination-control {
-  min-width: 7.5rem;
-  min-height: 2.55rem;
-  gap: 0.55rem;
-  border-color: var(--lavender-300);
-  border-radius: 0.75rem;
-  background: var(--surface);
-  padding-inline: 0.9rem;
-  color: var(--plum-900);
-  box-shadow: 0 2px 6px rgb(24 13 38 / 4%);
-}
-
-.admin-pagination-control:hover:not([aria-disabled='true']) {
-  border-color: var(--plum-700);
-  background: var(--lavender-100);
-}
-
-.admin-pagination-status {
-  font-weight: 600;
-}
-
 @media (max-width: 600px) {
-  .admin-listing-row,
-  .admin-listing-row + .admin-listing-row {
+  .admin-listing-row {
     grid-template-columns: 3.25rem minmax(0, 1fr);
   }
 
@@ -215,20 +69,6 @@
     justify-content: flex-start;
   }
 
-  .admin-reports-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .admin-reports-filters {
-    width: 100%;
-    overflow-x: auto;
-  }
-
-  .admin-pagination-control {
-    min-width: auto;
-    padding-inline: 0.65rem;
-  }
 }
 .button-primary {
   border: 0;
@@ -279,6 +119,10 @@ a[class*='-cta'] {
   border-radius: 9999px !important;
 }
 
+.profile-menu-signout {
+  border-radius: 0 !important;
+}
+
 button.product-gallery-thumb {
   border-radius: 0.6rem !important;
 }
@@ -309,5 +153,43 @@ button.product-gallery-thumb {
   .seller-listings-filter-trigger,
   .seller-listings-filter-option {
     transition: none;
+  }
+}
+
+@media (min-width: 769px) {
+  .admin-queue-panel {
+    padding-bottom: 0.4rem;
+  }
+
+  .admin-queue-panel > .admin-pagination {
+    min-height: 0;
+    gap: 0.4rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0.15rem 0.25rem 0 0.1rem;
+  }
+
+  .admin-queue-panel > .admin-pagination .admin-pagination-controls {
+    gap: 0.1rem;
+  }
+
+  .admin-queue-panel > .admin-pagination .admin-pagination-control {
+    width: 2rem;
+    min-width: 0;
+    height: 2rem;
+    min-height: 0;
+    border: 0;
+    border-radius: 0.25rem;
+    background: transparent;
+    padding: 0;
+    font-size: 0.95rem;
+    box-shadow: none;
+  }
+
+  .admin-queue-panel > .admin-pagination .admin-pagination-status {
+    font-size: 0.62rem;
+    line-height: 1;
   }
 }

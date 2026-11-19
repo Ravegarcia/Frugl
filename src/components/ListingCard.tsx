@@ -36,8 +36,10 @@ export default function ListingCard({
           <img src={img} alt={listing.title} className='h-full w-full object-cover' loading='lazy' decoding='async' />
         ) : (
           <div className='listing-photo-placeholder'>
-            <Laptop size={32} />
-            <span>No photo</span>
+            <span className='listing-photo-placeholder-icon' aria-hidden='true'>
+              <Laptop size={24} />
+            </span>
+            <span>No photo available</span>
           </div>
         )}
       </div>

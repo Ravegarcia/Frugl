@@ -8,7 +8,13 @@ import { Button } from '@/components/ui/button';
 import TimeAgo from '@/components/TimeAgo';
 import { createClient } from '@/lib/supabase/client';
 
-export default function ReportQueueItem({ report }: { report: any }) {
+export default function ReportQueueItem({
+  report,
+  showStatus,
+}: {
+  report: any;
+  showStatus: boolean;
+}) {
   const router = useRouter();
   const supabase = createClient();
   const [status, setStatus] = useState(report.status);
@@ -19,16 +25,22 @@ export default function ReportQueueItem({ report }: { report: any }) {
     setBusy(true);
     setActionError(null);
     try {
-      const { error } = await supabase
-        .from('reports')
-        .update({ status: newStatus })
-        .eq('id', report.id);
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw new Error(authError.message);
+      if (!user) throw new Error('You must be signed in to update reports.');
 
-      if (error) setActionError(error.message);
-      else {
-        setStatus(newStatus);
-        router.refresh();
-      }
+      const { data: updated, error } = await supabase
+        .from('reports')
+        .update({ status: newStatus, resolved_by: report.resolved_by ?? user.id })
+        .eq('id', report.id)
+        .eq('status', 'open')
+        .select('id')
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      if (!updated) throw new Error('This report has already been updated. Refresh the queue.');
+      setStatus(newStatus);
+      router.refresh();
     } catch (error) {
       setActionError(error instanceof Error ? error.message : 'Unable to update this report.');
     } finally {
@@ -42,13 +54,13 @@ export default function ReportQueueItem({ report }: { report: any }) {
     : `/sellers/${report.target_id}`;
 
   return (
-    <article className='admin-report-card' aria-busy={busy}>
+    <article className='admin-card admin-report-card' aria-busy={busy}>
       <header className='admin-report-card-header'>
         <div className='admin-report-card-labels'>
           <span className={`admin-report-type ${targetIsListing ? 'is-listing' : 'is-user'}`}>
             {targetIsListing ? 'Listing report' : 'User report'}
           </span>
-          <span className={`admin-report-status is-${status}`}>{status}</span>
+          {showStatus && <span className={`admin-report-status is-${status}`}>{status}</span>}
         </div>
         <p className='admin-report-reporter'>
           Reported by <strong>{report.reporter?.name || 'User'}</strong>
@@ -80,7 +92,7 @@ export default function ReportQueueItem({ report }: { report: any }) {
               variant='outline'
               disabled={busy}
               onClick={() => handleResolve('dismissed')}
-              className='admin-report-action is-dismiss'
+              className='admin-queue-action is-dismiss'
             >
               Dismiss
             </Button>
@@ -89,7 +101,7 @@ export default function ReportQueueItem({ report }: { report: any }) {
               size='sm'
               disabled={busy}
               onClick={() => handleResolve('resolved')}
-              className='button-primary admin-report-action is-resolve'
+              className='button-primary admin-queue-action is-resolve'
             >
               Mark resolved
             </Button>
@@ -97,7 +109,7 @@ export default function ReportQueueItem({ report }: { report: any }) {
         )}
       </footer>
 
-      {actionError && <p className='admin-report-action-error' role='alert'>{actionError}</p>}
+      {actionError && <p className='admin-queue-action-error' role='alert'>{actionError}</p>}
     </article>
   );
 }

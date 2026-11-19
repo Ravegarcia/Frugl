@@ -7,8 +7,6 @@ import EmptyState from '@/components/EmptyState';
 import ListingStatusNav from './ListingStatusNav';
 import ListingActionsMenu from './ListingActionsMenu';
 import { PlusCircle, Laptop, Eye, MessageCircle } from '@/components/icons';
-import Stagger from '@/components/motion/Stagger';
-import StaggerItem from '@/components/motion/StaggerItem';
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab = 'active' } = await searchParams;
@@ -49,25 +47,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .eq('status', listingStatus)
     .order('created_at', { ascending: false });
   if (listingsError) throw new Error(`Could not load your listings: ${listingsError.message}`);
-
-  const messageCountByListing = new Map<string, number>();
-  if (listings?.length) {
-    const { data: conversations, error: conversationsError } = await supabase
-      .from('conversations')
-      .select('listing_id')
-      .eq('seller_id', user.id)
-      .in('listing_id', listings.map((listing) => listing.id));
-    if (conversationsError) {
-      console.error('Could not load listing conversation counts:', conversationsError.message);
-      throw new Error(`Could not load listing conversations: ${conversationsError.message}`);
-    }
-    for (const conversation of conversations ?? []) {
-      messageCountByListing.set(
-        conversation.listing_id,
-        (messageCountByListing.get(conversation.listing_id) ?? 0) + 1
-      );
-    }
-  }
 
   // Counts for tabs
   const [activeCount, draftCount, pendingCount, rejectedCount, reservedCount, soldCount] = await Promise.all([
@@ -121,8 +100,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <section className='seller-dashboard-listings' aria-label={`${currentTab.label} listings`}>
         {listings && listings.length > 0 ? (
-          <Stagger className='seller-dashboard-listing-grid' animatePresence>
-            {listings.map((l: any, index) => {
+          <div className='seller-dashboard-listing-grid'>
+            {listings.map((l: any) => {
               const img = coverUrl(l);
               const offersCount = l.offers?.length || 0;
               const statusTone = l.status === 'reserved'
@@ -196,23 +175,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                       listingId={l.id}
                       title={l.title || 'Untitled listing'}
                       status={l.status}
-                      messageCount={messageCountByListing.get(l.id) ?? 0}
                     />
                   </footer>
                 </article>
               );
-              return (
-                <StaggerItem
-                  key={l.id}
-                  index={index}
-                  initiallyVisible={index < 4}
-                  layout
-                >
-                  {card}
-                </StaggerItem>
-              );
+              return <div key={l.id}>{card}</div>;
             })}
-          </Stagger>
+          </div>
         ) : (
           <EmptyState
             title={`No ${activeTab} listings`}

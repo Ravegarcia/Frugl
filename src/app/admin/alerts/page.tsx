@@ -1,17 +1,45 @@
 import { Suspense } from 'react';
-import { AlertTriangle, ExternalLink, ShieldCheck } from '@/components/icons';
-import TimeAgo from '@/components/TimeAgo';
 import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth';
-import AdminLoading from '../loading';
+import EmptyState from '@/components/EmptyState';
+import ListingStatusNav from '@/app/dashboard/ListingStatusNav';
 import {
   ADMIN_PAGE_SIZE,
+  adminPageHref,
   getAdminPageRange,
   parseAdminPage,
+  parseAdminReportStatus,
 } from '@/lib/admin/pagination';
 import AdminActivityViewed from '../AdminActivityViewed';
 import AdminPagination from '../AdminPagination';
-import Link from 'next/link';
+import AdminLoading from '../loading';
+import AdminChatAlertItem from './AdminChatAlertItem';
+
+const alertStatusLabels = [
+  { key: 'all', label: 'All' },
+  { key: 'open', label: 'Open' },
+  { key: 'resolved', label: 'Resolved' },
+  { key: 'dismissed', label: 'Dismissed' },
+] as const;
+
+const chatAlertSelect = `
+  *,
+  messages (
+    id,
+    body,
+    conversation_id,
+    sender_id,
+    sender:profiles!messages_sender_id_fkey(id, name)
+  )
+`;
+
+function isMissingAlertStatus(error: { code?: string; message: string }) {
+  return (
+    ['42703', 'PGRST204'].includes(error.code ?? '') &&
+    /\bstatus\b/i.test(error.message) &&
+    /chat_alerts/i.test(error.message)
+  );
+}
 
 type AdminAlertsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -25,131 +53,130 @@ export default function AdminAlertsPage(props: AdminAlertsPageProps) {
   );
 }
 
-async function AdminAlertsContent({
-  searchParams,
-}: AdminAlertsPageProps) {
+async function AdminAlertsContent({ searchParams }: AdminAlertsPageProps) {
   const { supabase } = await requireStaff();
-  const { page: pageParam } = await searchParams;
-  const page = parseAdminPage(pageParam);
+  const params = await searchParams;
+  const page = parseAdminPage(params.page);
+  const status = parseAdminReportStatus(params.status);
   const { from, to } = getAdminPageRange(page);
 
-  const { data: alerts, error, count } = await supabase
+  let alertQuery = supabase
     .from('chat_alerts')
-    .select(`
-      *,
-      messages (
-        id,
-        body,
-        conversation_id,
-        sender_id,
-        sender:profiles!messages_sender_id_fkey(id, name)
-      )
-    `, { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(from, to);
+    .select(chatAlertSelect, { count: 'exact' })
+    .order('created_at', { ascending: false });
+  if (status !== 'all') alertQuery = alertQuery.eq('status', status);
 
-  if (error) {
-    throw new Error(`Unable to load admin chat alerts: ${error.message}`);
+  const [
+    alertsResult,
+    openCountResult,
+    resolvedCountResult,
+    dismissedCountResult,
+    allCountResult,
+  ] = await Promise.all([
+    alertQuery.range(from, to),
+    supabase.from('chat_alerts').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+    supabase.from('chat_alerts').select('id', { count: 'exact', head: true }).eq('status', 'resolved'),
+    supabase.from('chat_alerts').select('id', { count: 'exact', head: true }).eq('status', 'dismissed'),
+    supabase.from('chat_alerts').select('id', { count: 'exact', head: true }),
+  ]);
+
+  const queryErrors = [
+    alertsResult.error,
+    openCountResult.error,
+    resolvedCountResult.error,
+    dismissedCountResult.error,
+    allCountResult.error,
+  ].filter((error): error is NonNullable<typeof error> => error !== null);
+  const migrationWarning = queryErrors.some(isMissingAlertStatus);
+  const queryError = queryErrors.find((error) => !isMissingAlertStatus(error));
+  if (queryError) {
+    throw new Error(`Unable to load admin scam alerts: ${queryError.message}`);
   }
 
-  const totalPages = Math.max(1, Math.ceil((count ?? 0) / ADMIN_PAGE_SIZE));
+  let alerts = alertsResult.data;
+  const alertCounts = {
+    open: openCountResult.count ?? 0,
+    resolved: resolvedCountResult.count ?? 0,
+    dismissed: dismissedCountResult.count ?? 0,
+    all: allCountResult.count ?? 0,
+  };
+  let totalCount = alertCounts[status];
+
+  if (migrationWarning) {
+    const fallbackResult = await supabase
+      .from('chat_alerts')
+      .select(chatAlertSelect, { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(from, to);
+    if (fallbackResult.error) {
+      throw new Error(`Unable to load read-only scam alerts: ${fallbackResult.error.message}`);
+    }
+
+    alerts = fallbackResult.data;
+    totalCount = fallbackResult.count ?? 0;
+  }
+
+  const tabs = alertStatusLabels.map((tab) => ({ ...tab, count: alertCounts[tab.key] }));
+  const totalPages = Math.max(1, Math.ceil(totalCount / ADMIN_PAGE_SIZE));
   if (page > totalPages) {
-    redirect(`/admin/alerts?page=${totalPages}`);
+    redirect(migrationWarning
+      ? adminPageHref('/admin/alerts', totalPages)
+      : adminPageHref('/admin/alerts', totalPages, { status }));
   }
-  const alertCount = count ?? 0;
 
   return (
-    <div className='admin-alerts-page'>
+    <div className='admin-queue-page admin-alerts-page'>
       <AdminActivityViewed eventType='chat_alert_created' />
-      <header className='admin-alerts-header'>
+      <header className='admin-queue-heading'>
         <div>
-          <p className='admin-eyebrow'>Trust &amp; safety</p>
-          <h1>Scam chat alerts</h1>
-          <p>Review messages flagged by Frugl&apos;s scam-detection engine.</p>
+          <h1 id='admin-alerts-title'>Scam alerts</h1>
+          <p>Review suspicious messages flagged by Frugl&apos;s detection system.</p>
         </div>
       </header>
 
-      <section className='admin-alerts-section' aria-labelledby='admin-alerts-title'>
-        <div className='admin-alerts-section-heading'>
-          <div>
-            <p className='admin-eyebrow'>Automated monitoring</p>
-            <h2 id='admin-alerts-title'>Flagged messages</h2>
-          </div>
-          <span className={`admin-alerts-count ${alertCount ? 'has-alerts' : ''}`}>
-            <AlertTriangle size={14} />
-            {alertCount.toLocaleString()} {alertCount === 1 ? 'alert' : 'alerts'}
-          </span>
-        </div>
-
+      <section className='admin-panel admin-queue-panel' aria-labelledby='admin-alerts-title'>
+        {migrationWarning ? (
+          <p className='admin-alerts-migration-warning' role='status'>
+            Scam alert moderation is read-only until you apply <code>supabase/15_chat_alert_status.sql</code>.
+          </p>
+        ) : (
+          <ListingStatusNav
+            tabs={tabs}
+            activeTab={status}
+            hrefBase='/admin/alerts'
+            paramName='status'
+            ariaLabel='Filter scam alerts by status'
+          />
+        )}
         {alerts?.length ? (
-          <div className='admin-alerts-list'>
-            {alerts.map((alert: any) => {
-              const message = alert.messages;
-              const matchedPhrases: string[] = alert.matched_phrases ?? [];
-
-              return (
-                <article className='admin-chat-alert' key={alert.id}>
-                  <header className='admin-chat-alert-header'>
-                    <div className='admin-chat-alert-sender'>
-                      <span className='admin-chat-alert-icon' aria-hidden='true'>
-                        <AlertTriangle size={17} />
-                      </span>
-                      <div className='admin-chat-alert-sender-info'>
-                        <div className='admin-chat-alert-sender-heading'>
-                          <strong>{message?.sender?.name || 'Unknown sender'}</strong>
-                          <span>Needs review</span>
-                        </div>
-                        <p>Flagged <TimeAgo timestamp={alert.created_at} /></p>
-                      </div>
-                    </div>
-
-                    {message?.conversation_id ? (
-                      <Link
-                        href={`/messages/${message.conversation_id}`}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                        className='admin-chat-alert-link'
-                      >
-                        Open conversation <ExternalLink size={14} />
-                      </Link>
-                    ) : (
-                      <span className='admin-chat-alert-unavailable'>Conversation unavailable</span>
-                    )}
-                  </header>
-
-                  <div className='admin-chat-alert-message'>
-                    <p className='admin-chat-alert-label'>Flagged message</p>
-                    <blockquote>{message?.body || 'Message content unavailable.'}</blockquote>
-                  </div>
-
-                  <div className='admin-chat-alert-indicators'>
-                    <div className='admin-chat-alert-indicators-heading'>
-                      <p className='admin-chat-alert-label'>Matched keywords</p>
-                      <span>{matchedPhrases.length}</span>
-                    </div>
-                    {matchedPhrases.length ? (
-                      <div className='admin-chat-alert-phrases'>
-                        {matchedPhrases.map((phrase, index) => (
-                          <span key={`${phrase}-${index}`}>{phrase}</span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className='admin-chat-alert-no-indicators'>No matched keywords were provided.</p>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+          <div className='admin-queue-list admin-alerts-list'>
+            {alerts.map((alert: any) => (
+              <AdminChatAlertItem
+                key={alert.id}
+                alert={{ ...alert, status: alert.status ?? 'open' }}
+                showStatus={!migrationWarning && status === 'all'}
+                readOnly={migrationWarning}
+              />
+            ))}
           </div>
         ) : (
-          <div className='admin-alerts-empty'>
-            <span className='admin-alerts-empty-icon' aria-hidden='true'><ShieldCheck size={23} /></span>
-            <p className='admin-eyebrow'>Monitoring is clear</p>
-            <h2>No chat alerts</h2>
-            <p>No suspicious off-platform payment or scam keywords have been triggered.</p>
-          </div>
+          <EmptyState
+            title={migrationWarning || status === 'all' ? 'No scam alerts yet' : `No ${status} alerts`}
+            hint={!migrationWarning && status === 'open'
+              ? 'New messages flagged for review will appear here.'
+              : migrationWarning || status === 'all'
+                ? 'New messages flagged for review will appear here.'
+                : 'Try another status filter to review other alerts.'}
+          />
         )}
-        <AdminPagination path='/admin/alerts' page={page} totalPages={totalPages} />
+        <AdminPagination
+          path='/admin/alerts'
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          showSinglePage
+          query={migrationWarning ? undefined : { status }}
+        />
       </section>
     </div>
   );

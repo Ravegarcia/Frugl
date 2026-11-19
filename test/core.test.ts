@@ -245,23 +245,27 @@ describe('Seller listing status actions', () => {
       reserved_by: null,
       reserved_until: null,
       buyer_id: null,
+      sold_transaction_id: null,
     });
     expect(sellerListingStatusPatch('reserved', 'available')).toEqual({
       status: 'available',
       reserved_by: null,
       reserved_until: null,
       buyer_id: null,
+      sold_transaction_id: null,
     });
-    expect(sellerListingStatusPatch('reserved', 'sold')).toEqual({
-      status: 'sold',
+    expect(sellerListingStatusPatch('sold', 'available')).toEqual({
+      status: 'available',
       reserved_by: null,
       reserved_until: null,
+      buyer_id: null,
+      sold_transaction_id: null,
     });
   });
 
   it('rejects unsupported, draft, and repeated status transitions', () => {
     expect(sellerListingStatusPatch('draft', 'available')).toBeNull();
-    expect(sellerListingStatusPatch('sold', 'available')).toBeNull();
+    expect(sellerListingStatusPatch('available', 'sold')).toBeNull();
     expect(sellerListingStatusPatch('available', 'draft')).toBeNull();
     expect(sellerListingStatusPatch('available', 'available')).toBeNull();
   });

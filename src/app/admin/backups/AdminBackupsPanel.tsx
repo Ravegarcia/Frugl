@@ -107,7 +107,7 @@ export default function AdminBackupsPanel() {
   return (
     <div className='admin-backups-content'>
       <div className='admin-backups-actions'>
-        <button type='button' className='button-primary' onClick={() => void createBackup()} disabled={creating}>
+        <button type='button' className='admin-backups-create' onClick={() => void createBackup()} disabled={creating}>
           <FileLines size={16} />
           {creating ? 'Starting backup…' : 'Create database backup'}
         </button>

@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth';
 import { formatPrice } from '@/lib/constants';
 import { coverUrl } from '@/lib/queries';
+import EmptyState from '@/components/EmptyState';
+import ListingStatusNav from '@/app/dashboard/ListingStatusNav';
 import {
   ADMIN_PAGE_SIZE,
   adminPageHref,
@@ -42,7 +44,7 @@ async function AdminListingsContent({
   let listingQuery = supabase
     .from('listings')
     .select('*, listing_photos(image_url, sort_order), seller:profiles!listings_seller_id_fkey(name)', { count: 'exact' })
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: status === 'pending_review' });
   if (status === 'pending_review') listingQuery = listingQuery.eq('status', status);
 
   const [listingsResult, pendingCountResult, allCountResult] = await Promise.all([
@@ -66,48 +68,33 @@ async function AdminListingsContent({
   }
 
   return (
-    <div className='admin-listings-page'>
+    <div className='admin-queue-page admin-listings-page'>
       <AdminActivityViewed eventType='listing_created' />
-      <header className='admin-listings-header'>
+      <header className='admin-queue-heading'>
         <div>
-          <p className='admin-eyebrow'>Marketplace operations</p>
-          <h1>Manage listings</h1>
+          <h1 id='admin-listings-title'>Manage listings</h1>
           <p>Review submissions, manage visibility, and feature listings.</p>
         </div>
       </header>
 
-      <section className='admin-listings-section' aria-labelledby='admin-listings-title'>
-        <div className='admin-listings-section-heading'>
-          <div>
-            <p className='admin-eyebrow'>Inventory</p>
-            <h2 id='admin-listings-title'>{status === 'pending_review' ? 'Awaiting review' : 'All listings'}</h2>
-          </div>
-          <span className='admin-listings-count'>{(count ?? 0).toLocaleString()} total</span>
-        </div>
-
-        <nav className='admin-listing-filters' aria-label='Filter listings'>
-          <Link
-            href={adminPageHref('/admin/listings', 1, { status: 'pending_review' })}
-            className={`admin-listing-filter${status === 'pending_review' ? ' is-active' : ''}`}
-            aria-current={status === 'pending_review' ? 'page' : undefined}
-          >
-            Awaiting review <span>{pendingCount.toLocaleString()}</span>
-          </Link>
-          <Link
-            href={adminPageHref('/admin/listings', 1, { status: 'all' })}
-            className={`admin-listing-filter${status === 'all' ? ' is-active' : ''}`}
-            aria-current={status === 'all' ? 'page' : undefined}
-          >
-            All listings <span>{allCount.toLocaleString()}</span>
-          </Link>
-        </nav>
+      <section className='admin-panel admin-queue-panel admin-listings-panel' aria-labelledby='admin-listings-title'>
+        <ListingStatusNav
+          tabs={[
+            { key: 'all', label: 'All listings', count: allCount },
+            { key: 'pending_review', label: 'Awaiting review', count: pendingCount },
+          ]}
+          activeTab={status}
+          hrefBase='/admin/listings'
+          paramName='status'
+          ariaLabel='Filter listings by review status'
+        />
 
         {listings?.length ? (
-          <div className='admin-listings-list'>
+          <div className='admin-queue-list admin-listings-list'>
             {listings.map((listing: any) => {
               const cover = coverUrl(listing);
               return (
-                <article className='admin-listing-row' key={listing.id}>
+                <article className='admin-card admin-listing-row' key={listing.id}>
                   <Link href={`/laptops/${listing.id}`} className='admin-listing-cover' aria-label={`View ${listing.title || 'listing'}`}>
                     {cover ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -132,6 +119,8 @@ async function AdminListingsContent({
                           ? 'Awaiting review'
                           : listing.status.replaceAll('_', ' ')}
                       </span>
+                      {listing.is_featured && <span className='admin-listing-flag is-featured'>Featured</span>}
+                      {!listing.is_visible && <span className='admin-listing-flag is-hidden'>Hidden</span>}
                     </div>
                     {listing.review_reason && (
                       <p className='admin-listing-review-reason'>
@@ -144,24 +133,32 @@ async function AdminListingsContent({
                     {listing.status === 'pending_review' && (
                       <AdminListingReviewActions listingId={listing.id} />
                     )}
-                    <AdminListingToggle
-                      listingId={listing.id}
-                      initialVisible={listing.is_visible}
-                      initialFeatured={listing.is_featured}
-                    />
+                    {['available', 'reserved', 'sold'].includes(listing.status) && (
+                      <AdminListingToggle
+                        listingId={listing.id}
+                        initialVisible={listing.is_visible}
+                        initialFeatured={listing.is_featured}
+                        allowFeatured={listing.status === 'available'}
+                      />
+                    )}
                   </div>
                 </article>
               );
             })}
           </div>
         ) : (
-          <div className='admin-listings-empty'>
-            <span aria-hidden='true'><Laptop size={22} /></span>
-            <strong>{status === 'pending_review' ? 'No listings awaiting review' : 'No listings found'}</strong>
-            <p>{status === 'pending_review' ? 'New submissions will appear here.' : 'Marketplace listings will appear here.'}</p>
-          </div>
+          <EmptyState
+            title={status === 'pending_review' ? 'No listings awaiting review' : 'No listings found'}
+            hint={status === 'pending_review' ? 'New submissions will appear here.' : 'Marketplace listings will appear here.'}
+          />
         )}
-        <AdminPagination path='/admin/listings' page={page} totalPages={totalPages} query={{ status }} />
+        <AdminPagination
+          path='/admin/listings'
+          page={page}
+          totalPages={totalPages}
+          totalCount={count ?? 0}
+          query={{ status }}
+        />
       </section>
     </div>
   );

@@ -504,8 +504,14 @@
 
 .seller-dashboard-listing-grid {
   display: grid;
+  align-content: start;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
+}
+
+.seller-dashboard-listing-grid > div:has(.seller-dashboard-action-trigger[aria-expanded='true']) {
+  position: relative;
+  z-index: 1;
 }
 
 .seller-dashboard-listing-card {
@@ -714,6 +720,7 @@
   justify-content: flex-start;
   gap: 0.65rem;
   border: 0;
+  border-radius: 0.65rem !important;
   background: transparent;
   padding: 0.55rem 0.7rem;
   color: var(--plum-900);
@@ -768,6 +775,206 @@
 .seller-dashboard-action-popover svg {
   flex: 0 0 auto;
   color: var(--plum-700);
+}
+
+.seller-transaction-modal {
+  display: grid;
+  width: min(100%, 34rem);
+  max-height: min(90dvh, 46rem);
+  gap: 1rem;
+  overflow-y: auto;
+  border: 1px solid var(--lavender-300);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  padding: clamp(1rem, 3vw, 1.5rem);
+  color: var(--plum-900);
+  box-shadow: 0 20px 55px rgb(24 13 38 / 22%);
+}
+
+.seller-transaction-modal-header,
+.seller-transaction-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.seller-transaction-modal-header h2 {
+  margin: 0;
+  font-family: var(--font-manrope), sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.seller-transaction-modal-header p,
+.seller-transaction-help {
+  margin: 0.35rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.seller-transaction-help {
+  margin: 0;
+}
+
+.seller-transaction-close {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--outline-variant);
+  border-radius: 50% !important;
+  background: var(--surface);
+  color: var(--plum-700);
+  cursor: pointer;
+}
+
+.seller-transaction-buyers,
+.seller-transaction-rating {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.seller-transaction-buyers legend,
+.seller-transaction-rating legend {
+  margin-bottom: 0.35rem;
+  color: var(--plum-900);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.seller-transaction-buyer {
+  display: flex;
+  min-height: 3.25rem;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  padding: 0.5rem 0.65rem;
+  color: var(--plum-900);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.seller-transaction-buyer:has(input:checked) {
+  border-color: var(--plum-700);
+  background: var(--lavender-100);
+}
+
+.seller-transaction-buyer input {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  accent-color: var(--plum-700);
+}
+
+.seller-transaction-buyer img,
+.seller-transaction-avatar {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--lavender-100);
+  color: var(--plum-700);
+  font-size: 0.8rem;
+  font-weight: 700;
+  object-fit: cover;
+}
+
+.seller-transaction-unlinked {
+  color: var(--muted-foreground);
+}
+
+.seller-transaction-stars {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.seller-transaction-stars button {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--plum-700);
+  cursor: pointer;
+}
+
+.seller-transaction-stars button:focus-visible,
+.seller-transaction-close:focus-visible,
+.seller-transaction-cancel:focus-visible,
+.seller-transaction-submit:focus-visible {
+  outline: 2px solid var(--plum-700);
+  outline-offset: 3px;
+}
+
+.seller-transaction-stars > span {
+  margin-left: 0.45rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.seller-transaction-state,
+.seller-transaction-error {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.seller-transaction-error {
+  border: 1px solid var(--error-border);
+  border-radius: 0.65rem;
+  background: var(--error-container);
+  padding: 0.55rem 0.7rem;
+  color: var(--destructive);
+}
+
+.seller-transaction-footer {
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+}
+
+.seller-transaction-cancel,
+.seller-transaction-submit {
+  min-height: 2.65rem;
+  border: 1px solid var(--outline-variant);
+  padding: 0.6rem 1rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.seller-transaction-cancel {
+  background: var(--surface);
+  color: var(--plum-700);
+}
+
+.seller-transaction-submit {
+  border-color: var(--plum-700);
+  background: var(--plum-700);
+  color: var(--surface);
+}
+
+.seller-transaction-cancel:disabled,
+.seller-transaction-submit:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -82,52 +82,46 @@ export default function ProfileMenu({
           <strong className='text-[0.98rem] font-semibold text-plum-900'>{name ?? 'Your account'}</strong>
           {email && <span className='truncate text-[0.8rem] text-plum-700'>{email}</span>}
         </div>
-        <div className='grid py-[0.35rem]'>
-          {isAdmin ? (
-            <Link href='/admin' onClick={() => setIsOpen(false)} className={linkClasses}>
-              <span className={contentClasses}><Shield size={17} className={iconClasses} />Admin dashboard</span>
+        {!isAdmin && (
+          <div className='grid py-[0.35rem]'>
+            <Link href={`/sellers/${userId}`} onClick={() => setIsOpen(false)} className={linkClasses}>
+              <span className={contentClasses}><User size={17} variant='solid' className={iconClasses} />My Profile</span>
             </Link>
-          ) : (
-            <>
-              <Link href={`/sellers/${userId}`} onClick={() => setIsOpen(false)} className={linkClasses}>
-                <span className={contentClasses}><User size={17} variant='solid' className={iconClasses} />My Profile</span>
-              </Link>
-              <Link
-                href='/dashboard'
-                onClick={() => setIsOpen(false)}
-                className={linkClasses}
-                aria-label={unreadPublishedListings
-                  ? `Manage Listings, ${unreadPublishedListings} new published listing notification${unreadPublishedListings === 1 ? '' : 's'}`
-                  : 'Manage Listings'}
-              >
-                <span className={contentClasses}>
-                  <span className='relative inline-flex shrink-0'>
-                    <Laptop size={17} className={iconClasses} />
-                    {unreadPublishedListings > 0 && (
-                      <span className='absolute -right-[0.55rem] -top-[0.45rem] z-[1] inline-flex h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-destructive px-[0.2rem] text-center text-[0.68rem] font-semibold leading-none text-destructive-foreground' aria-hidden='true'>
-                        {unreadPublishedListings > 99 ? '99+' : unreadPublishedListings}
-                      </span>
-                    )}
-                  </span>
-                  Manage Listings
+            <Link
+              href='/dashboard'
+              onClick={() => setIsOpen(false)}
+              className={linkClasses}
+              aria-label={unreadPublishedListings
+                ? `Manage Listings, ${unreadPublishedListings} new published listing notification${unreadPublishedListings === 1 ? '' : 's'}`
+                : 'Manage Listings'}
+            >
+              <span className={contentClasses}>
+                <span className='relative inline-flex shrink-0'>
+                  <Laptop size={17} className={iconClasses} />
+                  {unreadPublishedListings > 0 && (
+                    <span className='absolute -right-[0.55rem] -top-[0.45rem] z-[1] inline-flex h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-destructive px-[0.2rem] text-center text-[0.68rem] font-semibold leading-none text-destructive-foreground' aria-hidden='true'>
+                      {unreadPublishedListings > 99 ? '99+' : unreadPublishedListings}
+                    </span>
+                  )}
                 </span>
+                Manage Listings
+              </span>
+            </Link>
+            <Link href='/account' onClick={() => setIsOpen(false)} className={linkClasses}>
+              <span className={contentClasses}><Gear size={17} className={iconClasses} />Settings</span>
+            </Link>
+            <Link href='/offers' onClick={() => setIsOpen(false)} className={linkClasses}>
+              <span className={contentClasses}><Tag size={17} className={iconClasses} />Offers</span>
+            </Link>
+            {canAccessAdmin && (
+              <Link href='/admin' onClick={() => setIsOpen(false)} className={linkClasses}>
+                <span className={contentClasses}><Shield size={17} className={iconClasses} />Admin</span>
               </Link>
-              <Link href='/account' onClick={() => setIsOpen(false)} className={linkClasses}>
-                <span className={contentClasses}><Gear size={17} className={iconClasses} />Settings</span>
-              </Link>
-              <Link href='/offers' onClick={() => setIsOpen(false)} className={linkClasses}>
-                <span className={contentClasses}><Tag size={17} className={iconClasses} />Offers</span>
-              </Link>
-              {canAccessAdmin && (
-                <Link href='/admin' onClick={() => setIsOpen(false)} className={linkClasses}>
-                  <span className={contentClasses}><Shield size={17} className={iconClasses} />Admin</span>
-                </Link>
-              )}
-            </>
-          )}
-        </div>
+            )}
+          </div>
+        )}
         <form action='/auth/signout' method='post' className='border-t border-lavender-300 py-[0.35rem]'>
-          <button type='submit' className={`${linkClasses} text-destructive hover:text-destructive`}>
+          <button type='submit' className={`${linkClasses} profile-menu-signout text-destructive hover:text-destructive`}>
             <span className={contentClasses}><SignOut size={17} className='shrink-0 text-destructive' />Sign out</span>
           </button>
         </form>

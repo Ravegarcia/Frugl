@@ -17,6 +17,7 @@ import TopBar from '@/components/TopBar';
 import Footer from '@/components/Footer';
 import BottomBar from '@/components/BottomBar';
 import MotionProvider from '@/components/motion/MotionProvider';
+import SessionHeartbeat from '@/components/SessionHeartbeat';
 import { cn } from "@/lib/utils";
 
 const audiowide = Audiowide({
@@ -57,6 +58,7 @@ export default function RootLayout({
     <html lang='en' className={cn(audiowide.variable, poppins.variable, manrope.variable, geistMono.variable, 'font-sans')}>
       <body className='app-body'>
         <MotionProvider>
+          <SessionHeartbeat />
           <Suspense fallback={<header className='sticky top-0 z-20 h-14 bg-transparent px-4 pt-3 max-md:px-2.5 max-md:pt-2' />}>
             <TopBar />
           </Suspense>

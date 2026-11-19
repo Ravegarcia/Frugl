@@ -18,7 +18,12 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     .eq('id', id)
     .maybeSingle();
   if (!listing) notFound();
-  if (listing.status === 'draft') redirect('/sell/' + id);
+  if (['draft', 'pending_review', 'rejected'].includes(listing.status)) {
+    if (listing.seller_id === user.id) {
+      redirect(listing.status === 'pending_review' ? '/dashboard?tab=pending' : '/sell/' + id);
+    }
+    if (profile?.role !== 'admin') notFound();
+  }
 
   const photos = [...(listing.listing_photos ?? [])]
     .sort((a: any, b: any) => a.sort_order - b.sort_order)

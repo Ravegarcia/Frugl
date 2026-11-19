@@ -1,7 +1,9 @@
+import { Suspense } from 'react';
 import { AlertTriangle, ExternalLink, ShieldCheck } from '@/components/icons';
 import TimeAgo from '@/components/TimeAgo';
 import { redirect } from 'next/navigation';
 import { requireStaff } from '@/lib/auth';
+import AdminLoading from '../loading';
 import {
   ADMIN_PAGE_SIZE,
   getAdminPageRange,
@@ -11,11 +13,21 @@ import AdminActivityViewed from '../AdminActivityViewed';
 import AdminPagination from '../AdminPagination';
 import Link from 'next/link';
 
-export default async function AdminAlertsPage({
-  searchParams,
-}: {
+type AdminAlertsPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
+};
+
+export default function AdminAlertsPage(props: AdminAlertsPageProps) {
+  return (
+    <Suspense fallback={<AdminLoading />}>
+      <AdminAlertsContent {...props} />
+    </Suspense>
+  );
+}
+
+async function AdminAlertsContent({
+  searchParams,
+}: AdminAlertsPageProps) {
   const { supabase } = await requireStaff();
   const { page: pageParam } = await searchParams;
   const page = parseAdminPage(pageParam);
@@ -53,11 +65,7 @@ export default async function AdminAlertsPage({
         <div>
           <p className='admin-eyebrow'>Trust &amp; safety</p>
           <h1>Scam chat alerts</h1>
-          <p>Messages automatically flagged by Frugl&apos;s scam-detection engine.</p>
-          <div className='admin-alerts-header-note'>
-            <AlertTriangle size={15} />
-            <p>Review the message context before opening the conversation.</p>
-          </div>
+          <p>Review messages flagged by Frugl&apos;s scam-detection engine.</p>
         </div>
       </header>
 

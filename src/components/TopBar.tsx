@@ -12,7 +12,8 @@ const navLinkClasses =
 export default async function TopBar() {
   await connection();
   const { supabase, user, profile } = await getSessionProfile();
-  const canBrowse = Boolean(user && profile?.role !== 'admin');
+  const isAdmin = profile?.role === 'admin';
+  const canBrowse = Boolean(user && !isAdmin);
   let unread = 0;
   let unreadMessages = 0;
   let recentNotifications: NotificationItem[] = [];
@@ -75,7 +76,7 @@ export default async function TopBar() {
     <>
       <header className='sticky top-0 z-20 bg-transparent px-4 pt-3 text-foreground [--header-gap:0.75rem] max-md:px-2.5 max-md:pt-2 max-md:[--header-gap:0.55rem]'>
         <div className='mx-auto flex min-h-[4.5rem] w-full max-w-[80rem] items-center gap-[var(--header-gap)] rounded-[1.25rem] border border-lavender-300 bg-[color-mix(in_srgb,var(--surface)_96%,transparent)] px-5 shadow-[0_10px_28px_rgb(24_13_38_/_0.07)] backdrop-blur-[14px] transition-shadow duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] max-md:min-h-0 max-md:flex-wrap max-md:rounded-2xl max-md:px-3 max-md:py-[0.55rem]'>
-          <Link href='/' className='shrink-0 font-heading text-[1.35rem] tracking-[-0.04em] text-primary! max-md:text-[1.05rem]'>Frugl</Link>
+          <Link href={isAdmin ? '/admin' : '/'} className='shrink-0 font-heading text-[1.35rem] tracking-[-0.04em] text-primary! max-md:text-[1.05rem]'>Frugl</Link>
           {canBrowse && <HeaderSearch />}
           <nav className='ml-auto flex items-center gap-[0.35rem] text-sm max-md:w-auto max-md:justify-end max-md:text-[0.8rem]' aria-label='Main navigation'>
             {canBrowse && (
@@ -84,9 +85,7 @@ export default async function TopBar() {
             {profile?.role !== 'admin' && <Link href='/sell' className='button-primary inline-flex min-h-12 items-center justify-center whitespace-nowrap px-[0.85rem] py-[0.7rem] font-semibold max-md:px-3'>Sell a laptop</Link>}
             {user ? (
               <>
-                {profile?.role === 'admin' ? (
-                  <Link href='/admin' className={`${navLinkClasses} max-md:hidden`}>Admin dashboard</Link>
-                ) : (
+                {profile?.role !== 'admin' && (
                   <HeaderNavIcons
                     key={user.id}
                     userId={user.id}

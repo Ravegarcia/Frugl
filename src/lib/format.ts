@@ -8,3 +8,27 @@ export function timeAgo(iso?: string | null) {
   }
   return 'just now';
 }
+
+export function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return count === 1 ? singular : plural;
+}
+
+export function formatPrivacyCount(count: number, threshold = 3): string {
+  if (!Number.isFinite(count) || count < 0) {
+    throw new RangeError('Count must be a non-negative finite number.');
+  }
+  if (!Number.isInteger(threshold) || threshold < 1) {
+    throw new RangeError('Privacy threshold must be a positive integer.');
+  }
+  return count < threshold ? `Fewer than ${threshold}` : count.toLocaleString();
+}
+
+export function formatPrivacyCountLabel(
+  count: number,
+  singular: string,
+  plural = `${singular}s`,
+  threshold = 3,
+): string {
+  const noun = count < threshold ? plural : pluralize(count, singular, plural);
+  return `${formatPrivacyCount(count, threshold)} ${noun}`;
+}

@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { sanitizeLocationSearchQuery } from '@/lib/location-validation';
 
 export interface LocationSuggestion {
   id: string;
   primary: string;
   secondary: string;
   value: string;
+  lat: number | null;
+  lng: number | null;
 }
+
+type CuratedLocation = Omit<LocationSuggestion, 'lat' | 'lng'>;
 
 // Curated fast-path locations (Philippine cities/municipalities)
 // Provides instant zero-latency matches and fallback if external OSM endpoints are slow or offline.
-const CURATED_LOCATIONS: LocationSuggestion[] = [
+const CURATED_LOCATION_DEFINITIONS: CuratedLocation[] = [
   { id: 'ph-qc', primary: 'Quezon City', secondary: 'City · Metro Manila, Philippines', value: 'Quezon City, Metro Manila' },
   { id: 'ph-manila', primary: 'Manila', secondary: 'City · Metro Manila, Philippines', value: 'Manila, Metro Manila' },
   { id: 'ph-makati', primary: 'Makati City', secondary: 'City · Metro Manila, Philippines', value: 'Makati City, Metro Manila' },
@@ -69,6 +74,52 @@ const CURATED_LOCATIONS: LocationSuggestion[] = [
   { id: 'ph-iligan', primary: 'Iligan City', secondary: 'City · Lanao del Norte, Philippines', value: 'Iligan City, Lanao del Norte' },
 ];
 
+const CURATED_COORDINATES: Record<string, readonly [number, number]> = {
+  'ph-qc': [14.65105, 121.04863],
+  'ph-manila': [14.59045, 120.98036],
+  'ph-makati': [14.55679, 121.02112],
+  'ph-taguig': [14.52705, 121.07449],
+  'ph-bgc': [14.55081, 121.05097],
+  'ph-pasig': [14.56052, 121.07643],
+  'ph-paranaque': [14.50081, 120.99153],
+  'ph-pasay': [14.5437, 120.99465],
+  'ph-marikina': [14.63311, 121.09935],
+  'ph-muntinlupa': [14.38926, 121.04491],
+  'ph-caloocan': [14.65129, 120.97219],
+  'ph-valenzuela': [14.6915, 120.96994],
+  'ph-san-juan': [14.60444, 121.02995],
+  'ph-malabon': [14.65785, 120.95113],
+  'ph-navotas': [14.65719, 120.94797],
+  'ph-san-pablo': [14.07, 121.325],
+  'ph-santa-rosa': [14.31, 121.11],
+  'ph-calamba': [14.211, 121.165],
+  'ph-binan': [14.341, 121.08],
+  'ph-cabuyao': [14.272, 121.125],
+  'ph-san-pedro': [14.36, 121.06],
+  'ph-los-banos': [14.17, 121.242],
+  'ph-antipolo': [14.5872, 121.17592],
+  'ph-cainta': [14.57802, 121.11631],
+  'ph-taytay': [14.57047, 121.13195],
+  'ph-sjdm': [14.8102, 121.04741],
+  'ph-baguio': [16.41199, 120.59339],
+  'ph-batangas': [13.75523, 121.05913],
+  'ph-naga': [13.62401, 123.18503],
+  'ph-cebu': [10.29349, 123.90182],
+  'ph-iloilo': [10.69265, 122.57368],
+  'ph-tacloban': [11.24316, 125.00829],
+  'ph-davao': [7.06483, 125.60806],
+};
+
+// Unmatched or ambiguous geocoder results stay nullable rather than storing a guessed point.
+const CURATED_LOCATIONS: LocationSuggestion[] = CURATED_LOCATION_DEFINITIONS.map((location) => {
+  const coordinates = CURATED_COORDINATES[location.id];
+  return {
+    ...location,
+    lat: coordinates?.[0] ?? null,
+    lng: coordinates?.[1] ?? null,
+  };
+});
+
 function formatPlaceType(osmValue?: string, osmType?: string): string {
   const raw = (osmValue || osmType || '').toLowerCase();
   if (raw === 'city' || raw === 'municipality') return 'City';
@@ -89,6 +140,27 @@ function formatPlaceType(osmValue?: string, osmType?: string): string {
   return 'Location';
 }
 
+function isPlaceResult(osmValue?: string): boolean {
+  const placeValues = new Set([
+    'city',
+    'municipality',
+    'town',
+    'village',
+    'suburb',
+    'quarter',
+    'neighbourhood',
+    'locality',
+    'district',
+    'state',
+    'province',
+    'county',
+    'region',
+    'administrative',
+    'hamlet',
+  ]);
+  return Boolean(osmValue && placeValues.has(osmValue.toLowerCase()));
+}
+
 function normalize(str: string): string {
   return str
     .normalize('NFD')
@@ -97,6 +169,39 @@ function normalize(str: string): string {
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  return values.find((value): value is string => typeof value === 'string' && value.length > 0);
+}
+
+function getPhilippinesCoordinates(feature: unknown): { lat: number; lng: number } | null {
+  if (!isRecord(feature) || !isRecord(feature.properties) || !isRecord(feature.geometry)) return null;
+  const coordinates = feature.geometry.coordinates;
+  const properties = feature.properties;
+  const isPhilippines =
+    properties?.countrycode === 'PH' ||
+    properties?.country_code === 'PH' ||
+    normalize(String(properties?.country || '')) === 'philippines';
+  if (
+    !isPhilippines ||
+    !Array.isArray(coordinates) ||
+    typeof coordinates[0] !== 'number' ||
+    typeof coordinates[1] !== 'number' ||
+    !Number.isFinite(coordinates[0]) ||
+    !Number.isFinite(coordinates[1]) ||
+    coordinates[0] < 116 ||
+    coordinates[0] > 128 ||
+    coordinates[1] < 4 ||
+    coordinates[1] > 22
+  ) {
+    return null;
+  }
+  return { lat: coordinates[1], lng: coordinates[0] };
 }
 
 export async function GET(req: NextRequest) {
@@ -122,109 +227,131 @@ export async function GET(req: NextRequest) {
 
   const results: LocationSuggestion[] = [...localMatches.slice(0, 4)];
   const seenKeys = new Set(results.map((r) => normalize(r.value)));
+  const externalQuery = sanitizeLocationSearchQuery(q);
+  if (!externalQuery) return NextResponse.json({ suggestions: results.slice(0, 8) });
 
-  // 2. Query Photon (with place layers + country-wide Philippines zoom bias) and Nominatim in parallel
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
-
-  // Filter out street/highway noise using layer=city,locality,district,county,state
-  // Center bias on the Philippines (12.8797, 121.7740) at country zoom=6 so provinces outside Manila aren't penalized
+  // Photon is bounded to the Philippines and country-checked before results are returned.
   const photonUrl =
-    `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}` +
-    `&lat=12.8797&lon=121.7740&zoom=6&location_bias_scale=0.5` +
+    `https://photon.komoot.io/api/?q=${encodeURIComponent(externalQuery)}` +
+    `&bbox=116,4,128,22` +
     `&layer=city&layer=locality&layer=district&layer=county&layer=state` +
     `&limit=12&lang=en`;
 
   const nominatimUrl =
     `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1` +
-    `&countrycodes=ph&limit=6&q=${encodeURIComponent(q)}`;
+    `&countrycodes=ph&limit=6&q=${encodeURIComponent(externalQuery)}`;
 
-  try {
-    const [photonSettled, nominatimSettled] = await Promise.allSettled([
-      fetch(photonUrl, {
-        headers: {
-          Accept: 'application/json',
-          'User-Agent': 'FruglMarketplace/1.0 (Location Autocomplete)',
-        },
+  async function fetchJson(url: string, headers: HeadersInit): Promise<unknown | null> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    try {
+      const response = await fetch(url, {
+        headers,
         signal: controller.signal,
         next: { revalidate: 3600 },
-      }).then((r) => (r.ok ? r.json() : null)),
-      fetch(nominatimUrl, {
-        headers: {
-          Accept: 'application/json',
-          'Accept-Language': 'en',
-          'User-Agent': 'FruglMarketplace/1.0 (Location Autocomplete)',
-        },
-        signal: controller.signal,
-        next: { revalidate: 3600 },
-      }).then((r) => (r.ok ? r.json() : null)),
-    ]);
-
-    clearTimeout(timeout);
-
-    // Process Photon results
-    if (photonSettled.status === 'fulfilled' && photonSettled.value) {
-      const features = Array.isArray(photonSettled.value.features)
-        ? photonSettled.value.features
-        : [];
-
-      for (const feat of features) {
-        const props = feat?.properties;
-        if (!props?.name) continue;
-
-        const name: string = props.name;
-        const city: string | undefined = props.city || props.town || props.locality;
-        const state: string | undefined = props.state || props.county;
-        const country: string | undefined = props.country;
-        const placeType = formatPlaceType(props.osm_value, props.type);
-
-        // Include province/city in primary or secondary so same-named places in different provinces stay distinct
-        const regionLabel = state || city;
-        const primary =
-          regionLabel && normalize(regionLabel) !== normalize(name)
-            ? `${name}, ${regionLabel}`
-            : name;
-
-        const contextParts = [city, state, country].filter(
-          (part): part is string =>
-            Boolean(part) && normalize(part!) !== normalize(name)
-        );
-
-        const secondary =
-          contextParts.length > 0 ? `${placeType} · ${contextParts.join(', ')}` : placeType;
-
-        const value =
-          regionLabel && normalize(regionLabel) !== normalize(name)
-            ? `${name}, ${regionLabel}`
-            : name;
-
-        const dedupeKey = normalize(`${name}|${state || ''}|${city || ''}|${country || ''}`);
-        if (!seenKeys.has(dedupeKey) && !seenKeys.has(normalize(value))) {
-          seenKeys.add(dedupeKey);
-          seenKeys.add(normalize(value));
-          results.push({
-            id: `osm-${props.osm_id || results.length}`,
-            primary,
-            secondary,
-            value,
-          });
-        }
-
-        if (results.length >= 10) break;
+      });
+      if (!response.ok) {
+        console.error(`Location provider returned HTTP ${response.status}.`);
+        return null;
       }
+      return await response.json();
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        console.error('Could not load location suggestions:', error instanceof Error ? error.message : 'Unknown error');
+      }
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  const photonData = await fetchJson(photonUrl, {
+    Accept: 'application/json',
+    'User-Agent': 'FruglMarketplace/1.0 (Location Autocomplete)',
+  });
+
+  if (isRecord(photonData) && Array.isArray(photonData.features)) {
+    for (const feat of photonData.features) {
+    if (!isRecord(feat) || !isRecord(feat.properties)) continue;
+    const props = feat.properties;
+    if (typeof props.name !== 'string') continue;
+
+    const name = props.name;
+    const city = firstString(props.city, props.town, props.locality);
+    const state = firstString(props.state, props.county);
+    const country = firstString(props.country);
+    const osmValue = firstString(props.osm_value);
+    if (!isPlaceResult(osmValue)) continue;
+    const placeType = formatPlaceType(
+      osmValue,
+      firstString(props.type),
+    );
+
+    // Include province/city in primary or secondary so same-named places in different provinces stay distinct
+    const regionLabel = state || city;
+    const primary =
+      regionLabel && normalize(regionLabel) !== normalize(name)
+        ? `${name}, ${regionLabel}`
+        : name;
+
+    const contextParts = [city, state, country].filter(
+      (part): part is string =>
+        Boolean(part) && normalize(part!) !== normalize(name)
+    );
+
+    const secondary =
+      contextParts.length > 0 ? `${placeType} · ${contextParts.join(', ')}` : placeType;
+
+    const selectedName = city && normalize(city) !== normalize(name) ? city : name;
+    const value = [selectedName, state].filter(Boolean).join(', ');
+
+    const coordinates = getPhilippinesCoordinates(feat);
+    if (!coordinates) continue;
+
+    const dedupeKey = normalize(`${name}|${state || ''}|${city || ''}|${country || ''}`);
+    if (!seenKeys.has(dedupeKey) && !seenKeys.has(normalize(value))) {
+      seenKeys.add(dedupeKey);
+      seenKeys.add(normalize(value));
+      const osmId = typeof props.osm_id === 'string' || typeof props.osm_id === 'number'
+        ? props.osm_id
+        : results.length;
+      results.push({
+        id: `osm-${osmId}`,
+        primary,
+        secondary,
+        value,
+        lat: coordinates.lat,
+        lng: coordinates.lng,
+      });
     }
 
-    // Process Nominatim PH results to catch any Philippine barangays/towns missed by Photon
-    if (nominatimSettled.status === 'fulfilled' && Array.isArray(nominatimSettled.value)) {
-      for (const item of nominatimSettled.value) {
-        const name: string =
-          item.name || (item.display_name ? item.display_name.split(',')[0] : '');
+    if (results.length >= 10) break;
+  }
+  }
+
+  if (results.length < 8) {
+    // Nominatim's usage policy discourages autocomplete; retain it only as a server-side fallback.
+    const nominatimData = await fetchJson(nominatimUrl, {
+      Accept: 'application/json',
+      'Accept-Language': 'en',
+      'User-Agent': 'FruglMarketplace/1.0 (Location Autocomplete)',
+    });
+    if (Array.isArray(nominatimData)) {
+      for (const rawItem of nominatimData) {
+        if (!isRecord(rawItem)) continue;
+        const item = rawItem;
+        const name =
+          firstString(item.name) ||
+          (typeof item.display_name === 'string' ? item.display_name.split(',')[0] : '');
         if (!name) continue;
-        const addr = item.address || {};
-        const city = addr.city || addr.town || addr.municipality;
-        const state = addr.state || addr.province || addr.region || addr.county;
-        const country = addr.country || 'Philippines';
-        const placeType = formatPlaceType(item.type, item.category);
+        const addr = isRecord(item.address) ? item.address : {};
+        const city = firstString(addr.city, addr.town, addr.municipality);
+        const state = firstString(addr.state, addr.province, addr.region, addr.county);
+        const country = firstString(addr.country) || 'Philippines';
+        const itemType = firstString(item.type);
+        const category = firstString(item.category);
+        if (!isPlaceResult(itemType)) continue;
+        const placeType = formatPlaceType(itemType, category);
 
         const regionLabel = state || city;
         const primary =
@@ -238,28 +365,37 @@ export async function GET(req: NextRequest) {
         );
         const secondary =
           contextParts.length > 0 ? `${placeType} · ${contextParts.join(', ')}` : placeType;
-        const value =
-          regionLabel && normalize(regionLabel) !== normalize(name)
-            ? `${name}, ${regionLabel}`
-            : name;
+        const selectedName = city && normalize(city) !== normalize(name) ? city : name;
+        const value = [selectedName, state].filter(Boolean).join(', ');
 
         const dedupeKey = normalize(`${name}|${state || ''}|${city || ''}|${country || ''}`);
         if (!seenKeys.has(dedupeKey) && !seenKeys.has(normalize(value))) {
           seenKeys.add(dedupeKey);
           seenKeys.add(normalize(value));
+          const lat = Number(item.lat);
+          const lng = Number(item.lon);
+          const validCoordinates =
+            Number.isFinite(lat) &&
+            lat >= 4 &&
+            lat <= 22 &&
+            Number.isFinite(lng) &&
+            lng >= 116 &&
+            lng <= 128;
           results.push({
-            id: `nom-${item.place_id || results.length}`,
+            id: `nom-${typeof item.place_id === 'string' || typeof item.place_id === 'number'
+              ? item.place_id
+              : results.length}`,
             primary,
             secondary,
             value,
+            lat: validCoordinates ? lat : null,
+            lng: validCoordinates ? lng : null,
           });
         }
 
         if (results.length >= 10) break;
       }
     }
-  } catch {
-    clearTimeout(timeout);
   }
 
   return NextResponse.json({ suggestions: results.slice(0, 8) });

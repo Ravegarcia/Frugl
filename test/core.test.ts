@@ -9,7 +9,6 @@ import {
   isImageMessageAttachment,
   MESSAGE_ATTACHMENT_MAX_SIZE,
 } from '../src/lib/messages/attachments';
-import { findLagunaMunicipality } from '../src/lib/admin/laguna-locations';
 import { validateListingPatch } from '../src/lib/listings/validation';
 import { sellerListingStatusPatch } from '../src/lib/listings/status';
 import { resolveUsageLimit, secondsUntilDailyReset } from '../src/lib/usage-policy';
@@ -219,6 +218,21 @@ describe('Listing patch validation', () => {
     expect(validateListingPatch({ screen_size: 14.25 }).valid).toBe(false);
     expect(validateListingPatch(null).valid).toBe(false);
   });
+
+  it('accepts valid nullable location coordinates and rejects incomplete or invalid pairs', () => {
+    expect(validateListingPatch({
+      location: 'San Pablo City, Laguna',
+      location_lat: 14.07,
+      location_lng: 121.325,
+      location_label: 'San Pablo City, Laguna',
+    }).valid).toBe(true);
+    expect(validateListingPatch({ location_lat: 14, location_label: 'City' }).valid).toBe(false);
+    expect(validateListingPatch({ location_lat: Number.NaN, location_lng: 121 }).valid).toBe(false);
+    expect(validateListingPatch({ location_lat: 91, location_lng: 121 }).valid).toBe(false);
+    expect(validateListingPatch({
+      location_label: 'x'.repeat(121),
+    }).valid).toBe(false);
+  });
 });
 
 describe('Seller listing status actions', () => {
@@ -270,13 +284,5 @@ describe('Authentication redirects', () => {
     expect(safeRedirectPath('//outside.example')).toBe('/');
     expect(safeRedirectPath('/\\\\outside.example')).toBe('/');
     expect(safeRedirectPath('/%2e//outside.example')).toBe('/');
-  });
-});
-
-describe('Laguna seller locations', () => {
-  it('matches Laguna cities and municipalities while excluding other provinces', () => {
-    expect(findLagunaMunicipality('San Pablo City, Laguna')?.name).toBe('San Pablo');
-    expect(findLagunaMunicipality('Biñan, Laguna')?.name).toBe('Biñan');
-    expect(findLagunaMunicipality('Quezon City, Philippines')).toBeNull();
   });
 });

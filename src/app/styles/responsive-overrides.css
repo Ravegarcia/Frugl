@@ -4,6 +4,10 @@
     padding-bottom: calc(4rem + env(safe-area-inset-bottom));
   }
 
+  .app-body:has(.admin-dashboard) {
+    padding-bottom: 0;
+  }
+
   .app-body:has(.sell-listing-editor:not([style*="display: none"]):not([style*="display:none"])) {
     padding-bottom: 0;
   }
@@ -142,13 +146,40 @@
   }
 
   .admin-dashboard {
+    position: static;
+    inset: auto;
+    width: auto;
     grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: calc(100dvh - 9.5rem);
+    transform: none;
+  }
+
+  .admin-workspace-loading {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+
+  .admin-loading-sidebar {
+    height: auto;
+    min-height: 5rem;
   }
 
   .admin-sidebar {
     position: static;
+    height: auto;
+    max-height: none;
     min-height: 0;
+    overflow: visible;
     padding: 0.75rem;
+  }
+
+  .admin-dashboard-main {
+    height: auto;
+    overflow: visible;
+    padding: 0;
+    scrollbar-gutter: auto;
   }
 
   .admin-sidebar-brand {
@@ -170,8 +201,7 @@
     gap: 0.25rem;
   }
 
-  .admin-nav-group > p,
-  .admin-sidebar-user {
+  .admin-nav-group > p {
     display: none;
   }
 
@@ -183,48 +213,13 @@
     white-space: nowrap;
   }
 
-  .admin-dashboard-header {
-    min-height: 0;
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .admin-dashboard-header::after {
-    top: -8rem;
-    right: -5rem;
-  }
-
-  .admin-header-action {
-    align-self: flex-start;
-  }
-
-  .admin-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-panels-grid {
+  .admin-heatmap-content {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .admin-laguna-content {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .admin-laguna-leaflet-map,
-  .admin-laguna-map-loading {
+  .admin-heatmap-map,
+  .admin-heatmap-map-loading {
     height: 16rem;
-  }
-
-  .admin-quick-links {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-quick-links > div {
-    grid-column: 1 / -1;
-  }
-
-  .admin-quick-links > a {
-    min-height: 3rem;
   }
 
   .admin-users-header,
@@ -326,6 +321,11 @@
   .app-main {
     width: min(100% - 1.25rem, 80rem);
     padding-block: 1.25rem 3rem;
+  }
+
+  .app-main:has(.admin-dashboard) {
+    width: min(100% - 1.25rem, 80rem);
+    padding-block: 1rem;
   }
 
   .app-main:has(.messages-inbox:not([style*="display: none"]):not([style*="display:none"])) {
@@ -638,29 +638,6 @@
     padding: 0;
   }
 
-}
-
-@media (min-width: 768px) and (max-width: 1000px) {
-  .admin-dashboard {
-    grid-template-columns: 12rem minmax(0, 1fr);
-    gap: 1rem;
-  }
-
-  .admin-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-panels-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .admin-quick-links {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .admin-quick-links > div {
-    grid-column: 1 / -1;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

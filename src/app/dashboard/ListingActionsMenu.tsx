@@ -85,11 +85,13 @@ export default function ListingActionsMenu({ listingId, title, status, messageCo
         className='seller-dashboard-action-popover'
         ariaLabel='Listing actions'
       >
-        <Link href={`/sell/${listingId}`} onClick={() => setIsOpen(false)}>
-          <Edit3 size={15} />
-          <span>Edit listing</span>
-        </Link>
-        {status !== 'draft' && (
+        {status !== 'pending_review' && (
+          <Link href={`/sell/${listingId}`} onClick={() => setIsOpen(false)}>
+            <Edit3 size={15} />
+            <span>{status === 'rejected' ? 'Update listing' : 'Edit listing'}</span>
+          </Link>
+        )}
+        {status !== 'draft' && status !== 'pending_review' && status !== 'rejected' && (
           <Link href={`/laptops/${listingId}`} onClick={() => setIsOpen(false)}>
             <ExternalLink size={15} />
             <span>View listing</span>

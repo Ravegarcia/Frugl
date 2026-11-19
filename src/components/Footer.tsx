@@ -4,7 +4,9 @@ import Reveal from '@/components/motion/Reveal';
 
 export default async function Footer() {
   const { user, profile } = await getSessionProfile();
-  const canBrowse = Boolean(user && profile?.role !== 'admin');
+  if (profile?.role === 'admin') return null;
+
+  const canBrowse = Boolean(user);
 
   return (
     <footer className='site-footer relative shrink-0 overflow-hidden bg-[var(--footer)] text-lavender-300'>

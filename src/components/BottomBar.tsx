@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, Search, PlusCircle, MessageCircle, Shield, User } from '@/components/icons';
+import { Home, Search, PlusCircle, MessageCircle, User } from '@/components/icons';
 import { getSessionProfile } from '@/lib/auth';
 import AuthModalLink from '@/components/AuthModalLink';
 
@@ -20,9 +20,9 @@ const guestItems = [
 
 export default async function BottomBar() {
   const { user, profile } = await getSessionProfile();
-  const items = profile?.role === 'admin'
-    ? [{ href: '/admin', label: 'Admin', Icon: Shield }]
-    : user ? memberItems : guestItems;
+  if (profile?.role === 'admin') return null;
+
+  const items = user ? memberItems : guestItems;
 
   return (
     <nav className='fixed inset-x-0 bottom-0 z-20 flex justify-around border-t border-lavender-300 bg-[rgb(255_253_250_/_0.97)] py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] text-foreground shadow-[0_-4px_16px_rgb(24_13_38_/_0.05)] md:hidden' aria-label='Mobile navigation'>

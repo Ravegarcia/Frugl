@@ -146,7 +146,13 @@ export async function POST(request: Request) {
   // 1. create the draft listing (only its seller can see it)
   const { data: draft, error: draftError } = await supabase
     .from('listings')
-    .insert({ seller_id: user.id, location: profile?.default_location ?? '' })
+    .insert({
+      seller_id: user.id,
+      location: profile?.default_location ?? '',
+      location_lat: profile?.location_lat ?? null,
+      location_lng: profile?.location_lng ?? null,
+      location_label: profile?.location_label ?? null,
+    })
     .select('id')
     .single();
   if (draftError || !draft) {

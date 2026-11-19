@@ -1,4 +1,8 @@
 import { CONDITIONS, DEAL_METHODS } from '../constants';
+import {
+  isValidLocationCoordinates,
+  LOCATION_LABEL_MAX_LENGTH,
+} from '../location-validation';
 
 const TEXT_LIMITS = {
   title: 120,
@@ -6,6 +10,7 @@ const TEXT_LIMITS = {
   brand: 60,
   model: 120,
   location: 120,
+  location_label: LOCATION_LABEL_MAX_LENGTH,
   address_detail: 300,
   cpu: 160,
   gpu: 160,
@@ -13,13 +18,22 @@ const TEXT_LIMITS = {
   storage: 40,
 } as const;
 
-const OPTIONAL_TEXT_FIELDS = new Set(['address_detail', 'cpu', 'gpu', 'ram', 'storage']);
+const OPTIONAL_TEXT_FIELDS = new Set([
+  'address_detail',
+  'cpu',
+  'gpu',
+  'ram',
+  'storage',
+  'location_label',
+]);
 const EDITABLE_FIELDS = new Set([
   ...Object.keys(TEXT_LIMITS),
   'price',
   'condition',
   'deal_methods',
   'screen_size',
+  'location_lat',
+  'location_lng',
 ]);
 const VALID_CONDITIONS = new Set(CONDITIONS.map(({ value }) => value));
 const VALID_DEAL_METHODS = new Set(DEAL_METHODS.map(({ value }) => value));
@@ -57,7 +71,7 @@ export function validateListingPatch(value: unknown): ListingPatchValidation {
       if (text.length > TEXT_LIMITS[field as keyof typeof TEXT_LIMITS]) {
         return { valid: false, error: `${field} must be ${TEXT_LIMITS[field as keyof typeof TEXT_LIMITS]} characters or fewer.` };
       }
-      patch[field] = text;
+      patch[field] = field === 'location_label' && !text ? null : text;
       continue;
     }
 
@@ -91,6 +105,28 @@ export function validateListingPatch(value: unknown): ListingPatchValidation {
       continue;
     }
 
+    if (field === 'location_lat' || field === 'location_lng') {
+      if (fieldValue !== null && (typeof fieldValue !== 'number' || !Number.isFinite(fieldValue))) {
+        return { valid: false, error: 'Location coordinates must be finite numbers or null.' };
+      }
+      if (
+        field === 'location_lat' &&
+        typeof fieldValue === 'number' &&
+        (fieldValue < -90 || fieldValue > 90)
+      ) {
+        return { valid: false, error: 'Latitude must be between -90 and 90.' };
+      }
+      if (
+        field === 'location_lng' &&
+        typeof fieldValue === 'number' &&
+        (fieldValue < -180 || fieldValue > 180)
+      ) {
+        return { valid: false, error: 'Longitude must be between -180 and 180.' };
+      }
+      patch[field] = fieldValue;
+      continue;
+    }
+
     if (field === 'condition') {
       if (fieldValue !== null && (typeof fieldValue !== 'string' || !VALID_CONDITIONS.has(fieldValue))) {
         return { valid: false, error: 'Choose a valid laptop condition.' };
@@ -110,6 +146,18 @@ export function validateListingPatch(value: unknown): ListingPatchValidation {
       }
       patch.deal_methods = fieldValue;
     }
+  }
+
+  const hasLatitude = Object.hasOwn(patch, 'location_lat');
+  const hasLongitude = Object.hasOwn(patch, 'location_lng');
+  if (hasLatitude !== hasLongitude) {
+    return { valid: false, error: 'Latitude and longitude must be provided together.' };
+  }
+  if (
+    hasLatitude &&
+    !isValidLocationCoordinates(patch.location_lat, patch.location_lng)
+  ) {
+    return { valid: false, error: 'Provide a valid latitude and longitude pair.' };
   }
 
   return { valid: true, patch };

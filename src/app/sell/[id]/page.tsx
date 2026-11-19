@@ -30,6 +30,9 @@ async function SellDraftContent({ params }: Props) {
   if (listing.seller_id !== user.id && profile?.role !== 'admin') {
     redirect('/');
   }
+  if (listing.status === 'pending_review' && listing.seller_id === user.id) {
+    redirect('/dashboard?tab=pending');
+  }
 
   return (
     <EditDraftForm

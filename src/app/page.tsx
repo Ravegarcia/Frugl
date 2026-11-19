@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { redirect } from 'next/navigation';
 import { getSessionProfile } from '@/lib/auth';
 import { CARD_SELECT_WITH_SAVED } from '@/lib/queries';
 import ListingCard from '@/components/ListingCard';
@@ -21,6 +22,8 @@ const BRAND_LINKS = [
 
 export default async function Home() {
   const { supabase, user, profile } = await getSessionProfile();
+  if (profile?.role === 'admin') redirect('/admin');
+
   const isGuest = !user;
   const canBrowse = Boolean(user && profile?.role !== 'admin');
   const catalogHref = isGuest ? '/register?next=%2Flaptops' : canBrowse ? '/laptops' : '/admin';

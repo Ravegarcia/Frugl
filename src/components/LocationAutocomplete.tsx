@@ -8,13 +8,21 @@ import type { LocationSuggestion } from '@/app/api/locations/route';
 interface LocationAutocompleteProps {
   id?: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, selection: LocationSelection | null) => void;
+  required?: boolean;
+}
+
+export interface LocationSelection {
+  label: string;
+  lat: number | null;
+  lng: number | null;
 }
 
 export default function LocationAutocomplete({
   id = 'location',
   value,
   onChange,
+  required = true,
 }: LocationAutocompleteProps) {
   const [query, setQuery] = useState(value || '');
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
@@ -71,8 +79,8 @@ export default function LocationAutocomplete({
   }, [query, isOpen]);
 
   function handleSelect(item: LocationSuggestion) {
-    setQuery(item.primary);
-    onChange(item.value);
+    setQuery(item.value);
+    onChange(item.value, { label: item.value, lat: item.lat, lng: item.lng });
     setIsConfirmed(true);
     setTouched(true);
     setIsOpen(false);
@@ -80,7 +88,7 @@ export default function LocationAutocomplete({
 
   function handleInputChange(nextVal: string) {
     setQuery(nextVal);
-    onChange(nextVal);
+    onChange(nextVal, null);
     setIsConfirmed(false);
     setTouched(true);
     if (!isOpen) {
@@ -115,7 +123,7 @@ export default function LocationAutocomplete({
     }
   }
 
-  const showWarning = (touched || isOpen) && (!query.trim() || !isConfirmed);
+  const showWarning = required && (touched || isOpen) && (!query.trim() || !isConfirmed);
 
   return (
     <div ref={containerRef} className='location-autocomplete'>
@@ -164,7 +172,7 @@ export default function LocationAutocomplete({
 
         <div className='location-autocomplete-content'>
           <label htmlFor={id} className='location-autocomplete-label'>
-            Location <span className='text-red-500'>*</span>
+            Location {required && <span className='text-red-500'>*</span>}
           </label>
           <input
             ref={inputRef}
@@ -186,14 +194,15 @@ export default function LocationAutocomplete({
                   s.value.toLowerCase() === query.trim().toLowerCase()
               );
               if (exact) {
-                setQuery(exact.primary);
-                onChange(exact.value);
+                setQuery(exact.value);
+                onChange(exact.value, { label: exact.value, lat: exact.lat, lng: exact.lng });
                 setIsConfirmed(true);
               }
             }}
             onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder='Enter a city or barangay'
+            maxLength={120}
             className='location-autocomplete-input'
           />
         </div>

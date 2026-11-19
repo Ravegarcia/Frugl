@@ -27,12 +27,13 @@ const CATEGORY_BY_TYPE: Record<string, Exclude<NotificationFilter, 'all' | 'for-
   message: 'messages',
   listing_reserved: 'listings',
   listing_sold: 'listings',
+  listing_rejected: 'listings',
   saved_listing_sold: 'listings',
   listing_saved: 'listings',
 };
 
 const FOR_ACTION_TYPES = new Set(['offer', 'message', 'listing_reserved']);
-const ACTIVITY_TYPES = new Set(['offer_update', 'listing_sold', 'saved_listing_sold', 'listing_saved']);
+const ACTIVITY_TYPES = new Set(['offer_update', 'listing_sold', 'listing_rejected', 'saved_listing_sold', 'listing_saved']);
 
 function isNotificationFilter(value: string | undefined): value is NotificationFilter {
   return FILTERS.some((filter) => filter.id === value);
@@ -169,6 +170,15 @@ function renderNotificationCopy(
           <strong>{rawTitle}</strong> was marked as sold.
         </>
       );
+    case 'listing_rejected': {
+      const reason = typeof payload.reason === 'string' ? payload.reason.trim() : '';
+      return (
+        <>
+          <strong>{rawTitle}</strong> needs changes before it can be published.
+          {reason ? <> Administrator feedback: {reason}</> : null}
+        </>
+      );
+    }
     case 'saved_listing_sold': {
       const sellerName =
         (typeof payload.seller_name === 'string' && payload.seller_name.trim()) ||

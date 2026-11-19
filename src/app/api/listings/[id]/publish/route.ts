@@ -14,6 +14,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     return json({ error: 'Could not verify this listing.' }, 500);
   }
   if (!l) return json({ error: 'Listing not found.' }, 404);
+  if (l.status !== 'draft' && l.status !== 'rejected') {
+    return json({ error: 'Only drafts and rejected listings can be submitted for review.' }, 409);
+  }
 
   const missing: string[] = [];
   if (!l.listing_photos?.length) missing.push('photos');
@@ -27,13 +30,25 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   if (!l.location?.trim()) missing.push('location');
   if (missing.length) return json({ error: 'Missing: ' + missing.join(', '), missing }, 400);
 
-  const { error } = await supabase
+  const { data: submitted, error } = await supabase
     .from('listings')
-    .update({ status: 'available', published_at: l.published_at ?? new Date().toISOString() })
-    .eq('id', id);
+    .update({
+      status: 'pending_review',
+      review_reason: null,
+      reviewed_at: null,
+      reviewed_by: null,
+      published_at: null,
+    })
+    .eq('id', id)
+    .eq('status', l.status)
+    .select('id')
+    .maybeSingle();
   if (error) {
-    console.error('Could not publish listing:', error.message);
-    return json({ error: 'Could not publish this listing.' }, 500);
+    console.error('Could not submit listing for review:', error.message);
+    return json({ error: 'Could not submit this listing for review.' }, 500);
+  }
+  if (!submitted) {
+    return json({ error: 'This listing changed. Refresh and try again.' }, 409);
   }
 
   const { error: identificationError } = await supabase
@@ -43,5 +58,5 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   if (identificationError) {
     console.error('Could not record seller confirmation:', identificationError.message);
   }
-  return json({ ok: true });
+  return json({ ok: true, status: 'pending_review' });
 }

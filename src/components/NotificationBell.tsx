@@ -32,6 +32,8 @@ function notificationText(notification: NotificationItem) {
       return `“${title}” has been reserved for you.`;
     case 'listing_sold':
       return `“${title}” was marked as sold.`;
+    case 'listing_rejected':
+      return `“${title}” needs changes before it can be published${typeof payload.reason === 'string' && payload.reason.trim() ? `: ${payload.reason.trim()}` : '.'}`;
     case 'saved_listing_sold':
       return `A laptop you saved, “${title}”, has been sold.`;
     default:

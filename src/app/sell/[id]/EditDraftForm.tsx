@@ -8,7 +8,7 @@ import { CONDITIONS, DEAL_METHODS, BRANDS, formatPrice } from '@/lib/constants';
 import { CHECKLIST_ITEMS, suggestCondition } from '@/lib/condition';
 import { resizeImage } from '@/lib/client-image';
 import SellListingPreview from '@/components/SellListingPreview';
-import LocationAutocomplete from '@/components/LocationAutocomplete';
+import LocationAutocomplete, { type LocationSelection } from '@/components/LocationAutocomplete';
 import Chevron from '@/components/motion/Chevron';
 import Collapse from '@/components/motion/Collapse';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,12 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
   const [description, setDescription] = useState(initialListing.description || '');
   const [dealMethods, setDealMethods] = useState<string[]>(initialListing.deal_methods || ['public_meetup']);
   const [location, setLocation] = useState(initialListing.location || userLocation || '');
+  const [locationSelection, setLocationSelection] = useState<LocationSelection | null>(() => {
+    const lat = typeof initialListing.location_lat === 'number' ? initialListing.location_lat : null;
+    const lng = typeof initialListing.location_lng === 'number' ? initialListing.location_lng : null;
+    const label = initialListing.location_label || (lat !== null && lng !== null ? initialListing.location : '');
+    return label || lat !== null || lng !== null ? { label, lat, lng } : null;
+  });
   const addressDetail = initialListing.address_detail || '';
 
   // Specs
@@ -193,6 +199,9 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
         description,
         deal_methods: dealMethods,
         location,
+        location_lat: locationSelection?.lat ?? null,
+        location_lng: locationSelection?.lng ?? null,
+        location_label: locationSelection?.label || null,
         address_detail: addressDetail,
         cpu,
         gpu,
@@ -211,7 +220,7 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
         const data = await res.json();
         throw new Error(data.error || 'Failed to save draft.');
       }
-      setSuccessMsg('Draft saved successfully.');
+      setSuccessMsg(initialListing.status === 'rejected' ? 'Changes saved.' : 'Draft saved successfully.');
     } catch (err: any) {
       setError(err.message || 'Save failed.');
     } finally {
@@ -236,6 +245,9 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
         description,
         deal_methods: dealMethods,
         location,
+        location_lat: locationSelection?.lat ?? null,
+        location_lng: locationSelection?.lng ?? null,
+        location_label: locationSelection?.label || null,
         address_detail: addressDetail,
         cpu,
         gpu,
@@ -254,7 +266,7 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
         throw new Error(saveData.error || 'Failed to save listing changes.');
       }
 
-      // Call publish endpoint (validates required fields)
+      // Submit the listing for administrator review after validating required fields.
       const pubRes = await fetchWithTimeout(`/api/listings/${initialListing.id}/publish`, {
         method: 'POST',
       });
@@ -263,7 +275,7 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
         throw new Error(pubData.error || 'Please fill in all required fields.');
       }
 
-      router.push(`/laptops/${initialListing.id}`);
+      router.push('/dashboard?tab=pending');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not publish listing.');
@@ -280,7 +292,7 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
         <header className='listing-editor-sidebar-header'>
           <div>
             <p className='listing-editor-kicker'>Marketplace</p>
-            <h1>Edit listing draft</h1>
+            <h1>{initialListing.status === 'rejected' ? 'Update rejected listing' : 'Edit listing draft'}</h1>
           </div>
           <div className='listing-editor-header-actions'>
             <button
@@ -297,10 +309,20 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
               disabled={savingDraft || publishing}
               className='sell-skip-button'
             >
-              {savingDraft ? 'Saving...' : 'Save draft'}
+              {savingDraft
+                ? 'Saving...'
+                : initialListing.status === 'draft'
+                  ? 'Save draft'
+                  : 'Save changes'}
             </button>
           </div>
         </header>
+        {initialListing.status === 'rejected' && (
+          <div className='listing-editor-review-feedback' role='status'>
+            <strong>Changes requested by an administrator</strong>
+            <p>{initialListing.review_reason || 'Update the listing details before resubmitting.'}</p>
+          </div>
+        )}
         <div className={`listing-editor-fields ${mobileTab === 'preview' ? 'listing-editor-mobile-hidden' : ''}`}>
           <p className='sell-editor-intro'>
             Review and adjust the details. The preview updates as you edit.
@@ -633,7 +655,10 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
               <LocationAutocomplete
                 id='location'
                 value={location}
-                onChange={setLocation}
+                onChange={(value, selection) => {
+                  setLocation(value);
+                  setLocationSelection(selection);
+                }}
               />
             </div>
             </div>
@@ -646,16 +671,22 @@ export default function EditDraftForm({ initialListing, userLocation, sellerName
           </Button>
           <Button
             size='sm'
-            onClick={publishListing}
+            onClick={initialListing.status === 'draft' || initialListing.status === 'rejected'
+              ? publishListing
+              : saveDraft}
             disabled={savingDraft || publishing}
           >
-            {publishing ? (
+            {publishing || savingDraft ? (
               <>
                 <Loader2 size={14} className='animate-spin mr-1.5' />
-                Publishing...
+                {publishing ? 'Submitting...' : 'Saving...'}
               </>
             ) : (
-              'Publish listing'
+              initialListing.status === 'rejected'
+                ? 'Resubmit for review'
+                : initialListing.status === 'draft'
+                  ? 'Submit for review'
+                  : 'Save changes'
             )}
           </Button>
         </div>

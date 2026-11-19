@@ -5,7 +5,7 @@ import type { AdminActivityEvent } from '@/lib/admin/activity';
 import AdminSidebar from './AdminSidebar';
 
 async function AdminWorkspace({ children }: { children: ReactNode }) {
-  const { supabase, user, profile } = await requireStaff();
+  const { supabase, user } = await requireStaff();
   const activityEvents: AdminActivityEvent[] = [
     'listing_created',
     'account_created',
@@ -33,14 +33,9 @@ async function AdminWorkspace({ children }: { children: ReactNode }) {
     chat_alert_created: activityResults[3]?.count ?? 0,
   };
 
-  const name = profile?.name?.trim() || 'Admin';
-  const roleLabel = 'Administrator';
-
   return (
     <>
       <AdminSidebar
-        name={name}
-        roleLabel={roleLabel}
         staffId={user.id}
         initialActivityCounts={initialActivityCounts}
       />
@@ -54,8 +49,22 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <div className='admin-dashboard'>
       <Suspense
         fallback={
-          <div className='admin-workspace-loading' role='status'>
-            Loading admin workspace...
+          <div className='admin-workspace-loading' role='status' aria-label='Loading admin workspace'>
+            <div className='admin-loading-surface admin-loading-sidebar' aria-hidden='true' />
+            <div className='admin-loading-main' aria-hidden='true'>
+              <div className='admin-loading-stats'>
+                {Array.from({ length: 5 }, (_, index) => (
+                  <div className='admin-loading-surface' key={index} />
+                ))}
+              </div>
+              <div className='admin-loading-overview-layout'>
+                <div className='admin-loading-surface admin-loading-map' />
+                <div className='admin-loading-side-stack'>
+                  <div className='admin-loading-surface' />
+                  <div className='admin-loading-surface' />
+                </div>
+              </div>
+            </div>
           </div>
         }
       >

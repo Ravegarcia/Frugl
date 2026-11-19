@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import * as L from 'leaflet';
-import { LOCATION_PRIVACY_THRESHOLD } from '@/lib/admin/location-aggregates';
 import type { AdminMemberLocations } from '@/lib/admin/member-locations';
-import { formatPrivacyCount, formatPrivacyCountLabel } from '@/lib/format';
+import { pluralize } from '@/lib/format';
 
 type Audience = keyof Pick<AdminMemberLocations, 'all' | 'sellers' | 'buyers'>;
 
@@ -37,6 +36,10 @@ function getDensityColor(count: number, maxCount: number, audience: Audience): s
   if (density >= 0.5) return palette[2];
   if (density >= 0.25) return palette[1];
   return palette[0];
+}
+
+function formatMemberCount(count: number): string {
+  return `${count.toLocaleString()} ${pluralize(count, 'member')}`;
 }
 
 function getAreaLabel(name: string, province: string | null): string {
@@ -104,7 +107,7 @@ export default function LocationHeatmapPanel({ data }: { data: AdminMemberLocati
         fillOpacity: 0.86,
       });
       const tooltip = document.createElement('span');
-      tooltip.textContent = `${label}: ${formatPrivacyCountLabel(area.count, 'member', 'members', LOCATION_PRIVACY_THRESHOLD)}`;
+      tooltip.textContent = `${label}: ${formatMemberCount(area.count)}`;
       marker.bindTooltip(tooltip, { direction: 'top', offset: [0, -8] });
       marker.on('click', () => {
         map.setView(marker.getLatLng(), Math.max(map.getZoom(), 8));
@@ -150,20 +153,18 @@ export default function LocationHeatmapPanel({ data }: { data: AdminMemberLocati
                 className={audience === option ? 'is-active' : ''}
                 data-audience={option}
                 onClick={() => setAudience(option)}
-                aria-label={`Show ${AUDIENCE_LABELS[option]}: ${formatPrivacyCountLabel(data[option].totalPeople, 'member', 'members', LOCATION_PRIVACY_THRESHOLD)}`}
-                title={`${AUDIENCE_LABELS[option]}: ${formatPrivacyCountLabel(data[option].totalPeople, 'member', 'members', LOCATION_PRIVACY_THRESHOLD)}`}
+                aria-label={`Show ${AUDIENCE_LABELS[option]}: ${formatMemberCount(data[option].totalPeople)}`}
+                title={`${AUDIENCE_LABELS[option]}: ${formatMemberCount(data[option].totalPeople)}`}
               >
                 <span>{AUDIENCE_LABELS[option]}</span>
                 <span className='admin-heatmap-switch-count' aria-hidden='true'>
-                  {data[option].totalPeople < LOCATION_PRIVACY_THRESHOLD
-                    ? `<${LOCATION_PRIVACY_THRESHOLD}`
-                    : data[option].totalPeople.toLocaleString()}
+                  {data[option].totalPeople.toLocaleString()}
                 </span>
               </button>
             ))}
           </div>
           <div className='admin-heatmap-summary' aria-live='polite'>
-            <strong>{formatPrivacyCount(current.totalPeople, LOCATION_PRIVACY_THRESHOLD)}</strong>
+            <strong>{current.totalPeople.toLocaleString()}</strong>
             <span>
               {audience === 'all'
                 ? 'active members'
@@ -185,7 +186,7 @@ export default function LocationHeatmapPanel({ data }: { data: AdminMemberLocati
           />
           {current.areas.length === 0 && (
             <p className='admin-heatmap-map-empty' role='status'>
-              No location areas meet the minimum group size yet.
+              No mapped locations are available yet.
             </p>
           )}
         </div>
@@ -203,11 +204,11 @@ export default function LocationHeatmapPanel({ data }: { data: AdminMemberLocati
                     type='button'
                     className='admin-heatmap-location-button'
                     onClick={() => focusArea(area.name, area.province)}
-                    aria-label={`Zoom to ${getAreaLabel(area.name, area.province)}, ${formatPrivacyCountLabel(area.count, 'member', 'members', LOCATION_PRIVACY_THRESHOLD)}`}
+                    aria-label={`Zoom to ${getAreaLabel(area.name, area.province)}, ${formatMemberCount(area.count)}`}
                   >
                     <span className='admin-heatmap-location-copy'>
                       <strong>{getAreaLabel(area.name, area.province)}</strong>
-                      <span>{formatPrivacyCountLabel(area.count, 'member')}</span>
+                      <span>{formatMemberCount(area.count)}</span>
                     </span>
                     <span className='admin-heatmap-location-track' aria-hidden='true'>
                       <span
@@ -223,12 +224,7 @@ export default function LocationHeatmapPanel({ data }: { data: AdminMemberLocati
             </ol>
           ) : (
             <p className='admin-heatmap-empty'>
-              Eligible locations will appear here after enough members share an area.
-            </p>
-          )}
-          {current.suppressedPeople > 0 && (
-            <p className='admin-heatmap-privacy-note'>
-              {formatPrivacyCount(current.suppressedPeople, LOCATION_PRIVACY_THRESHOLD)} members in small groups are hidden.
+              Mapped locations will appear here when city coordinates are available.
             </p>
           )}
         </aside>
@@ -248,25 +244,25 @@ export default function LocationHeatmapPanel({ data }: { data: AdminMemberLocati
         </div>
         <details className='admin-heatmap-unmapped'>
           <summary>
-            Unmapped locations · {formatPrivacyCountLabel(current.unmappedPeople, 'member', 'members', LOCATION_PRIVACY_THRESHOLD)}
+            Unmapped locations · {formatMemberCount(current.unmappedPeople)}
           </summary>
           {current.unmapped.length > 0 ? (
             <ul>
               {current.unmapped.map((area) => (
                 <li key={area.name}>
                   <span>{area.name}</span>
-                  <span>{formatPrivacyCountLabel(area.count, 'member')}</span>
+                  <span>{formatMemberCount(area.count)}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p>Unmapped area names are not available at a privacy-safe group size.</p>
+            <p>All saved location labels are mapped.</p>
           )}
         </details>
 
         <p className='admin-heatmap-privacy'>
           One account may be both a buyer and seller. Buyers have completed purchases; sellers have created listings.
-          {' '}The All view counts each active account once. Approximate locations only; markers for groups under {LOCATION_PRIVACY_THRESHOLD} are hidden.
+          {' '}The All view counts each active account once. Approximate city-level markers are shown when coordinates are available.
         </p>
       </div>
     </div>
